@@ -13,7 +13,8 @@ pub mod second_order {
 }
 
 pub fn apply<F>(stencil: &[(isize, f64)], i: usize, f: F) -> f64
-    where F: Fn(usize) -> f64
+where
+    F: Fn(usize) -> f64,
 {
     stencil.iter().fold(0.0, |acc, (k, w)| {
         let cell_offset = (i as isize + k) as usize;

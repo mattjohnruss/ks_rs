@@ -1,10 +1,10 @@
-use crate::stencil::{first_order, second_order};
 use crate::stencil::apply;
-use ndarray::prelude::*;
-use std::io::prelude::*;
+use crate::stencil::{first_order, second_order};
 use crate::utilities::minmod;
-use std::fmt;
+use ndarray::prelude::*;
 use std::cell::RefCell;
+use std::fmt;
+use std::io::prelude::*;
 use std::rc::Rc;
 
 #[allow(dead_code)]
@@ -40,11 +40,11 @@ pub struct KellerSegelExactSolution {
     c_solution: Rc<RefCell<Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>>>,
 }
 
-impl KellerSegelExactSolution
-{
+impl KellerSegelExactSolution {
     pub fn new<F1, F2>(rho_bar_solution: F1, c_solution: F2) -> Self
-    where F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
-          F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static
+    where
+        F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
+        F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
     {
         KellerSegelExactSolution {
             rho_bar_solution: Rc::new(RefCell::new(Box::new(rho_bar_solution))),
@@ -57,7 +57,10 @@ impl KellerSegelExactSolution
 /// Cannot derive Debug on Fn
 impl fmt::Debug for KellerSegelExactSolution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "KellerSegelExactSolutionFn {{ rho_bar_solution, c_solution }}")
+        write!(
+            f,
+            "KellerSegelExactSolutionFn {{ rho_bar_solution, c_solution }}"
+        )
     }
 }
 
@@ -66,11 +69,11 @@ pub struct KellerSegelForces {
     c_force: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
 }
 
-impl KellerSegelForces
-{
+impl KellerSegelForces {
     pub fn new<F1, F2>(rho_bar_force: F1, c_force: F2) -> Self
-    where F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
-          F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static
+    where
+        F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
+        F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
     {
         KellerSegelForces {
             rho_bar_force: Box::new(rho_bar_force),
@@ -147,7 +150,8 @@ impl KellerSegelProblem1D {
 
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
         match self.p.exact_solution {
-            Some(_) => buffer.write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?,
+            Some(_) => buffer
+                .write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?,
             None => buffer.write_all("t x rho\\\\_bar c\n".as_bytes())?,
         }
 
@@ -161,9 +165,17 @@ impl KellerSegelProblem1D {
                 Some(exact_solution) => {
                     let rho_bar_exact = exact_solution.rho_bar_solution.borrow()(time, x, &self.p);
                     let c_exact = exact_solution.c_solution.borrow()(time, x, &self.p);
-                    buffer.write_all(format!("{} {} {} {} {} {}\n", time, x, rho_bar, c, rho_bar_exact, c_exact).as_bytes())?;
+                    buffer.write_all(
+                        format!(
+                            "{} {} {} {} {} {}\n",
+                            time, x, rho_bar, c, rho_bar_exact, c_exact
+                        )
+                        .as_bytes(),
+                    )?;
                 }
-                None => buffer.write_all(format!("{} {} {} {}\n", time, x, rho_bar, c).as_bytes())?,
+                None => {
+                    buffer.write_all(format!("{} {} {} {}\n", time, x, rho_bar, c).as_bytes())?
+                }
             }
         }
         Ok(())
@@ -229,7 +241,10 @@ impl KellerSegelProblem1D {
                 // exact solution functions in self.p.exact_solution...
                 if self.p.exact_solution.is_some() {
                     let (rho_bar_solution, c_solution) = {
-                        let KellerSegelExactSolution { rho_bar_solution, c_solution } = self.p.exact_solution.as_ref().unwrap();
+                        let KellerSegelExactSolution {
+                            rho_bar_solution,
+                            c_solution,
+                        } = self.p.exact_solution.as_ref().unwrap();
                         (rho_bar_solution.clone(), c_solution.clone())
                     };
 
@@ -327,30 +342,27 @@ impl KellerSegelProblem1D {
                 self.u(Variable::RhoBar, i)
             });
 
-            minmod(&[2.0 * drho_bar_forward / self.p.dx,
-                     drho_bar_central / self.p.dx,
-                     2.0 * drho_bar_backward / self.p.dx ])
+            minmod(&[
+                2.0 * drho_bar_forward / self.p.dx,
+                drho_bar_central / self.p.dx,
+                2.0 * drho_bar_backward / self.p.dx,
+            ])
         }
     }
 
     fn fc_p(&self, cell: usize) -> f64 {
-        - self.u_p_at_midpoint(cell)
+        -self.u_p_at_midpoint(cell)
     }
 
-    fn fc_m(&self, cell:usize) -> f64 {
-        - self.u_m_at_midpoint(cell)
+    fn fc_m(&self, cell: usize) -> f64 {
+        -self.u_m_at_midpoint(cell)
     }
 
     fn rhs_rho_bar(&self, cell: usize) -> f64 {
         let mut result = 0.0;
 
         // flux
-        let f_m = if cell == 1 {
-            0.0
-        } else {
-            self.f_m(cell)
-        };
-
+        let f_m = if cell == 1 { 0.0 } else { self.f_m(cell) };
         let f_p = if cell == self.p.n_interior_cell_1d {
             0.0
         } else {
@@ -375,11 +387,7 @@ impl KellerSegelProblem1D {
         let mut result = 0.0;
 
         // laplacian (flux or what?)
-        let fc_m = if cell == 1 {
-            0.0
-        } else {
-            self.fc_m(cell)
-        };
+        let fc_m = if cell == 1 { 0.0 } else { self.fc_m(cell) };
 
         let fc_p = if cell == self.p.n_interior_cell_1d {
             0.0
@@ -406,8 +414,10 @@ impl KellerSegelProblem1D {
         *self.u_mut(Variable::RhoBar, 0) = self.u(Variable::RhoBar, 1);
         *self.u_mut(Variable::C, 0) = self.u(Variable::C, 1);
 
-        *self.u_mut(Variable::RhoBar, self.p.n_interior_cell_1d + 1) = self.u(Variable::RhoBar, self.p.n_interior_cell_1d);
-        *self.u_mut(Variable::C, self.p.n_interior_cell_1d + 1) = self.u(Variable::C, self.p.n_interior_cell_1d);
+        *self.u_mut(Variable::RhoBar, self.p.n_interior_cell_1d + 1) =
+            self.u(Variable::RhoBar, self.p.n_interior_cell_1d);
+        *self.u_mut(Variable::C, self.p.n_interior_cell_1d + 1) =
+            self.u(Variable::C, self.p.n_interior_cell_1d);
     }
 
     fn step_euler_forward_helper(&mut self, dt: f64) {
@@ -436,7 +446,10 @@ impl KellerSegelProblem1D {
         self.time += dt;
 
         // save current solution
-        let u_old = self.data.slice(s![.., 1..=self.p.n_interior_cell_1d]).to_owned();
+        let u_old = self
+            .data
+            .slice(s![.., 1..=self.p.n_interior_cell_1d])
+            .to_owned();
 
         // an Euler step gives w_1
         self.step_euler_forward_helper(dt);
