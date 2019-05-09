@@ -147,8 +147,8 @@ impl KellerSegelProblem1D {
 
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
         match self.p.exact_solution {
-            Some(_) => buffer.write_all("t x rho_bar c rho_bar_exact c_exact\n".as_bytes())?,
-            None => buffer.write_all("t x rho_bar c\n".as_bytes())?,
+            Some(_) => buffer.write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?,
+            None => buffer.write_all("t x rho\\\\_bar c\n".as_bytes())?,
         }
 
         for cell in 1..=self.p.n_interior_cell_1d {
