@@ -92,6 +92,10 @@ struct Opt {
     /// Output directory
     #[structopt(long, default_value = "res")]
     dir: String,
+
+    /// Whether to solve for an exact solution
+    #[structopt(long)]
+    exact_solve: bool,
 }
 
 enum TryFromOptError {
@@ -151,39 +155,42 @@ fn main() -> Result<()> {
     let dt = opt.dt;
     let output_interval = opt.output_interval;
     let dir = opt.dir.clone();
+    let exact_solve = opt.exact_solve;
 
     let mut problem = KellerSegelProblem1D::with_params(opt.try_into()?);
 
-    use std::f64::consts::PI;
+    if exact_solve {
+        use std::f64::consts::PI;
 
-    // Exact solution
-    problem.p.exact_solution = Some(KellerSegelExactSolution::new(
-        |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
-        |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
-    ));
+        // Exact solution
+        problem.p.exact_solution = Some(KellerSegelExactSolution::new(
+            |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
+            |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
+        ));
 
-    // The forces that are required to find the above solution
-    problem.p.forces = Some(KellerSegelForces::new(
-        |t, x, p| {
-            let rho_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
-            let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
-            let chemotaxis = 2.0
-                * p.chi
-                * (x * (1.0 - x)).powi(2)
-                * (3.0 + 14.0 * x * (x - 1.0))
-                * (PI * t).sin().powi(4);
+        // The forces that are required to find the above solution
+        problem.p.forces = Some(KellerSegelForces::new(
+            |t, x, p| {
+                let rho_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
+                let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
+                let chemotaxis = 2.0
+                    * p.chi
+                    * (x * (1.0 - x)).powi(2)
+                    * (3.0 + 14.0 * x * (x - 1.0))
+                    * (PI * t).sin().powi(4);
 
-            rho_t + chemotaxis - rho_xx
-        },
-        |t, x, p| {
-            let rho = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
-            let c = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
-            let c_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
-            let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
+                rho_t + chemotaxis - rho_xx
+            },
+            |t, x, p| {
+                let rho = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+                let c = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+                let c_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
+                let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
 
-            c_t - c_xx + p.gamma_c * c - p.gamma_rho * rho
-        },
-    ));
+                c_t - c_xx + p.gamma_c * c - p.gamma_rho * rho
+            },
+        ));
+    }
 
     problem.set_initial_conditions();
 
