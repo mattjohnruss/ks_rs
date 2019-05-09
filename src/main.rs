@@ -103,14 +103,12 @@ impl fmt::Debug for TryFromOptError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             TryFromOptError::ICsError(ics) => write!(f, "Specified ICs `{}` invalid", ics),
-            //_ => write!(f, "Converting Opt to KellerSegelParameters failed")
         }
     }
 }
 
 impl fmt::Display for TryFromOptError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        //write!(f, "Error converting Opt to KellerSegelParameters")
         fmt::Debug::fmt(self, f)
     }
 }
@@ -139,7 +137,6 @@ impl TryFrom<Opt> for KellerSegelParameters {
             n_interior_cell_1d: opt.n_interior_cell_1d,
             length: opt.length,
             dx: opt.length / opt.n_interior_cell_1d as f64,
-            //exact_solution: Some(KellerSegelExactSolution::new(|t, x, p| p.diffusivity * x, |t, x, p| x)),
             exact_solution: None,
             forces: None,
         };

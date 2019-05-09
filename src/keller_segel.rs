@@ -432,6 +432,7 @@ impl KellerSegelProblem1D {
     }
 
     pub fn step_ssp_rk3(&mut self, dt: f64) {
+        // FIXME This is probably quite inefficient with all the copies etc
         self.time += dt;
 
         // save current solution
