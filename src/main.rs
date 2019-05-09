@@ -157,19 +157,27 @@ fn main() -> Result<()> {
 
     use std::f64::consts::PI;
 
-
+    // Exact solution
     problem.p.exact_solution = Some(KellerSegelExactSolution::new(|t, x, _p| {
-        x.powi(2) * (1.0 - x).powi(2) * (PI * t).sin().powi(2)
+        (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2)
     }, |t, x, _p| {
-        x.powi(2) * (1.0 - x).powi(2) * (PI * t).sin().powi(2)
+        (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2)
     }));
 
-    problem.p.forces = Some(KellerSegelForces::new(|t, x, _p| {
-        PI * x.powi(2) * (1.0 - x).powi(2) * (2.0 * PI * t).sin()
-            - 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2)
-    }, |t, x, _p| {
-        PI * x.powi(2) * (1.0 - x).powi(2) * (2.0 * PI * t).sin()
-            - 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2)
+    // The forces that are required to find the above solution
+    problem.p.forces = Some(KellerSegelForces::new(|t, x, p| {
+        let rho_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
+        let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
+        let chemotaxis = 2.0 * p.chi * (x * (1.0 - x)).powi(2) * (3.0 + 14.0 * x * (x - 1.0)) * (PI * t).sin().powi(4);
+
+        rho_t + chemotaxis - rho_xx
+    }, |t, x, p| {
+        let rho = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+        let c = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+        let c_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
+        let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
+
+        c_t - c_xx + p.gamma_c * c - p.gamma_rho * rho
     }));
 
     problem.set_initial_conditions();
