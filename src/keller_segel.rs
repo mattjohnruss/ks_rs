@@ -262,14 +262,14 @@ impl KellerSegelProblem1D {
     }
 
     /// Equation (2.3)(a)
-    fn f_p(&self, cell: usize) -> f64 {
+    fn flux_rho_p(&self, cell: usize) -> f64 {
         let u_p = self.u_p_at_midpoint(cell);
         let drho_dx_p = self.drho_dx_p_at_midpoint(cell);
         self.p.chi * self.rho_point_value_i_p(cell) * u_p - self.p.diffusivity * drho_dx_p
     }
 
     /// Equation (2.3)(b)
-    fn f_m(&self, cell: usize) -> f64 {
+    fn flux_rho_m(&self, cell: usize) -> f64 {
         let u_m = self.u_m_at_midpoint(cell);
         let drho_dx_m = self.drho_dx_m_at_midpoint(cell);
         self.p.chi * self.rho_point_value_i_m(cell) * u_m - self.p.diffusivity * drho_dx_m
@@ -350,11 +350,11 @@ impl KellerSegelProblem1D {
         }
     }
 
-    fn fc_p(&self, cell: usize) -> f64 {
+    fn flux_c_p(&self, cell: usize) -> f64 {
         -self.u_p_at_midpoint(cell)
     }
 
-    fn fc_m(&self, cell: usize) -> f64 {
+    fn flux_c_m(&self, cell: usize) -> f64 {
         -self.u_m_at_midpoint(cell)
     }
 
@@ -362,14 +362,14 @@ impl KellerSegelProblem1D {
         let mut result = 0.0;
 
         // flux
-        let f_m = if cell == 1 { 0.0 } else { self.f_m(cell) };
-        let f_p = if cell == self.p.n_interior_cell_1d {
+        let flux_rho_m = if cell == 1 { 0.0 } else { self.flux_rho_m(cell) };
+        let flux_rho_p = if cell == self.p.n_interior_cell_1d {
             0.0
         } else {
-            self.f_p(cell)
+            self.flux_rho_p(cell)
         };
 
-        result += -(f_p - f_m) / self.p.dx;
+        result += -(flux_rho_p - flux_rho_m) / self.p.dx;
 
         // logistic growth
         let u = self.u(Variable::RhoBar, cell);
@@ -387,15 +387,15 @@ impl KellerSegelProblem1D {
         let mut result = 0.0;
 
         // laplacian (flux or what?)
-        let fc_m = if cell == 1 { 0.0 } else { self.fc_m(cell) };
+        let flux_c_m = if cell == 1 { 0.0 } else { self.flux_c_m(cell) };
 
-        let fc_p = if cell == self.p.n_interior_cell_1d {
+        let flux_c_p = if cell == self.p.n_interior_cell_1d {
             0.0
         } else {
-            self.fc_p(cell)
+            self.flux_c_p(cell)
         };
 
-        result += -(fc_p - fc_m) / self.p.dx;
+        result += -(flux_c_p - flux_c_m) / self.p.dx;
 
         // reaction terms
         result += -self.p.gamma_c * self.u(Variable::C, cell);
