@@ -1,11 +1,4 @@
-pub mod keller_segel;
-mod stencil;
-mod utilities;
-
-#[macro_use]
-extern crate ndarray;
-
-use crate::keller_segel::{
+use ks_rs::keller_segel::{
     KellerSegelExactSolution, KellerSegelForces, KellerSegelICs, KellerSegelParameters,
     KellerSegelProblem1D,
 };
