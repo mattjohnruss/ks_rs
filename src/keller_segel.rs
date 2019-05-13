@@ -59,7 +59,7 @@ impl fmt::Debug for KellerSegelExactSolution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "KellerSegelExactSolutionFn {{ rho_bar_solution, c_solution }}"
+            "KellerSegelExactSolution {{ rho_bar_solution, c_solution }}"
         )
     }
 }
