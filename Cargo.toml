@@ -10,5 +10,3 @@ blas-src = { version = "0.2", default-features = false, features = ["openblas"] 
 openblas-src = { version = "0.6", default-features = false, features = ["cblas", "static"] }
 structopt = "0.2"
 rand = "0.6.5"
-# manually downgrade from 1.0.5 to work around RLS bug until it's fixed
-bitflags = "=1.0.4"
