@@ -2,10 +2,8 @@ use crate::stencil::apply;
 use crate::stencil::{first_order, second_order};
 use crate::utilities::minmod;
 use ndarray::prelude::*;
-use std::cell::RefCell;
 use std::fmt;
 use std::io::prelude::*;
-use std::rc::Rc;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -33,11 +31,10 @@ pub enum KellerSegelICs {
     Exact,
 }
 
-// FIXME This is ridiculous. We are only using Rc<RefCell<Box<...>>> for the functions to make
-// the borrow checker happy
+// NOTE The closures are boxed because a closure cannot accept itself as a parameter
 pub struct KellerSegelExactSolution {
-    rho_bar_solution: Rc<RefCell<Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>>>,
-    c_solution: Rc<RefCell<Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>>>,
+    rho_bar_solution: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
+    c_solution: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
 }
 
 impl KellerSegelExactSolution {
@@ -47,8 +44,8 @@ impl KellerSegelExactSolution {
         F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
     {
         KellerSegelExactSolution {
-            rho_bar_solution: Rc::new(RefCell::new(Box::new(rho_bar_solution))),
-            c_solution: Rc::new(RefCell::new(Box::new(c_solution))),
+            rho_bar_solution: Box::new(rho_bar_solution),
+            c_solution: Box::new(c_solution),
         }
     }
 }
@@ -163,8 +160,8 @@ impl KellerSegelProblem1D {
 
             match &self.p.exact_solution {
                 Some(exact_solution) => {
-                    let rho_bar_exact = exact_solution.rho_bar_solution.borrow()(time, x, &self.p);
-                    let c_exact = exact_solution.c_solution.borrow()(time, x, &self.p);
+                    let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, &self.p);
+                    let c_exact = (exact_solution.c_solution)(time, x, &self.p);
                     buffer.write_all(
                         format!(
                             "{} {} {} {} {} {}\n",
@@ -236,21 +233,15 @@ impl KellerSegelProblem1D {
                 }
             }
             KellerSegelICs::Exact => {
-                // FIXME This is ridiculous. The problem is that we need to borrow self mutably in
-                // order to assign values, but we need to (immutably) borrow self to get to the
-                // exact solution functions in self.p.exact_solution...
                 if self.p.exact_solution.is_some() {
-                    let (rho_bar_solution, c_solution) = {
-                        let KellerSegelExactSolution {
-                            rho_bar_solution,
-                            c_solution,
-                        } = self.p.exact_solution.as_ref().unwrap();
-                        (rho_bar_solution.clone(), c_solution.clone())
-                    };
-
                     for cell in 1..=self.p.n_interior_cell_1d {
-                        let rho_bar = rho_bar_solution.borrow()(self.time, self.x(cell), &self.p);
-                        let c = c_solution.borrow()(self.time, self.x(cell), &self.p);
+                        // NOTE: We can't move the unwrap() outside the loop as it (immutably)
+                        // borrows self, which disallows the mutable borrow inside the loop. If
+                        // both are inside the loop, then (presumably due to NLL?) the compiler
+                        // knows the immutable borrow isn't used again and allows the mutable
+                        // borrow.
+                        let rho_bar = (self.p.exact_solution.as_ref().unwrap().rho_bar_solution)(self.time, self.x(cell), &self.p);
+                        let c = (self.p.exact_solution.as_ref().unwrap().c_solution)(self.time, self.x(cell), &self.p);
                         *self.u_mut(Variable::RhoBar, cell) = rho_bar;
                         *self.u_mut(Variable::C, cell) = c;
                     }
