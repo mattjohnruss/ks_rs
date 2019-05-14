@@ -412,6 +412,7 @@ impl KellerSegelProblem1D {
         self.update_ghost_cells();
 
         for cell in 1..=self.p.n_interior_cell_1d {
+            // Subtract one because self.index() currently returns 1..=self.p.n_interior_cell_1d
             let idx = self.index(cell) - 1;
             self.rhs_buffer[(Variable::RhoBar as usize, idx)] = self.rhs_rho_bar(cell);
             self.rhs_buffer[(Variable::C as usize, idx)] = self.rhs_c(cell);
