@@ -1,5 +1,4 @@
-use crate::stencil::apply;
-use crate::stencil::{first_order, second_order};
+use crate::stencil::{Stencil, first_order, second_order};
 use crate::utilities::minmod;
 use ndarray::prelude::*;
 use std::fmt;
@@ -268,7 +267,7 @@ impl KellerSegelProblem1D {
 
     /// Equation (2.4)(a)
     fn drho_dx_p_at_midpoint(&self, cell: usize) -> f64 {
-        apply(&first_order::FORWARD_1, cell, |i| {
+        first_order::Forward1::apply(cell, |i| {
             self.u(Variable::RhoBar, i) / self.p.dx
         })
     }
@@ -279,7 +278,7 @@ impl KellerSegelProblem1D {
 
     /// Equation (2.4)(c)
     fn u_p_at_midpoint(&self, cell: usize) -> f64 {
-        apply(&first_order::FORWARD_1, cell, |i| {
+        first_order::Forward1::apply(cell, |i| {
             self.u(Variable::C, i) / self.p.dx
         })
     }
@@ -315,7 +314,7 @@ impl KellerSegelProblem1D {
 
     /// Equation (2.8)(a)
     fn drho_dx(&self, cell: usize) -> f64 {
-        let drho_bar_central = apply(&second_order::CENTRAL_1, cell, |i| {
+        let drho_bar_central = second_order::Central1::apply(cell, |i| {
             self.u(Variable::RhoBar, i)
         });
 
@@ -325,11 +324,11 @@ impl KellerSegelProblem1D {
         if test_p >= 0.0 && test_m >= 0.0 {
             drho_bar_central / self.p.dx
         } else {
-            let drho_bar_forward = apply(&first_order::FORWARD_1, cell, |i| {
+            let drho_bar_forward = first_order::Forward1::apply(cell, |i| {
                 self.u(Variable::RhoBar, i)
             });
 
-            let drho_bar_backward = apply(&first_order::BACKWARD_1, cell, |i| {
+            let drho_bar_backward = first_order::Backward1::apply(cell, |i| {
                 self.u(Variable::RhoBar, i)
             });
 
