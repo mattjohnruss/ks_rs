@@ -180,13 +180,13 @@ impl Problem1D {
         (cell as f64 - 0.5) * self.p.dx
     }
 
-    /// Get the value of `var` in cell `cell` at time history `t`
+    /// Get the value of `var` in cell `cell`
     fn u(&self, var: Variable, cell: usize) -> f64 {
         let idx = self.index(cell);
         self.data[(var as usize, idx)]
     }
 
-    /// Get the value of `var` in cell `cell` at time history `t` (mut)
+    /// Get the value of `var` in cell `cell` (mut)
     fn u_mut(&mut self, var: Variable, cell: usize) -> &mut f64 {
         let idx = self.index(cell);
         &mut self.data[(var as usize, idx)]
