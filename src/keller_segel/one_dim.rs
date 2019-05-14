@@ -137,7 +137,7 @@ impl Problem1D {
         Problem1D {
             p,
             data: Array::zeros((n_variable, n_cell)),
-            rhs_buffer: Array::zeros((2, n_interior_cell_1d)),
+            rhs_buffer: Array::zeros((n_variable, n_interior_cell_1d)),
             time: 0.0,
         }
     }
