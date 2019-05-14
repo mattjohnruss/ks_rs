@@ -4,7 +4,6 @@ use ndarray::prelude::*;
 use std::fmt;
 use std::io::prelude::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 #[repr(usize)]
 enum Variable {
@@ -18,7 +17,6 @@ enum Face {
     West,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum KellerSegelICs {
     /// (rho_bar_init, c_init)
