@@ -18,7 +18,7 @@ enum Face {
 }
 
 #[derive(Debug)]
-pub enum KellerSegelICs {
+pub enum ICs {
     /// (rho_bar_init, c_init)
     Constant(f64, f64),
     /// (rho_bar_init, c_init, pert_size)
@@ -29,18 +29,18 @@ pub enum KellerSegelICs {
 }
 
 // NOTE The closures are boxed because a closure cannot accept itself as a parameter
-pub struct KellerSegelExactSolution {
-    rho_bar_solution: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
-    c_solution: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
+pub struct ExactSolution {
+    rho_bar_solution: Box<dyn Fn(f64, f64, &Parameters) -> f64>,
+    c_solution: Box<dyn Fn(f64, f64, &Parameters) -> f64>,
 }
 
-impl KellerSegelExactSolution {
+impl ExactSolution {
     pub fn new<F1, F2>(rho_bar_solution: F1, c_solution: F2) -> Self
     where
-        F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
-        F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
+        F1: Fn(f64, f64, &Parameters) -> f64 + 'static,
+        F2: Fn(f64, f64, &Parameters) -> f64 + 'static,
     {
-        KellerSegelExactSolution {
+        ExactSolution {
             rho_bar_solution: Box::new(rho_bar_solution),
             c_solution: Box::new(c_solution),
         }
@@ -49,27 +49,27 @@ impl KellerSegelExactSolution {
 
 /// Minimal impl of Debug so we can derive Debug on the other types
 /// Cannot derive Debug on Fn
-impl fmt::Debug for KellerSegelExactSolution {
+impl fmt::Debug for ExactSolution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "KellerSegelExactSolution {{ rho_bar_solution, c_solution }}"
+            "ExactSolution {{ rho_bar_solution, c_solution }}"
         )
     }
 }
 
-pub struct KellerSegelForces {
-    rho_bar_force: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
-    c_force: Box<dyn Fn(f64, f64, &KellerSegelParameters) -> f64>,
+pub struct Forces {
+    rho_bar_force: Box<dyn Fn(f64, f64, &Parameters) -> f64>,
+    c_force: Box<dyn Fn(f64, f64, &Parameters) -> f64>,
 }
 
-impl KellerSegelForces {
+impl Forces {
     pub fn new<F1, F2>(rho_bar_force: F1, c_force: F2) -> Self
     where
-        F1: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
-        F2: Fn(f64, f64, &KellerSegelParameters) -> f64 + 'static,
+        F1: Fn(f64, f64, &Parameters) -> f64 + 'static,
+        F2: Fn(f64, f64, &Parameters) -> f64 + 'static,
     {
-        KellerSegelForces {
+        Forces {
             rho_bar_force: Box::new(rho_bar_force),
             c_force: Box::new(c_force),
         }
@@ -78,15 +78,15 @@ impl KellerSegelForces {
 
 /// Minimal impl of Debug so we can derive Debug on the other types
 /// Cannot derive Debug on Fn
-impl fmt::Debug for KellerSegelForces {
+impl fmt::Debug for Forces {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "KellerSegelForces {{ rho_bar_force, c_force }}")
+        write!(f, "Forces {{ rho_bar_force, c_force }}")
     }
 }
 
 #[derive(Debug)]
-pub struct KellerSegelParameters {
-    pub ics: KellerSegelICs,
+pub struct Parameters {
+    pub ics: ICs,
     pub diffusivity: f64,
     pub r: f64,
     pub chi: f64,
@@ -95,17 +95,17 @@ pub struct KellerSegelParameters {
     pub n_interior_cell_1d: usize,
     pub length: f64,
     pub dx: f64,
-    pub exact_solution: Option<KellerSegelExactSolution>,
-    pub forces: Option<KellerSegelForces>,
+    pub exact_solution: Option<ExactSolution>,
+    pub forces: Option<Forces>,
 }
 
-impl Default for KellerSegelParameters {
+impl Default for Parameters {
     fn default() -> Self {
         let n_interior_cell_1d = 3;
         let length = 1.0;
 
-        KellerSegelParameters {
-            ics: KellerSegelICs::Constant(1.0, 1.0),
+        Parameters {
+            ics: ICs::Constant(1.0, 1.0),
             diffusivity: 1.0,
             r: 0.0,
             chi: 1.0,
@@ -121,20 +121,20 @@ impl Default for KellerSegelParameters {
 }
 
 #[derive(Debug)]
-pub struct KellerSegelProblem1D {
-    pub p: KellerSegelParameters,
+pub struct Problem1D {
+    pub p: Parameters,
     data: Array<f64, ndarray::Ix2>,
     rhs_buffer: Array<f64, ndarray::Ix2>,
     pub time: f64,
 }
 
-impl KellerSegelProblem1D {
-    pub fn with_params(p: KellerSegelParameters) -> Self {
+impl Problem1D {
+    pub fn with_params(p: Parameters) -> Self {
         let n_interior_cell_1d = p.n_interior_cell_1d;
         let n_cell = n_interior_cell_1d + 2;
         let n_variable = 2;
 
-        KellerSegelProblem1D {
+        Problem1D {
             p,
             data: Array::zeros((n_variable, n_cell)),
             rhs_buffer: Array::zeros((2, n_interior_cell_1d)),
@@ -203,13 +203,13 @@ impl KellerSegelProblem1D {
         self.data.fill(0.0);
 
         match self.p.ics {
-            KellerSegelICs::Constant(rho_bar_init, c_init) => {
+            ICs::Constant(rho_bar_init, c_init) => {
                 for cell in 1..=self.p.n_interior_cell_1d {
                     *self.u_mut(Variable::RhoBar, cell) = rho_bar_init;
                     *self.u_mut(Variable::C, cell) = c_init;
                 }
             }
-            KellerSegelICs::Perturbed(rho_bar_init, c_init, pert_size) => {
+            ICs::Perturbed(rho_bar_init, c_init, pert_size) => {
                 use rand::distributions::Uniform;
                 use rand::{thread_rng, Rng};
 
@@ -221,7 +221,7 @@ impl KellerSegelProblem1D {
                     *self.u_mut(Variable::C, cell) = c_init + thread_rng().sample(uniform);
                 }
             }
-            KellerSegelICs::Gaussian(height, width) => {
+            ICs::Gaussian(height, width) => {
                 for cell in 1..=self.p.n_interior_cell_1d {
                     let x = self.x(cell) - 0.5 * self.p.length;
 
@@ -229,7 +229,7 @@ impl KellerSegelProblem1D {
                     *self.u_mut(Variable::C, cell) = 0.5 * height * (-0.5 * width * x * x).exp();
                 }
             }
-            KellerSegelICs::Exact => {
+            ICs::Exact => {
                 if self.p.exact_solution.is_some() {
                     for cell in 1..=self.p.n_interior_cell_1d {
                         // NOTE: We can't move the unwrap() outside the loop as it (immutably)

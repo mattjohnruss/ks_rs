@@ -1,6 +1,6 @@
-use ks_rs::keller_segel::{
-    KellerSegelExactSolution, KellerSegelForces, KellerSegelICs, KellerSegelParameters,
-    KellerSegelProblem1D,
+use ks_rs::keller_segel::one_dim::{
+    ExactSolution, Forces, ICs, Parameters,
+    Problem1D,
 };
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
@@ -111,19 +111,19 @@ impl fmt::Display for TryFromOptError {
 
 impl std::error::Error for TryFromOptError {}
 
-impl TryFrom<Opt> for KellerSegelParameters {
+impl TryFrom<Opt> for Parameters {
     type Error = TryFromOptError;
 
     fn try_from(opt: Opt) -> std::result::Result<Self, Self::Error> {
         let ics = match opt.ics.as_ref() {
-            "constant" => KellerSegelICs::Constant(opt.rho_bar_init, opt.c_init),
-            "perturbed" => KellerSegelICs::Perturbed(opt.rho_bar_init, opt.c_init, opt.pert_size),
-            "gaussian" => KellerSegelICs::Gaussian(opt.gaussian_height, opt.gaussian_width),
-            "exact" => KellerSegelICs::Exact,
+            "constant" => ICs::Constant(opt.rho_bar_init, opt.c_init),
+            "perturbed" => ICs::Perturbed(opt.rho_bar_init, opt.c_init, opt.pert_size),
+            "gaussian" => ICs::Gaussian(opt.gaussian_height, opt.gaussian_width),
+            "exact" => ICs::Exact,
             s => return Err(TryFromOptError::ICsError(s.into())),
         };
 
-        let params = KellerSegelParameters {
+        let params = Parameters {
             ics,
             diffusivity: opt.diffusivity,
             r: opt.r,
@@ -150,19 +150,19 @@ fn main() -> Result<()> {
     let dir = opt.dir.clone();
     let exact_solve = opt.exact_solve;
 
-    let mut problem = KellerSegelProblem1D::with_params(opt.try_into()?);
+    let mut problem = Problem1D::with_params(opt.try_into()?);
 
     if exact_solve {
         use std::f64::consts::PI;
 
         // Exact solution
-        problem.p.exact_solution = Some(KellerSegelExactSolution::new(
+        problem.p.exact_solution = Some(ExactSolution::new(
             |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
             |t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
         ));
 
         // The forces that are required to find the above solution
-        problem.p.forces = Some(KellerSegelForces::new(
+        problem.p.forces = Some(Forces::new(
             |t, x, p| {
                 let rho_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
                 let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
