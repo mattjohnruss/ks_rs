@@ -177,7 +177,7 @@ impl Problem1D {
 
     /// x-coordinate of the centre of cell `cell`
     fn x(&self, cell: usize) -> f64 {
-        (self.index(cell) as f64 - 0.5) * self.p.dx
+        (cell as f64 - 0.5) * self.p.dx
     }
 
     /// Get the value of `var` in cell `cell` at time history `t`
