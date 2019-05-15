@@ -263,6 +263,14 @@ impl Problem1D {
         self.p.chi * self.rho_point_value_x_m(cell) * u_m - self.p.diffusivity * drho_dx_m
     }
 
+    fn flux_c_p(&self, cell: usize) -> f64 {
+        -self.u_p_at_midpoint(cell)
+    }
+
+    fn flux_c_m(&self, cell: usize) -> f64 {
+        -self.u_m_at_midpoint(cell)
+    }
+
     /// Equation (2.4)(a)
     fn drho_dx_p_at_midpoint(&self, cell: usize) -> f64 {
         first_order::Forward1::apply(cell, |i| {
@@ -338,30 +346,26 @@ impl Problem1D {
         }
     }
 
-    fn flux_c_p(&self, cell: usize) -> f64 {
-        -self.u_p_at_midpoint(cell)
-    }
-
-    fn flux_c_m(&self, cell: usize) -> f64 {
-        -self.u_m_at_midpoint(cell)
-    }
-
     fn rhs_rho_bar(&self, cell: usize) -> f64 {
         let mut result = 0.0;
 
         // flux
-        let flux_rho_m = if cell == 1 { 0.0 } else { self.flux_rho_m(cell) };
-        let flux_rho_p = if cell == self.p.n_interior_cell_1d {
-            0.0
-        } else {
-            self.flux_rho_p(cell)
+        result += {
+            let flux_rho_m = if cell == 1 { 0.0 } else { self.flux_rho_m(cell) };
+            let flux_rho_p = if cell == self.p.n_interior_cell_1d {
+                0.0
+            } else {
+                self.flux_rho_p(cell)
+            };
+
+            -(flux_rho_p - flux_rho_m) / self.p.dx
         };
 
-        result += -(flux_rho_p - flux_rho_m) / self.p.dx;
-
         // logistic growth
-        let u = self.u(Variable::RhoBar, cell);
-        result += self.p.r * u * (1.0 - u);
+        result += {
+            let u = self.u(Variable::RhoBar, cell);
+            self.p.r * u * (1.0 - u)
+        };
 
         // forcing
         if let Some(forces) = &self.p.forces {
@@ -374,16 +378,17 @@ impl Problem1D {
     fn rhs_c(&self, cell: usize) -> f64 {
         let mut result = 0.0;
 
-        // laplacian (flux or what?)
-        let flux_c_m = if cell == 1 { 0.0 } else { self.flux_c_m(cell) };
+        // flux
+        result += {
+            let flux_c_m = if cell == 1 { 0.0 } else { self.flux_c_m(cell) };
+            let flux_c_p = if cell == self.p.n_interior_cell_1d {
+                0.0
+            } else {
+                self.flux_c_p(cell)
+            };
 
-        let flux_c_p = if cell == self.p.n_interior_cell_1d {
-            0.0
-        } else {
-            self.flux_c_p(cell)
+            -(flux_c_p - flux_c_m) / self.p.dx
         };
-
-        result += -(flux_c_p - flux_c_m) / self.p.dx;
 
         // reaction terms
         result += -self.p.gamma_c * self.u(Variable::C, cell);
