@@ -253,14 +253,14 @@ impl Problem1D {
     fn flux_rho_p(&self, cell: usize) -> f64 {
         let u_p = self.u_p_at_midpoint(cell);
         let drho_dx_p = self.drho_dx_p_at_midpoint(cell);
-        self.p.chi * self.rho_point_value_i_p(cell) * u_p - self.p.diffusivity * drho_dx_p
+        self.p.chi * self.rho_point_value_x_p(cell) * u_p - self.p.diffusivity * drho_dx_p
     }
 
     /// Equation (2.3)(b)
     fn flux_rho_m(&self, cell: usize) -> f64 {
         let u_m = self.u_m_at_midpoint(cell);
         let drho_dx_m = self.drho_dx_m_at_midpoint(cell);
-        self.p.chi * self.rho_point_value_i_m(cell) * u_m - self.p.diffusivity * drho_dx_m
+        self.p.chi * self.rho_point_value_x_m(cell) * u_m - self.p.diffusivity * drho_dx_m
     }
 
     /// Equation (2.4)(a)
@@ -286,14 +286,14 @@ impl Problem1D {
     }
 
     /// Equation (2.5)(a)
-    fn rho_point_value_i_p(&self, cell: usize) -> f64 {
+    fn rho_point_value_x_p(&self, cell: usize) -> f64 {
         match self.u_p_at_midpoint(cell) {
             u_p if u_p > 0.0 => self.rho_point_value_at_face(cell, Face::East),
             _ => self.rho_point_value_at_face(cell + 1, Face::West),
         }
     }
 
-    fn rho_point_value_i_m(&self, cell: usize) -> f64 {
+    fn rho_point_value_x_m(&self, cell: usize) -> f64 {
         match self.u_m_at_midpoint(cell) {
             u_m if u_m > 0.0 => self.rho_point_value_at_face(cell - 1, Face::East),
             _ => self.rho_point_value_at_face(cell, Face::West),
