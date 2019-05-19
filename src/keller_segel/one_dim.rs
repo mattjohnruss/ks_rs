@@ -161,14 +161,14 @@ impl Problem1D {
                     let c_exact = (exact_solution.c_solution)(time, x, &self.p);
                     buffer.write_all(
                         format!(
-                            "{} {} {} {} {} {}\n",
+                            "{:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
                             time, x, rho_bar, c, rho_bar_exact, c_exact
                         )
                         .as_bytes(),
                     )?;
                 }
                 None => {
-                    buffer.write_all(format!("{} {} {} {}\n", time, x, rho_bar, c).as_bytes())?
+                    buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, rho_bar, c).as_bytes())?
                 }
             }
         }
