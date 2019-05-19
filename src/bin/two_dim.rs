@@ -1,5 +1,5 @@
 use ks_rs::keller_segel::two_dim::{
-    //ExactSolution, Forces,
+    ExactSolution, Forces,
     ICs, Parameters,
     Problem2D,
 };
@@ -150,42 +150,61 @@ fn main() -> Result<()> {
     let dt = opt.dt;
     let output_interval = opt.output_interval;
     let dir = opt.dir.clone();
-    //let exact_solve = opt.exact_solve;
+    let exact_solve = opt.exact_solve;
 
     let mut problem = Problem2D::with_params(opt.try_into()?);
 
-    //if exact_solve {
-        //use std::f64::consts::PI;
+    if exact_solve {
+        use std::f64::consts::PI;
 
-        //// Exact solution
-        //problem.p.exact_solution = Some(ExactSolution::new(
-            //|t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
-            //|t, x, _p| (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2),
-        //));
+        // Exact solution
+        problem.p.exact_solution = Some(ExactSolution::new(
+            |t, x, y, _p| (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2),
+            |t, x, y, _p| (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2),
+            //|t, _x, _y, _p| (PI * t).sin().powi(2),
+            //|t, _x, _y, _p| (PI * t).sin().powi(2),
+        ));
 
-        //// The forces that are required to find the above solution
-        //problem.p.forces = Some(Forces::new(
-            //|t, x, p| {
-                //let rho_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
-                //let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
-                //let chemotaxis = 2.0
-                    //* p.chi
-                    //* (x * (1.0 - x)).powi(2)
-                    //* (3.0 + 14.0 * x * (x - 1.0))
-                    //* (PI * t).sin().powi(4);
+        // The forces that are required to find the above solution
+        problem.p.forces = Some(Forces::new(
+            |t, x, y, p| {
+                let rho_t = PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
+                let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
+                let rho_yy = 2.0 * (1.0 + 6.0 * y * (y - 1.0)) * (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+                let chemotaxis_x = 2.0
+                    * p.chi
+                    * (x * (1.0 - x)).powi(2)
+                    * (3.0 + 14.0 * x * (x - 1.0))
+                    * (y * (y - 1.0)).powi(4)
+                    * (PI * t).sin().powi(4);
+                let chemotaxis_y = 2.0
+                    * p.chi
+                    * (y * (y - 1.0)).powi(2)
+                    * (3.0 + 14.0 * y * (y - 1.0))
+                    * (x * (x - 1.0)).powi(4)
+                    * (PI * t).sin().powi(4);
 
-                //rho_t + chemotaxis - rho_xx
+                rho_t + chemotaxis_x + chemotaxis_y - rho_xx - rho_yy
+            },
+            |t, x, y, p| {
+                let rho = (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
+                let c = (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
+                let c_t = PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
+                let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
+                let c_yy = 2.0 * (1.0 + 6.0 * y * (y - 1.0)) * (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+
+                c_t - c_xx + c_yy + p.gamma_c * c - p.gamma_rho * rho
+            },
+            //|t, _x, _y, _p| {
+                //let rho_t = PI * (2.0 * PI * t).sin();
+                //rho_t
             //},
-            //|t, x, p| {
-                //let rho = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
-                //let c = (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
-                //let c_t = PI * (x * (1.0 - x)).powi(2) * (2.0 * PI * t).sin();
-                //let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (PI * t).sin().powi(2);
-
-                //c_t - c_xx + p.gamma_c * c - p.gamma_rho * rho
+            //|t, _x, _y, _p| {
+                //let c_t = PI * (2.0 * PI * t).sin();
+                //c_t
             //},
-        //));
-    //}
+        ));
+    }
 
     problem.set_initial_conditions();
 
