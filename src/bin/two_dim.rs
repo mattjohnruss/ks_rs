@@ -193,7 +193,7 @@ fn main() -> Result<()> {
                 let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
                 let c_yy = 2.0 * (1.0 + 6.0 * y * (y - 1.0)) * (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
 
-                c_t - c_xx + c_yy + p.gamma_c * c - p.gamma_rho * rho
+                c_t - c_xx - c_yy + p.gamma_c * c - p.gamma_rho * rho
             },
             //|t, _x, _y, _p| {
                 //let rho_t = PI * (2.0 * PI * t).sin();
