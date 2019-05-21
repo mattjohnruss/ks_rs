@@ -222,7 +222,7 @@ fn main() -> Result<()> {
         problem.step_ssp_rk3(dt);
 
         if i % output_interval == 0 {
-            println!("Outputting at timestep {}, t = {}", i, problem.time);
+            println!("Output {} at timestep {}, t = {}", i / output_interval, i, problem.time);
             let file =
                 fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let buf_writer = BufWriter::new(file);
