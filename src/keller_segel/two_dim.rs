@@ -523,34 +523,36 @@ impl Problem2D {
         let mut result = 0.0;
 
         // x-flux
-        let flux_c_x_m = if cell_x == 1 {
-            0.0
-        } else {
-            self.flux_c_x_m(cell_x, cell_y)
-        };
+        result += {
+            let flux_c_x_m = if cell_x == 1 {
+                0.0
+            } else {
+                self.flux_c_x_m(cell_x, cell_y)
+            };
+            let flux_c_x_p = if cell_x == self.p.n_interior_cell_1d {
+                0.0
+            } else {
+                self.flux_c_x_p(cell_x, cell_y)
+            };
 
-        let flux_c_x_p = if cell_x == self.p.n_interior_cell_1d {
-            0.0
-        } else {
-            self.flux_c_x_p(cell_x, cell_y)
+            -(flux_c_x_p - flux_c_x_m) / self.p.dx
         };
-
-        result += -(flux_c_x_p - flux_c_x_m) / self.p.dx;
 
         // y-flux
-        let flux_c_y_m = if cell_y == 1 {
-            0.0
-        } else {
-            self.flux_c_y_m(cell_x, cell_y)
-        };
+        result += {
+            let flux_c_y_m = if cell_y == 1 {
+                0.0
+            } else {
+                self.flux_c_y_m(cell_x, cell_y)
+            };
+            let flux_c_y_p = if cell_y == self.p.n_interior_cell_1d {
+                0.0
+            } else {
+                self.flux_c_y_p(cell_x, cell_y)
+            };
 
-        let flux_c_y_p = if cell_y == self.p.n_interior_cell_1d {
-            0.0
-        } else {
-            self.flux_c_y_p(cell_x, cell_y)
+            -(flux_c_y_p - flux_c_y_m) / self.p.dy
         };
-
-        result += -(flux_c_y_p - flux_c_y_m) / self.p.dy;
 
         // reaction terms
         result += -self.p.gamma_c * self.u(Variable::C, cell_x, cell_y);
