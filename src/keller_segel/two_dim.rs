@@ -185,28 +185,33 @@ impl Problem2D {
     }
 
     /// x-coordinate of the centre of cell `cell_x`
+    #[inline(always)]
     fn x(&self, cell_x: usize) -> f64 {
         (cell_x as f64 - 0.5) * self.p.dx
     }
 
     /// y-coordinate of the centre of cell `cell_y`
+    #[inline(always)]
     fn y(&self, cell_y: usize) -> f64 {
         (cell_y as f64 - 0.5) * self.p.dy
     }
 
     /// Get the value of `var` in cell `(cell_x, cell_y)`
+    #[inline(always)]
     fn u(&self, var: Variable, cell_x: usize, cell_y: usize) -> f64 {
         let (idx_x, idx_y) = self.index(cell_x, cell_y);
         self.data[(var as usize, idx_x, idx_y)]
     }
 
     /// Get the value of `var` in cell `(cell_x, cell_y)` (mut)
+    #[inline(always)]
     fn u_mut(&mut self, var: Variable, cell_x: usize, cell_y: usize) -> &mut f64 {
         let (idx_x, idx_y) = self.index(cell_x, cell_y);
         &mut self.data[(var as usize, idx_x, idx_y)]
     }
 
     /// Translate from cell number to index of the internal data storage
+    #[inline(always)]
     fn index(&self, cell_x: usize, cell_y: usize) -> (usize, usize) {
         (cell_x, cell_y)
     }
@@ -277,6 +282,7 @@ impl Problem2D {
     }
 
     /// Equation (2.3)(a)
+    #[inline(always)]
     fn flux_rho_x_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         let u_p = self.u_p_at_midpoint(cell_x, cell_y);
         let drho_dx_p = self.drho_dx_p_at_midpoint(cell_x, cell_y);
@@ -284,6 +290,7 @@ impl Problem2D {
     }
 
     /// Equation (2.3)(a)
+    #[inline(always)]
     fn flux_rho_x_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         let u_m = self.u_m_at_midpoint(cell_x, cell_y);
         let drho_dx_m = self.drho_dx_m_at_midpoint(cell_x, cell_y);
@@ -291,6 +298,7 @@ impl Problem2D {
     }
 
     /// Equation (2.3)(b)
+    #[inline(always)]
     fn flux_rho_y_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         let v_p = self.v_p_at_midpoint(cell_x, cell_y);
         let drho_dy_p = self.drho_dy_p_at_midpoint(cell_x, cell_y);
@@ -298,29 +306,35 @@ impl Problem2D {
     }
 
     /// Equation (2.3)(b)
+    #[inline(always)]
     fn flux_rho_y_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         let v_m = self.v_m_at_midpoint(cell_x, cell_y);
         let drho_dy_m = self.drho_dy_m_at_midpoint(cell_x, cell_y);
         self.p.chi * self.rho_point_value_y_m(cell_x, cell_y) * v_m - self.p.diffusivity * drho_dy_m
     }
 
+    #[inline(always)]
     fn flux_c_x_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         -self.u_p_at_midpoint(cell_x, cell_y)
     }
 
+    #[inline(always)]
     fn flux_c_x_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         -self.u_m_at_midpoint(cell_x, cell_y)
     }
 
+    #[inline(always)]
     fn flux_c_y_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         -self.v_p_at_midpoint(cell_x, cell_y)
     }
 
+    #[inline(always)]
     fn flux_c_y_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         -self.v_m_at_midpoint(cell_x, cell_y)
     }
 
     /// Equation (2.4)(a)
+    #[inline(always)]
     fn drho_dx_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         first_order::Forward1::apply(cell_x, |i| {
             self.u(Variable::RhoBar, i, cell_y) / self.p.dx
@@ -328,11 +342,13 @@ impl Problem2D {
     }
 
     /// Equation (2.4)(a)
+    #[inline(always)]
     fn drho_dx_m_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         self.drho_dx_p_at_midpoint(cell_x - 1, cell_y)
     }
 
     /// Equation (2.4)(b)
+    #[inline(always)]
     fn drho_dy_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         first_order::Forward1::apply(cell_y, |i| {
             self.u(Variable::RhoBar, cell_x, i) / self.p.dy
@@ -340,11 +356,13 @@ impl Problem2D {
     }
 
     /// Equation (2.4)(b)
+    #[inline(always)]
     fn drho_dy_m_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         self.drho_dy_p_at_midpoint(cell_x, cell_y - 1)
     }
 
     /// Equation (2.4)(c)
+    #[inline(always)]
     fn u_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         first_order::Forward1::apply(cell_x, |i| {
             self.u(Variable::C, i, cell_y) / self.p.dx
@@ -352,11 +370,13 @@ impl Problem2D {
     }
 
     /// Equation (2.4)(c)
+    #[inline(always)]
     fn u_m_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         self.u_p_at_midpoint(cell_x - 1, cell_y)
     }
 
     /// Equation (2.4)(d)
+    #[inline(always)]
     fn v_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         first_order::Forward1::apply(cell_y, |i| {
             self.u(Variable::C, cell_x, i) / self.p.dy
@@ -364,11 +384,13 @@ impl Problem2D {
     }
 
     /// Equation (2.4)(d)
+    #[inline(always)]
     fn v_m_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
         self.v_p_at_midpoint(cell_x, cell_y - 1)
     }
 
     /// Equation (2.5)(a)
+    #[inline(always)]
     fn rho_point_value_x_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         match self.u_p_at_midpoint(cell_x, cell_y) {
             u_p if u_p > 0.0 => self.rho_point_value_at_face(cell_x, cell_y, Face::East),
@@ -377,6 +399,7 @@ impl Problem2D {
     }
 
     /// Equation (2.5)(a)
+    #[inline(always)]
     fn rho_point_value_x_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         match self.u_m_at_midpoint(cell_x, cell_y) {
             u_m if u_m > 0.0 => self.rho_point_value_at_face(cell_x - 1, cell_y, Face::East),
@@ -385,6 +408,7 @@ impl Problem2D {
     }
 
     /// Equation (2.5)(b)
+    #[inline(always)]
     fn rho_point_value_y_p(&self, cell_x: usize, cell_y: usize) -> f64 {
         match self.v_p_at_midpoint(cell_x, cell_y) {
             v_p if v_p > 0.0 => self.rho_point_value_at_face(cell_x, cell_y, Face::North),
@@ -393,6 +417,7 @@ impl Problem2D {
     }
 
     /// Equation (2.5)(b)
+    #[inline(always)]
     fn rho_point_value_y_m(&self, cell_x: usize, cell_y: usize) -> f64 {
         match self.u_m_at_midpoint(cell_x, cell_y) {
             u_m if u_m > 0.0 => self.rho_point_value_at_face(cell_x, cell_y - 1, Face::North),
@@ -402,6 +427,7 @@ impl Problem2D {
 
     /// Equation (2.7)
     /// Indices have been shifted compared to the paper
+    #[inline(always)]
     fn rho_point_value_at_face(&self, cell_x: usize, cell_y: usize, face: Face) -> f64 {
         let rho_bar = self.u(Variable::RhoBar, cell_x, cell_y);
         match face {
@@ -413,6 +439,7 @@ impl Problem2D {
     }
 
     /// Equation (2.8)(a)
+    #[inline(always)]
     fn drho_dx(&self, cell_x: usize, cell_y: usize) -> f64 {
         let drho_bar_central = second_order::Central1::apply(cell_x, |i| {
             self.u(Variable::RhoBar, i, cell_y)
@@ -441,6 +468,7 @@ impl Problem2D {
     }
 
     /// Equation (2.8)(b)
+    #[inline(always)]
     fn drho_dy(&self, cell_x: usize, cell_y: usize) -> f64 {
         let drho_bar_central = second_order::Central1::apply(cell_y, |i| {
             self.u(Variable::RhoBar, cell_x, i)
@@ -468,6 +496,7 @@ impl Problem2D {
         }
     }
 
+    #[inline(always)]
     fn rhs_rho_bar(&self, cell_x: usize, cell_y: usize) -> f64 {
         let mut result = 0.0;
 
@@ -519,6 +548,7 @@ impl Problem2D {
         result
     }
 
+    #[inline(always)]
     fn rhs_c(&self, cell_x: usize, cell_y: usize) -> f64 {
         let mut result = 0.0;
 
@@ -568,6 +598,7 @@ impl Problem2D {
         result
     }
 
+    #[inline(always)]
     fn update_ghost_cells(&mut self) {
         // TODO currently zeroth-order extrapolation
         for cell in 1..=self.p.n_interior_cell_1d {
@@ -593,6 +624,7 @@ impl Problem2D {
         }
     }
 
+    #[inline(always)]
     fn step_euler_forward_helper(&mut self, dt: f64) {
         self.update_ghost_cells();
 
@@ -614,11 +646,13 @@ impl Problem2D {
         }
     }
 
+    #[inline(always)]
     pub fn step_euler_forward(&mut self, dt: f64) {
         self.time += dt;
         self.step_euler_forward_helper(dt);
     }
 
+    #[inline(always)]
     pub fn step_ssp_rk3(&mut self, dt: f64) {
         // FIXME This is probably quite inefficient with all the copies etc
         self.time += dt;
