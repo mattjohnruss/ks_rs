@@ -598,7 +598,6 @@ impl Problem2D {
         result
     }
 
-    #[inline(always)]
     fn update_ghost_cells(&mut self) {
         // TODO currently zeroth-order extrapolation
         for cell in 1..=self.p.n_interior_cell_1d {
@@ -624,7 +623,6 @@ impl Problem2D {
         }
     }
 
-    #[inline(always)]
     fn step_euler_forward_helper(&mut self, dt: f64) {
         self.update_ghost_cells();
 
@@ -652,7 +650,6 @@ impl Problem2D {
         self.step_euler_forward_helper(dt);
     }
 
-    #[inline(always)]
     pub fn step_ssp_rk3(&mut self, dt: f64) {
         // FIXME This is probably quite inefficient with all the copies etc
         self.time += dt;
