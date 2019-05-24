@@ -147,23 +147,19 @@ impl Problem2D {
     }
 
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
-        match self.p.exact_solution {
-            Some(_) => buffer
-                .write_all("t x y rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?,
-            None => buffer.write_all("t x y rho\\\\_bar c\n".as_bytes())?,
-        }
+        match &self.p.exact_solution {
+            Some(exact_solution) => {
+                buffer.write_all("t x y rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?;
 
-        for cell_x in 1..=self.p.n_interior_cell_1d {
-            for cell_y in 1..=self.p.n_interior_cell_1d {
-                let x = self.x(cell_x);
-                let y = self.y(cell_y);
+                for cell_x in 1..=self.p.n_interior_cell_1d {
+                    for cell_y in 1..=self.p.n_interior_cell_1d {
+                        let x = self.x(cell_x);
+                        let y = self.y(cell_y);
 
-                let rho_bar = self.u(Variable::RhoBar, cell_x, cell_y);
-                let c = self.u(Variable::C, cell_x, cell_y);
-                let time = self.time;
+                        let rho_bar = self.u(Variable::RhoBar, cell_x, cell_y);
+                        let c = self.u(Variable::C, cell_x, cell_y);
+                        let time = self.time;
 
-                match &self.p.exact_solution {
-                    Some(exact_solution) => {
                         let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, y, &self.p);
                         let c_exact = (exact_solution.c_solution)(time, x, y, &self.p);
                         buffer.write_all(
@@ -172,14 +168,28 @@ impl Problem2D {
                                 time, x, y, rho_bar, c, rho_bar_exact, c_exact
                             )
                             .as_bytes(),
-                            )?;
+                        )?;
                     }
-                    None => {
-                        buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, y, rho_bar, c).as_bytes())?
-                    }
+                    buffer.write_all(b"\n")?;
                 }
             }
-            buffer.write_all(b"\n")?;
+            None => {
+                buffer.write_all("t x y rho\\\\_bar c\n".as_bytes())?;
+
+                for cell_x in 1..=self.p.n_interior_cell_1d {
+                    for cell_y in 1..=self.p.n_interior_cell_1d {
+                        let x = self.x(cell_x);
+                        let y = self.y(cell_y);
+
+                        let rho_bar = self.u(Variable::RhoBar, cell_x, cell_y);
+                        let c = self.u(Variable::C, cell_x, cell_y);
+                        let time = self.time;
+
+                        buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, y, rho_bar, c).as_bytes())?
+                    }
+                    buffer.write_all(b"\n")?;
+                }
+            }
         }
         Ok(())
     }

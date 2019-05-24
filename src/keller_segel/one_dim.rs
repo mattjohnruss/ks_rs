@@ -143,22 +143,19 @@ impl Problem1D {
     }
 
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
-        match self.p.exact_solution {
-            Some(_) => buffer
-                .write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?,
-            None => buffer.write_all("t x rho\\\\_bar c\n".as_bytes())?,
-        }
+        match &self.p.exact_solution {
+            Some(exact_solution) => {
+                buffer.write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?;
 
-        for cell in 1..=self.p.n_interior_cell_1d {
-            let x = self.x(cell);
-            let rho_bar = self.u(Variable::RhoBar, cell);
-            let c = self.u(Variable::C, cell);
-            let time = self.time;
+                for cell in 1..=self.p.n_interior_cell_1d {
+                    let x = self.x(cell);
+                    let rho_bar = self.u(Variable::RhoBar, cell);
+                    let c = self.u(Variable::C, cell);
+                    let time = self.time;
 
-            match &self.p.exact_solution {
-                Some(exact_solution) => {
                     let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, &self.p);
                     let c_exact = (exact_solution.c_solution)(time, x, &self.p);
+
                     buffer.write_all(
                         format!(
                             "{:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
@@ -167,8 +164,17 @@ impl Problem1D {
                         .as_bytes(),
                     )?;
                 }
-                None => {
-                    buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, rho_bar, c).as_bytes())?
+            }
+            None => {
+                buffer.write_all("t x rho\\\\_bar c\n".as_bytes())?;
+
+                for cell in 1..=self.p.n_interior_cell_1d {
+                    let x = self.x(cell);
+                    let rho_bar = self.u(Variable::RhoBar, cell);
+                    let c = self.u(Variable::C, cell);
+                    let time = self.time;
+
+                    buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, rho_bar, c).as_bytes())?;
                 }
             }
         }
