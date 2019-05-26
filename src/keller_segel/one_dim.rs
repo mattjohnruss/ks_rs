@@ -510,10 +510,12 @@ impl Problem1D {
         // FIXME This is probably quite inefficient with all the copies etc
         self.time += dt;
 
+        let n = self.p.n_interior_cell_1d;
+
         // save current solution
         let u_old = self
             .data
-            .slice(s![.., 1..=self.p.n_interior_cell_1d])
+            .slice(s![.., 1..=n])
             .to_owned();
 
         // an Euler step gives w_1
@@ -524,12 +526,12 @@ impl Problem1D {
 
         // calulate w_2
         let w_2 = {
-            let temp = self.data.slice(s![.., 1..=self.p.n_interior_cell_1d]);
+            let temp = self.data.slice(s![.., 1..=n]);
             0.75 * &u_old + 0.25 * &temp
         };
 
         // assign w_2 back into the main storage
-        let mut slice = self.data.slice_mut(s![.., 1..=self.p.n_interior_cell_1d]);
+        let mut slice = self.data.slice_mut(s![.., 1..=n]);
         slice.assign(&w_2);
 
         // another Euler step gives the brackets in the w_3 eqn
@@ -537,12 +539,12 @@ impl Problem1D {
 
         // calulate w_{n+1}
         let w_np1 = {
-            let temp = self.data.slice(s![.., 1..=self.p.n_interior_cell_1d]);
+            let temp = self.data.slice(s![.., 1..=n]);
             (1.0 / 3.0) * &u_old + (2.0 / 3.0) * &temp
         };
 
         // assign w_{n+1} back into the main storage
-        let mut slice = self.data.slice_mut(s![.., 1..=self.p.n_interior_cell_1d]);
+        let mut slice = self.data.slice_mut(s![.., 1..=n]);
         slice.assign(&w_np1);
     }
 }
