@@ -194,6 +194,10 @@ fn main() -> Result<()> {
     let buf_writer = BufWriter::new(file);
     problem.output(buf_writer)?;
 
+    let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
+    let mut trace_writer = BufWriter::new(trace_file);
+    problem.trace_header(&mut trace_writer)?;
+
     let mut i = 1;
 
     while problem.time < t_max {
@@ -206,6 +210,7 @@ fn main() -> Result<()> {
                 fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let buf_writer = BufWriter::new(file);
             problem.output(buf_writer)?;
+            problem.trace(&mut trace_writer)?;
         }
 
         i += 1;

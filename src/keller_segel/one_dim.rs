@@ -181,6 +181,71 @@ impl Problem1D {
         Ok(())
     }
 
+    pub fn trace_header<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+        match &self.p.exact_solution {
+            Some(_) => buffer.write_all("t rho\\\\_bar\\\\_total c\\\\_total rho\\\\_bar\\\\_error c_\\\\error\n".as_bytes())?,
+            None => buffer.write_all("t rho\\\\_bar\\\\_total c\\\\_total\n".as_bytes())?,
+        }
+        Ok(())
+    }
+
+    pub fn trace<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+        let (rho_bar_total, c_total) = self.integrate_solution();
+
+        match &self.p.exact_solution {
+            Some(_exact_solution) => {
+                let (rho_bar_error, c_error) = self.l2_error().unwrap();
+                buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total, rho_bar_error, c_error).as_bytes())?;
+            }
+            None => {
+                buffer.write_all(format!("{:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total).as_bytes())?;
+            }
+        }
+        Ok(())
+    }
+
+    fn l2_error(&self) -> Option<(f64, f64)> {
+        match &self.p.exact_solution {
+            Some(exact_solution) => {
+                let mut c_l2_error_sq = 0.0;
+                let mut rho_bar_l2_error_sq = 0.0;
+
+                for cell in 1..self.p.n_interior_cell_1d {
+                    let x = self.x(cell);
+                    let rho_bar_int = self.integrate_cell(Variable::RhoBar, cell);
+                    let c_int = self.integrate_cell(Variable::C, cell);
+                    let time = self.time;
+
+                    let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, &self.p);
+                    let c_exact = (exact_solution.c_solution)(time, x, &self.p);
+
+                    c_l2_error_sq += (rho_bar_int - rho_bar_exact).powi(2);
+                    rho_bar_l2_error_sq += (c_int - c_exact).powi(2);
+                }
+
+                Some((c_l2_error_sq.sqrt(), rho_bar_l2_error_sq.sqrt()))
+            }
+            None => None
+        }
+    }
+
+    fn integrate_solution(&self) -> (f64, f64) {
+        let mut result_c = 0.0;
+        let mut result_rho_bar = 0.0;
+
+        for cell in 1..self.p.n_interior_cell_1d {
+            result_c += self.integrate_cell(Variable::C, cell);
+            result_rho_bar += self.integrate_cell(Variable::RhoBar, cell);
+        }
+
+        (result_c, result_rho_bar)
+    }
+
+    /// Find the integral of `var` in `cell` using the midpoint rule
+    fn integrate_cell(&self, var: Variable, cell: usize) -> f64 {
+        self.p.dx * self.u(var, cell)
+    }
+
     /// x-coordinate of the centre of cell `cell`
     fn x(&self, cell: usize) -> f64 {
         (cell as f64 - 0.5) * self.p.dx
