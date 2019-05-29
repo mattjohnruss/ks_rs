@@ -219,11 +219,11 @@ impl Problem1D {
                     let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, &self.p);
                     let c_exact = (exact_solution.c_solution)(time, x, &self.p);
 
-                    c_l2_error_sq += (rho_bar_int - rho_bar_exact).powi(2);
-                    rho_bar_l2_error_sq += (c_int - c_exact).powi(2);
+                    rho_bar_l2_error_sq += (rho_bar_int - rho_bar_exact).powi(2);
+                    c_l2_error_sq += (c_int - c_exact).powi(2);
                 }
 
-                Some((c_l2_error_sq.sqrt(), rho_bar_l2_error_sq.sqrt()))
+                Some((rho_bar_l2_error_sq.sqrt(), c_l2_error_sq.sqrt()))
             }
             None => None
         }
