@@ -194,8 +194,14 @@ impl Problem1D {
 
         match &self.p.exact_solution {
             Some(_exact_solution) => {
-                let (rho_bar_error, c_error) = self.l2_error().unwrap();
-                buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total, rho_bar_error, c_error).as_bytes())?;
+                let (rho_bar_l_2_error, c_l_2_error) = self.l_2_error().unwrap();
+                let (rho_bar_l_inf_error, c_l_inf_error) = self.l_inf_error().unwrap();
+                buffer.write_all(
+                    format!(
+                        "{:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
+                        self.time, rho_bar_total, c_total, rho_bar_l_2_error, c_l_2_error, rho_bar_l_inf_error, c_l_inf_error
+                    ).as_bytes()
+                )?;
             }
             None => {
                 buffer.write_all(format!("{:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total).as_bytes())?;
@@ -204,11 +210,11 @@ impl Problem1D {
         Ok(())
     }
 
-    fn l2_error(&self) -> Option<(f64, f64)> {
+    fn l_2_error(&self) -> Option<(f64, f64)> {
         match &self.p.exact_solution {
             Some(exact_solution) => {
-                let mut c_l2_error_sq = 0.0;
-                let mut rho_bar_l2_error_sq = 0.0;
+                let mut c_l_2_error_sq = 0.0;
+                let mut rho_bar_l_2_error_sq = 0.0;
 
                 for cell in 1..self.p.n_interior_cell_1d {
                     let x = self.x(cell);
@@ -219,11 +225,45 @@ impl Problem1D {
                     let rho_bar_exact = (exact_solution.rho_bar_solution)(time, x, &self.p);
                     let c_exact = (exact_solution.c_solution)(time, x, &self.p);
 
-                    rho_bar_l2_error_sq += (rho_bar_int - rho_bar_exact).powi(2);
-                    c_l2_error_sq += (c_int - c_exact).powi(2);
+                    rho_bar_l_2_error_sq += (rho_bar_int - rho_bar_exact).powi(2);
+                    c_l_2_error_sq += (c_int - c_exact).powi(2);
                 }
 
-                Some((rho_bar_l2_error_sq.sqrt(), c_l2_error_sq.sqrt()))
+                Some((rho_bar_l_2_error_sq.sqrt(), c_l_2_error_sq.sqrt()))
+            }
+            None => None
+        }
+    }
+
+    fn l_inf_error(&self) -> Option<(f64, f64)> {
+        match &self.p.exact_solution {
+            Some(exact_solution) => {
+                let rho_bar_abs_error = |cell| {
+                    (self.u(Variable::RhoBar, cell) - (exact_solution.rho_bar_solution)(self.time, self.x(cell), &self.p)).abs()
+                };
+
+                let c_abs_error = |cell| {
+                    (self.u(Variable::C, cell) - (exact_solution.c_solution)(self.time, self.x(cell), &self.p)).abs()
+                };
+
+                // TODO replace this with something like (1..=n_interior_cell_1d).fold(...)
+                let rho_bar_l_inf_error = {
+                    let mut result = std::f64::NAN;
+                    for cell in 1..=self.p.n_interior_cell_1d {
+                        result = result.max(rho_bar_abs_error(cell));
+                    }
+                    result
+                };
+
+                let c_l_inf_error = {
+                    let mut result = std::f64::NAN;
+                    for cell in 1..=self.p.n_interior_cell_1d {
+                        result = result.max(c_abs_error(cell));
+                    }
+                    result
+                };
+
+                Some((rho_bar_l_inf_error, c_l_inf_error))
             }
             None => None
         }
