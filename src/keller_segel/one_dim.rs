@@ -1,5 +1,6 @@
 use crate::stencil::{Stencil, first_order, second_order};
 use crate::utilities::minmod;
+use crate::timestepping::ExplicitTimeSteppable;
 use ndarray::prelude::*;
 use std::fmt;
 use std::io::prelude::*;
@@ -123,21 +124,22 @@ impl Default for Parameters {
 #[derive(Debug)]
 pub struct Problem1D {
     pub p: Parameters,
-    data: Array<f64, ndarray::Ix2>,
-    rhs_buffer: Array<f64, ndarray::Ix2>,
+    data: Array<f64, ndarray::Ix1>,
+    rhs_buffer: Array<f64, ndarray::Ix1>,
     pub time: f64,
 }
 
 impl Problem1D {
     pub fn with_params(p: Parameters) -> Self {
         let n_interior_cell_1d = p.n_interior_cell_1d;
-        let n_cell = n_interior_cell_1d + 2;
+        let n_ghost_cell = 1;
+        let n_cell = n_interior_cell_1d + 2 * n_ghost_cell;
         let n_variable = 2;
 
         Problem1D {
             p,
-            data: Array::zeros((n_variable, n_cell)),
-            rhs_buffer: Array::zeros((n_variable, n_interior_cell_1d)),
+            data: Array::zeros(n_variable * n_cell),
+            rhs_buffer: Array::zeros(n_variable * n_interior_cell_1d),
             time: 0.0,
         }
     }
@@ -216,7 +218,7 @@ impl Problem1D {
                 let mut c_l_2_error_sq = 0.0;
                 let mut rho_bar_l_2_error_sq = 0.0;
 
-                for cell in 1..self.p.n_interior_cell_1d {
+                for cell in 1..=self.p.n_interior_cell_1d {
                     let x = self.x(cell);
                     let rho_bar_int = self.integrate_cell(Variable::RhoBar, cell);
                     let c_int = self.integrate_cell(Variable::C, cell);
@@ -273,7 +275,7 @@ impl Problem1D {
         let mut result_c = 0.0;
         let mut result_rho_bar = 0.0;
 
-        for cell in 1..self.p.n_interior_cell_1d {
+        for cell in 1..=self.p.n_interior_cell_1d {
             result_c += self.integrate_cell(Variable::C, cell);
             result_rho_bar += self.integrate_cell(Variable::RhoBar, cell);
         }
@@ -293,19 +295,48 @@ impl Problem1D {
 
     /// Get the value of `var` in cell `cell`
     fn u(&self, var: Variable, cell: usize) -> f64 {
-        let idx = self.index(cell);
-        self.data[(var as usize, idx)]
+        let idx = self.index(var, cell);
+        self.data[idx]
     }
 
     /// Get the value of `var` in cell `cell` (mut)
     fn u_mut(&mut self, var: Variable, cell: usize) -> &mut f64 {
-        let idx = self.index(cell);
-        &mut self.data[(var as usize, idx)]
+        let idx = self.index(var, cell);
+        &mut self.data[idx]
+    }
+
+    /// Return an immutable ArrayView into the data corresponding to degrees of freedom
+    /// (i.e. not including ghost cells)
+    fn dof_data(&self) -> ArrayView1<f64> {
+        let start_index = self.index(Variable::RhoBar, 1);
+        let end_index = self.index(Variable::C, self.p.n_interior_cell_1d);
+        self.data.slice(s![start_index..=end_index])
+    }
+
+    /// Return a mutable ArrayView into the data corresponding to degrees of freedom
+    /// (i.e. not including ghost cells)
+    fn dof_data_mut(&mut self) -> ArrayViewMut1<f64> {
+        let start_index = self.index(Variable::RhoBar, 1);
+        let end_index = self.index(Variable::C, self.p.n_interior_cell_1d);
+        self.data.slice_mut(s![start_index..=end_index])
     }
 
     /// Translate from cell number to index of the internal data storage
-    fn index(&self, cell: usize) -> usize {
-        cell
+    fn index(&self, var: Variable, cell: usize) -> usize {
+        if 1 <= cell && cell <= self.p.n_interior_cell_1d {
+            var as usize * self.p.n_interior_cell_1d + cell - 1
+        } else {
+            let n_interior_data = 2 * self.p.n_interior_cell_1d;
+            let n_ghost_cell = 1;
+
+            if cell == 0 {
+                n_interior_data + 2 * var as usize * n_ghost_cell
+            } else if cell == self.p.n_interior_cell_1d + 1 {
+                n_interior_data + 2 * var as usize * n_ghost_cell + 1
+            } else {
+                panic!("Indexing error with var = {:?}, cell = {}", var, cell);
+            }
+        }
     }
 
     /// Set the initial conditions according to the value of `p.ics` and associated
@@ -513,6 +544,13 @@ impl Problem1D {
         result
     }
 
+    fn fill_rhs_buffer(&mut self) {
+        for cell in 1..=self.p.n_interior_cell_1d {
+            self.rhs_buffer[cell - 1] = self.rhs_rho_bar(cell);
+            self.rhs_buffer[self.p.n_interior_cell_1d + cell - 1] = self.rhs_c(cell);
+        }
+    }
+
     fn update_ghost_cells(&mut self) {
         // TODO currently zeroth-order extrapolation
         *self.u_mut(Variable::RhoBar, 0) = self.u(Variable::RhoBar, 1);
@@ -523,68 +561,79 @@ impl Problem1D {
         *self.u_mut(Variable::C, self.p.n_interior_cell_1d + 1) =
             self.u(Variable::C, self.p.n_interior_cell_1d);
     }
+}
 
-    fn step_euler_forward_helper(&mut self, dt: f64) {
-        self.update_ghost_cells();
+impl ExplicitTimeSteppable for Problem1D {
+    fn time(&self) -> &f64 {
+        &self.time
+    }
+
+    fn time_mut(&mut self) -> &mut f64 {
+        &mut self.time
+    }
+
+    fn dofs(&self) -> ArrayView1<f64> {
+        self.dof_data()
+    }
+
+    fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
+        for (dof, dof_new) in self.dof_data_mut().iter_mut().zip(dofs.iter()) {
+            *dof = *dof_new
+        }
+    }
+
+    fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
+        for (dof, inc) in self.dof_data_mut().iter_mut().zip(increment.iter()) {
+            *dof += factor * *inc;
+        }
+    }
+
+    fn scale_dofs(&mut self, factor: f64) {
+        for dof in self.dof_data_mut().iter_mut() {
+            *dof *= factor;
+        }
+    }
+
+    fn rhs(&self) -> Array1<f64> {
+        let mut rhs = Array::zeros(2 * self.p.n_interior_cell_1d);
 
         for cell in 1..=self.p.n_interior_cell_1d {
-            // Subtract one because self.index() currently returns 1..=self.p.n_interior_cell_1d
-            let idx = self.index(cell) - 1;
-            self.rhs_buffer[(Variable::RhoBar as usize, idx)] = self.rhs_rho_bar(cell);
-            self.rhs_buffer[(Variable::C as usize, idx)] = self.rhs_c(cell);
+            rhs[cell - 1] = self.rhs_rho_bar(cell);
+            rhs[self.p.n_interior_cell_1d + cell - 1] = self.rhs_c(cell);
         }
 
-        {
-            let mut slice = self.data.slice_mut(s![.., 1..=self.p.n_interior_cell_1d]);
-            self.rhs_buffer *= dt;
-            slice += &self.rhs_buffer;
-        }
+        rhs
     }
 
-    pub fn step_euler_forward(&mut self, dt: f64) {
-        self.time += dt;
-        self.step_euler_forward_helper(dt);
+    fn rhs_view(&self) -> ArrayView1<f64> {
+        //self.fill_rhs_buffer();
+        self.rhs_buffer.view()
     }
 
-    pub fn step_ssp_rk3(&mut self, dt: f64) {
-        // FIXME This is probably quite inefficient with all the copies etc
-        self.time += dt;
+    fn actions_before_explicit_stage(&mut self) {
+        self.update_ghost_cells();
+    }
+}
 
-        let n = self.p.n_interior_cell_1d;
+#[cfg(test)]
+mod test {
+    use super::*;
 
-        // save current solution
-        let u_old = self
-            .data
-            .slice(s![.., 1..=n])
-            .to_owned();
+    #[test]
+    fn indexing() {
+        let p = Parameters::default();
+        let problem = Problem1D::with_params(p);
 
-        // an Euler step gives w_1
-        self.step_euler_forward_helper(dt);
+        assert_eq!(problem.index(Variable::RhoBar, 0), 6);
+        assert_eq!(problem.index(Variable::RhoBar, 1), 0);
+        assert_eq!(problem.index(Variable::RhoBar, 2), 1);
+        assert_eq!(problem.index(Variable::RhoBar, 3), 2);
+        assert_eq!(problem.index(Variable::RhoBar, 4), 7);
 
-        // another Euler step gives the brackets in the w_2 eqn
-        self.step_euler_forward_helper(dt);
-
-        // calulate w_2
-        let w_2 = {
-            let temp = self.data.slice(s![.., 1..=n]);
-            0.75 * &u_old + 0.25 * &temp
-        };
-
-        // assign w_2 back into the main storage
-        let mut slice = self.data.slice_mut(s![.., 1..=n]);
-        slice.assign(&w_2);
-
-        // another Euler step gives the brackets in the w_3 eqn
-        self.step_euler_forward_helper(dt);
-
-        // calulate w_{n+1}
-        let w_np1 = {
-            let temp = self.data.slice(s![.., 1..=n]);
-            (1.0 / 3.0) * &u_old + (2.0 / 3.0) * &temp
-        };
-
-        // assign w_{n+1} back into the main storage
-        let mut slice = self.data.slice_mut(s![.., 1..=n]);
-        slice.assign(&w_np1);
+        assert_eq!(problem.index(Variable::C, 0), 8);
+        assert_eq!(problem.index(Variable::C, 1), 3);
+        assert_eq!(problem.index(Variable::C, 2), 4);
+        assert_eq!(problem.index(Variable::C, 3), 5);
+        assert_eq!(problem.index(Variable::C, 4), 9);
     }
 }

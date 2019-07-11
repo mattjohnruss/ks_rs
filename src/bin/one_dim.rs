@@ -2,6 +2,12 @@ use ks_rs::keller_segel::one_dim::{
     ExactSolution, Forces, ICs, Parameters,
     Problem1D,
 };
+use ks_rs::timestepping::{
+    ExplicitTimeStepper,
+    //EulerForward,
+    SspRungeKutta3,
+    //RungeKutta4
+};
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fs;
@@ -190,6 +196,10 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
+    //let euler_forward = EulerForward::new();
+    let ssp_rk3 = SspRungeKutta3::new();
+    //let runge_kutta_4 = RungeKutta4::new();
+
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let buf_writer = BufWriter::new(file);
     problem.output(buf_writer)?;
@@ -201,8 +211,9 @@ fn main() -> Result<()> {
     let mut i = 1;
 
     while problem.time < t_max {
-        //problem.step_euler_forward(dt);
-        problem.step_ssp_rk3(dt);
+        //euler_forward.step(&mut problem, dt);
+        ssp_rk3.step(&mut problem, dt);
+        //runge_kutta_4.step(&mut problem, dt);
 
         if i % output_interval == 0 {
             println!("Output {} at timestep {}, t = {}", i / output_interval, i, problem.time);
