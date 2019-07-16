@@ -125,7 +125,6 @@ impl Default for Parameters {
 pub struct Problem1D {
     pub p: Parameters,
     data: Array<f64, ndarray::Ix1>,
-    rhs_buffer: Array<f64, ndarray::Ix1>,
     pub time: f64,
 }
 
@@ -139,7 +138,6 @@ impl Problem1D {
         Problem1D {
             p,
             data: Array::zeros(n_variable * n_cell),
-            rhs_buffer: Array::zeros(n_variable * n_interior_cell_1d),
             time: 0.0,
         }
     }
@@ -544,13 +542,6 @@ impl Problem1D {
         result
     }
 
-    fn fill_rhs_buffer(&mut self) {
-        for cell in 1..=self.p.n_interior_cell_1d {
-            self.rhs_buffer[cell - 1] = self.rhs_rho_bar(cell);
-            self.rhs_buffer[self.p.n_interior_cell_1d + cell - 1] = self.rhs_c(cell);
-        }
-    }
-
     fn update_ghost_cells(&mut self) {
         // TODO currently zeroth-order extrapolation
         *self.u_mut(Variable::RhoBar, 0) = self.u(Variable::RhoBar, 1);
@@ -603,11 +594,6 @@ impl ExplicitTimeSteppable for Problem1D {
         }
 
         rhs
-    }
-
-    fn rhs_view(&self) -> ArrayView1<f64> {
-        //self.fill_rhs_buffer();
-        self.rhs_buffer.view()
     }
 
     fn actions_before_explicit_stage(&mut self) {

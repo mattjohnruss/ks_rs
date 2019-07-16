@@ -29,9 +29,6 @@ pub trait ExplicitTimeSteppable {
     /// Gets an owned array of the current right-hand side values
     fn rhs(&self) -> Array1<f64>;
 
-    /// Gets a view into the current right-hand side values
-    fn rhs_view(&self) -> ArrayView1<f64>;
-
     /// Actions performed before each explicit timestep
     fn actions_before_explicit_timestep(&mut self) { }
 
@@ -210,7 +207,6 @@ mod test {
         time: f64,
         data: Vec<f64>,
         n_dof: usize,
-        rhs_buffer: Array1<f64>,
     }
 
     impl DummyProblem {
@@ -219,19 +215,12 @@ mod test {
                 time: 0.0,
                 data: vec![0.0; n_dof],
                 n_dof,
-                rhs_buffer: Array1::zeros(n_dof),
             }
         }
 
         // dx/dt = x
         fn calculate_rhs(&self, i: usize) -> f64 {
             self.data[i]
-        }
-
-        fn fill_rhs_buffer(&mut self) {
-            for i in 0..self.n_dof {
-                self.rhs_buffer[i] = self.calculate_rhs(i);
-            }
         }
 
         fn exact_solution(&self) -> f64 {
@@ -271,20 +260,11 @@ mod test {
         }
 
         fn rhs(&self) -> Array1<f64> {
-            //let mut rhs = Array1::zeros(self.n_dof);
-            //for i in 0..self.n_dof {
-                //self.rhs_buffer[i] = self.calculate_rhs(i);
-            //}
-            self.rhs_buffer.clone()
-        }
-
-        fn rhs_view(&self) -> ArrayView1<f64> {
-            //self.fill_rhs_buffer();
-            self.rhs_buffer.view()
-        }
-
-        fn actions_before_explicit_stage(&mut self) {
-            self.fill_rhs_buffer();
+            let mut rhs = Array1::zeros(self.n_dof);
+            for i in 0..self.n_dof {
+                rhs[i] = self.calculate_rhs(i);
+            }
+            rhs
         }
     }
 
