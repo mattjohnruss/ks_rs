@@ -233,6 +233,10 @@ mod test {
                 self.rhs_buffer[i] = self.calculate_rhs(i);
             }
         }
+
+        fn exact_solution(&self) -> f64 {
+            self.time.exp()
+        }
     }
 
     impl ExplicitTimeSteppable for DummyProblem {
@@ -278,6 +282,10 @@ mod test {
             //self.fill_rhs_buffer();
             self.rhs_buffer.view()
         }
+
+        fn actions_before_explicit_stage(&mut self) {
+            self.fill_rhs_buffer();
+        }
     }
 
     const N_STEP: usize = 100;
@@ -292,11 +300,11 @@ mod test {
         let timestepper = EulerForward {};
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
         }
     }
 
@@ -309,11 +317,11 @@ mod test {
         let timestepper = RungeKutta4 {};
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
         }
     }
 
@@ -326,11 +334,11 @@ mod test {
         let timestepper = SspRungeKutta3 {};
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {}", problem.time, problem.data[0]).unwrap();
+            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
         }
     }
 }
