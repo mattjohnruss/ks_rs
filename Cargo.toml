@@ -10,3 +10,18 @@ blas-src = { version = "0.2", default-features = false, features = ["openblas"] 
 openblas-src = { version = "0.6", default-features = false, features = ["cblas", "static"] }
 structopt = "0.2"
 rand = "0.6.5"
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "one_dim"
+path = "src/bin/one_dim.rs"
+test = false
+doctest = false
+
+[[bin]]
+name = "two_dim"
+path = "src/bin/two_dim.rs"
+test = false
+doctest = false
