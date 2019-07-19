@@ -1,3 +1,4 @@
+/// Trait for finite-difference stencils
 pub trait Stencil<'a> {
     /// Get the stencil
     fn stencil() -> &'a [(isize, f64)];
@@ -26,11 +27,13 @@ macro_rules! stencil_impl {
     }
 }
 
+/// First-order accurate stencils
 pub mod first_order {
     stencil_impl!(Forward1, [(0, -1.0), (1, 1.0)]);
     stencil_impl!(Backward1, [(0, 1.0), (-1, -1.0)]);
 }
 
+/// Second-order accurate stencils
 pub mod second_order {
     stencil_impl!(Central1, [(-1, -0.5), (1, 0.5)]);
     stencil_impl!(Forward1, [(0, -1.5), (1, 2.0), (2, -0.5)]);
