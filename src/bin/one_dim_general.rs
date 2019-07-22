@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     problem.output(&mut buf_writer)?;
 
     let mut i = 1;
-    let dt = 0.1;
+    let dt = 1e-2;
 
     while problem.time < 1.0 {
         euler_forward.step(&mut problem, dt);
