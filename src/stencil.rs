@@ -1,7 +1,7 @@
 /// Trait for finite-difference stencils
-pub trait Stencil<'a> {
+pub trait Stencil {
     /// Get the stencil
-    fn stencil() -> &'a [(isize, f64)];
+    fn stencil() -> &'static [(isize, f64)];
 
     /// Apply the stencil to a function `f`, centring at index `i`
     fn apply<F>(i: usize, f: F) -> f64
@@ -19,8 +19,8 @@ macro_rules! stencil_impl {
     ($s:ident, $e:expr) => {
         #[allow(dead_code)]
         pub struct $s;
-        impl <'a> crate::stencil::Stencil<'a> for $s {
-            fn stencil() -> &'a [(isize, f64)] {
+        impl crate::stencil::Stencil for $s {
+            fn stencil() -> &'static [(isize, f64)] {
                 &$e
             }
         }
