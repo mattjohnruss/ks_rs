@@ -129,10 +129,8 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
-    /// Output the current state of the problem to the given writer
-    pub fn output<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
-        self.output_header(buffer)?;
-
+    /// Output the data to the given writer
+    fn output_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
         let time = self.time;
         
         for cell in 1..=self.domain.n_cell {
@@ -150,6 +148,13 @@ impl<F> Problem1D<F>
 
             buffer.write_all(b"\n")?;
         }
+        Ok(())
+    }
+
+    /// Output the current state of the problem to the given writer
+    pub fn output<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+        self.output_header(buffer)?;
+        self.output_data(buffer)?;
         Ok(())
     }
     
@@ -449,10 +454,9 @@ mod tests {
         let mut output = Vec::new();
         {
             let mut output_writer = BufWriter::new(&mut output);
-            problem.output(&mut output_writer).unwrap();
+            problem.output_data(&mut output_writer).unwrap();
         }
-        assert_eq!(std::str::from_utf8(&output).unwrap(), "t x var_0 var_1 var_2
-0.000000e0 5.000000e-1 0.000000e0 0.000000e0 0.000000e0\n");
+        assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 5.000000e-1 0.000000e0 0.000000e0 0.000000e0\n");
     }
 
     #[test]
