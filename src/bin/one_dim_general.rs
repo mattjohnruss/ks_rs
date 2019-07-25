@@ -1,49 +1,92 @@
 use ks_rs::adr::one_dim::{
     DomainParams,
     Problem1D,
-    DiffusionOnly,
     ProblemFunctions,
+    Variable,
+    Cell,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
-    EulerForward,
-    //SspRungeKutta3,
-    //RungeKutta4
+    SspRungeKutta3,
 };
 use std::fs;
-use std::io::BufWriter;
+use std::io::{Write, BufWriter};
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
-    where F: ProblemFunctions
-{
-    use ks_rs::adr::one_dim::{Variable, Cell};
+struct KellerSegel {
+    d_rho: f64,
+    d_c: f64,
+    chi: f64,
+    gamma_rho: f64,
+    gamma_c: f64,
+    r: f64,
+}
 
-    for var in 0..problem.n_variable {
-        for cell in 1..=problem.domain.n_cell {
-            let cell = Cell(cell);
-            let x = problem.x(cell);
-            *problem.var_mut(Variable(var), cell) = x / problem.domain.width;
+impl KellerSegel {
+    const RHO: Variable = Variable(0);
+    const C: Variable = Variable(1);
+    const N_VARIABLE: usize = 2;
+}
+
+impl ProblemFunctions for KellerSegel {
+    fn diffusivity(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
+        match var {
+            Self::RHO => self.d_rho,
+            Self::C => self.d_c,
+            _ => panic!("Invalid variable number"),
         }
     }
 
-    //let central_cell = (problem.domain.n_cell - 1) / 2 + 1;
-    //for var in 0..problem.n_variable {
-        //for cell in 1..=problem.domain.n_cell {
-            //*problem.var_mut(Variable(var), Cell(cell)) = if cell == central_cell {
-                //1.0
-            //} else {
-                //0.0
-            //};
-        //}
-    //}
+    fn velocity_p_at_midpoint(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
+        match var {
+            Self::RHO => self.chi * problem.dvar_dx_p_at_midpoint(Self::C, cell),
+            Self::C => 0.0,
+            _ => panic!("Invalid variable number"),
+        }
+    }
+
+    fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
+        match var {
+            Self::RHO => self.r * problem.var(Self::RHO, cell) * (1.0 - problem.var(Self::RHO, cell)),
+            Self::C => self.gamma_rho * problem.var(Self::RHO, cell) - self.gamma_c * problem.var(Self::C, cell),
+            _ => panic!("Invalid variable number"),
+        }
+    }
+}
+
+fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
+    where F: ProblemFunctions
+{
+    // ICs: uniform for rho, perturbed for c
+    use rand::distributions::Uniform;
+    use rand::{thread_rng, Rng};
+
+    let pert_size = 0.01;
+    let uniform = Uniform::new_inclusive(-pert_size, pert_size);
+
+    for cell in problem.interior_cells() {
+        *problem.var_mut(KellerSegel::RHO, cell) = 1.0;
+        *problem.var_mut(KellerSegel::C, cell) = 1.0 + thread_rng().sample(uniform);
+    }
 }
 
 fn main() -> Result<()> {
-    let domain = DomainParams { n_cell: 5, width: 1.0 };
-    let mut problem = Problem1D::new(1, domain, DiffusionOnly);
+    let domain = DomainParams { n_cell: 501, width: 25.0 };
+
+    // Use the parameters from the Painter and Hillen paper
+    let ks = KellerSegel {
+        d_rho: 0.1,
+        d_c: 1.0,
+        chi: 5.0,
+        gamma_rho: 1.0,
+        gamma_c: 1.0,
+        r: 1.0,
+    };
+
+    let mut problem = Problem1D::new(KellerSegel::N_VARIABLE, domain, ks);
+    problem.variable_names = vec![String::from("rho"), String::from("c")];
 
     set_initial_conditions(&mut problem);
 
@@ -51,22 +94,26 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    let euler_forward = EulerForward::new();
-    //let ssp_rk3 = SspRungeKutta3::new();
+    let ssp_rk3 = SspRungeKutta3::new();
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     problem.output(&mut buf_writer)?;
+    buf_writer.flush()?;
 
+    let output_interval = 10;
     let mut i = 1;
-    let dt = 1e-2;
+    let dt = 1e-4;
+    let t_max = 100.0;
 
-    while problem.time < 1.0 {
-        euler_forward.step(&mut problem, dt);
-        //ssp_rk3.step(&mut problem, dt);
-        let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i)))?;
-        let mut buf_writer = BufWriter::new(file);
-        problem.output(&mut buf_writer)?;
+    while problem.time < t_max {
+        ssp_rk3.step(&mut problem, dt);
+
+        if i % output_interval == 0 {
+            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+            let mut buf_writer = BufWriter::new(file);
+            problem.output(&mut buf_writer)?;
+        }
         i += 1;
     }
 
