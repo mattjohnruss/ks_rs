@@ -5,7 +5,7 @@ use ndarray::prelude::*;
 use std::io::prelude::*;
 
 /// Wrapper type for variable numbers
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Variable(pub usize);
 
 /// Wrapper type for cell indices
