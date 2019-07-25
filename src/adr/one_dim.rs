@@ -40,27 +40,43 @@ pub struct DomainParams {
     pub width: f64,
 }
 
-/// Allows for used-specified functions for advection velocity, reaction terms and forcing
+/// Allows for used-specified functions for diffusivity, advection velocity, reaction terms and
+/// forcing. All functions have access to the current variable, cell and public methods of the
+/// underlying `Problem`.
 pub trait ProblemFunctions: Sized {
-    fn reactions(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
-        0.0
+    // TODO for a position-dependent diffusivity to be correct, we would need _p/_m versions like
+    // for the velocity, since this one function is currently called in both flux_p and flux_m.
+    // Works fine if it's a constant (in each cell).
+    /// Diffusivity. Defaults to one.
+    fn diffusivity(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+        1.0
     }
 
-    fn forcing(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
-        0.0
-    }
-
+    /// Advection velocity at the `East` face of the given cell. Defaults to zero.
     fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
         0.0
     }
 
+    /// Advection velocity at the `West` face of the given cell. Defaults to the velocity at the
+    /// `East` face of the neighbouring cell.
     fn velocity_m_at_midpoint(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
         self.velocity_p_at_midpoint(_problem, _var, _cell.left())
+    }
+
+    /// Reaction terms, sampled at the centre of the cell. Defaults to zero.
+    fn reactions(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+        0.0
+    }
+
+    /// Additional forcing terms, sampled at the centre of the cell. Useful for testing
+    /// manufactured solutions. Defaults to zero.
+    fn forcing(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+        0.0
     }
 }
 
 /// Trivial implementation of `ProblemFunctions` that leaves all functions as the default
-/// zero, corresponding to a pure diffusion problem with D = 1 for all components
+/// zero, corresponding to a pure diffusion problem with <math>D = 1</math> for all components
 #[derive(Copy, Clone)]
 pub struct DiffusionOnly;
 
@@ -216,15 +232,13 @@ impl<F> Problem1D<F>
     fn flux_p(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
-        // TODO allow general diffusivity here
-        self.var_point_value_x_p(var, cell) * velocity_p - dvar_dx_p
+        self.var_point_value_x_p(var, cell) * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
     }
 
     fn flux_m(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        // TODO allow general diffusivity here
-        self.var_point_value_x_m(var, cell) * velocity_m - dvar_dx_m
+        self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
     }
 
     fn velocity_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
