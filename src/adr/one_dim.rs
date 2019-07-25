@@ -298,6 +298,13 @@ impl<F> Problem1D<F>
                 self.var(var, Cell(self.domain.n_cell));
         }
     }
+
+    pub fn interior_cells(&self) -> InteriorCellsIter {
+        InteriorCellsIter {
+            cell: Cell(1),
+            n_cell: self.domain.n_cell,
+        }
+    }
 }
 
 impl<F> ExplicitTimeSteppable for Problem1D<F>
@@ -354,6 +361,26 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
 
     fn actions_before_explicit_stage(&mut self) {
         self.update_ghost_cells();
+    }
+}
+
+/// Iterates over the interior cells of a problem
+pub struct InteriorCellsIter {
+    /// The current cell
+    cell: Cell,
+    /// The number of interior cells
+    n_cell: usize,
+}
+
+impl Iterator for InteriorCellsIter {
+    type Item = Cell;
+    fn next(&mut self) -> Option<Cell> {
+        let result = match self.cell {
+            Cell(i) if i <= self.n_cell => Some(self.cell),
+            _ => None,
+        };
+        self.cell.0 += 1;
+        result
     }
 }
 
@@ -432,5 +459,15 @@ mod tests {
         let cell = Cell(13);
         assert_eq!(cell.left(), Cell(12));
         assert_eq!(cell.right(), Cell(14));
+    }
+
+    #[test]
+    fn cells_iter() {
+        let functions = DiffusionOnly { };
+        let domain = DomainParams { n_cell: 10, width: 1.0 };
+        let problem = Problem1D::new(1, domain, functions);
+        for (idx, cell) in (1..10).zip(problem.interior_cells()) {
+            assert_eq!(cell.0, idx);
+        }
     }
 }
