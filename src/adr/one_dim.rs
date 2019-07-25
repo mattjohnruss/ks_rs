@@ -250,13 +250,13 @@ impl<F> Problem1D<F>
         self.functions.velocity_p_at_midpoint(&self, var, cell.left())
     }
 
-    fn dvar_dx_p_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
+    pub fn dvar_dx_p_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
         first_order::Forward1::apply(cell.0, |i| {
             self.var(var, Cell(i)) / self.dx
         })
     }
 
-    fn dvar_dx_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
+    pub fn dvar_dx_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
         self.dvar_dx_p_at_midpoint(var, cell.left())
     }
 
