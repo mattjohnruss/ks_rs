@@ -68,17 +68,17 @@ impl ExplicitTimeStepper for EulerForward {
     }
 }
 
-/// Fourth-order Runge-Kutta timestepper
-pub struct RungeKutta4;
+/// Fourth-order, four stage Runge-Kutta timestepper
+pub struct RungeKutta44;
 
-impl RungeKutta4 {
+impl RungeKutta44 {
     /// Create a new Runge-Kutta timestepper
     pub fn new() -> Self {
-        RungeKutta4 {}
+        RungeKutta44 {}
     }
 }
 
-impl ExplicitTimeStepper for RungeKutta4 {
+impl ExplicitTimeStepper for RungeKutta44 {
     fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64) {
         obj.actions_before_explicit_timestep();
 
@@ -126,17 +126,17 @@ impl ExplicitTimeStepper for RungeKutta4 {
     }
 }
 
-/// Third-order strong stability-preserving Runge-Kutta timestepper
-pub struct SspRungeKutta3;
+/// Third-order, three stage strong stability-preserving Runge-Kutta timestepper
+pub struct SspRungeKutta33;
 
-impl SspRungeKutta3 {
+impl SspRungeKutta33 {
     /// Create a new SSP-RK timestepper
     pub fn new() -> Self {
-        SspRungeKutta3 {}
+        SspRungeKutta33 {}
     }
 }
 
-impl ExplicitTimeStepper for SspRungeKutta3 {
+impl ExplicitTimeStepper for SspRungeKutta33 {
     // NOTE from Hesthaven & Warburton (2008), p.158
     // NOTE double check the placement of actions_before/after_explicit_stage()
     fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64) {
@@ -280,12 +280,13 @@ mod test {
     }
 
     #[test]
-    fn runge_kutta_4() {
-        let file = fs::File::create("runge_kutta_4.csv").unwrap();
+    #[test]
+    fn runge_kutta_4_4() {
+        let file = fs::File::create("runge_kutta_4_4.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
 
         let mut problem = DummyProblem::new(1);
-        let timestepper = RungeKutta4 {};
+        let timestepper = RungeKutta44 {};
 
         problem.data[0] = 1.0;
         writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
@@ -297,12 +298,12 @@ mod test {
     }
 
     #[test]
-    fn ssp_runge_kutta_3() {
-        let file = fs::File::create("ssp_runge_kutta_3.csv").unwrap();
+    fn ssp_runge_kutta_3_3() {
+        let file = fs::File::create("ssp_runge_kutta_3_3.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
 
         let mut problem = DummyProblem::new(1);
-        let timestepper = SspRungeKutta3 {};
+        let timestepper = SspRungeKutta33 {};
 
         problem.data[0] = 1.0;
         writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
