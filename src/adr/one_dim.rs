@@ -133,17 +133,12 @@ impl<F> Problem1D<F>
     fn output_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
         let time = self.time;
         
-        for cell in 1..=self.domain.n_cell {
-            let cell = Cell(cell);
+        for cell in self.interior_cells() {
             let x = self.x(cell);
             buffer.write_all(format!("{:.6e} {:.6e}", time, x).as_bytes())?;
 
             for var in self.all_vars(cell) {
                 buffer.write_all(format!(" {:.6e}", var).as_bytes())?;
-
-            //for var in 0..self.n_variable {
-                //let value = self.var(Variable(var), cell);
-                //buffer.write_all(format!(" {:.6e}", value).as_bytes())?;
             }
 
             buffer.write_all(b"\n")?;
@@ -369,8 +364,8 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
         let mut rhs = Array::zeros((self.n_variable, self.domain.n_cell));
 
         for var in 0..self.n_variable {
-            for cell in 1..=self.domain.n_cell {
-                rhs[(var, cell - 1)] = self.rhs(Variable(var), Cell(cell));
+            for (idx, cell) in self.interior_cells().enumerate() {
+                rhs[(var, idx)] = self.rhs(Variable(var), cell);
             }
         }
 
