@@ -319,6 +319,11 @@ impl<F> Problem1D<F>
             n_cell: self.domain.n_cell,
         }
     }
+
+    fn dofs_mut(&mut self) -> ArrayViewMut1<f64> {
+        let len = self.data.len();
+        self.data.view_mut().into_shape(len).unwrap()
+    }
 }
 
 impl<F> ExplicitTimeSteppable for Problem1D<F>
@@ -337,27 +342,15 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
     }
 
     fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
-        let len = self.data.len();
-        let mut dofs_mut = self.data.view_mut().into_shape(len).unwrap();
-        for (dof, dof_new) in dofs_mut.iter_mut().zip(dofs.iter()) {
-            *dof = *dof_new
-        }
+        self.dofs_mut().assign(&dofs);
     }
 
     fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
-        let len = self.data.len();
-        let mut dofs_mut = self.data.view_mut().into_shape(len).unwrap();
-        for (dof, inc) in dofs_mut.iter_mut().zip(increment.iter()) {
-            *dof += factor * *inc;
-        }
+        *&mut self.dofs_mut() += &(factor * &increment);
     }
 
     fn scale_dofs(&mut self, factor: f64) {
-        let len = self.data.len();
-        let mut dofs_mut = self.data.view_mut().into_shape(len).unwrap();
-        for dof in dofs_mut.iter_mut() {
-            *dof *= factor;
-        }
+        *&mut self.dofs_mut() *= factor;
     }
 
     fn rhs(&self) -> Array1<f64> {
@@ -479,7 +472,7 @@ mod tests {
         let functions = DiffusionOnly { };
         let domain = DomainParams { n_cell: 10, width: 1.0 };
         let problem = Problem1D::new(1, domain, functions);
-        for (idx, cell) in (1..10).zip(problem.interior_cells()) {
+        for (idx, cell) in (1..=10).zip(problem.interior_cells()) {
             assert_eq!(cell.0, idx);
         }
     }

@@ -1,6 +1,3 @@
-// TODO rewrite to use ndarray?
-// we should change the Problem types to use a flat (1d) ndarray with an indexing scheme
-
 use ndarray::prelude::*;
 
 /// Represent an object whose data can be timestepped with an explicit scheme
@@ -205,7 +202,7 @@ mod test {
 
     struct DummyProblem {
         time: f64,
-        data: Vec<f64>,
+        data: Array1<f64>,
         n_dof: usize,
     }
 
@@ -213,7 +210,7 @@ mod test {
         fn new(n_dof: usize) -> Self {
             DummyProblem {
                 time: 0.0,
-                data: vec![0.0; n_dof],
+                data: Array::zeros(n_dof),
                 n_dof,
             }
         }
@@ -238,25 +235,19 @@ mod test {
         }
 
         fn dofs(&self) -> ArrayView1<f64> {
-            aview1(&self.data)
+            self.data.view()
         }
 
         fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
-            for (dof, dof_new) in self.data.iter_mut().zip(dofs.iter()) {
-                *dof = *dof_new
-            }
+            self.data.assign(&dofs);
         }
 
         fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
-            for (dof, inc) in self.data.iter_mut().zip(increment.iter()) {
-                *dof += factor * *inc;
-            }
+            self.data += &(factor * &increment);
         }
 
         fn scale_dofs(&mut self, factor: f64) {
-            for dof in self.data.iter_mut() {
-                *dof *= factor;
-            }
+            self.data *= factor;
         }
 
         fn rhs(&self) -> Array1<f64> {
