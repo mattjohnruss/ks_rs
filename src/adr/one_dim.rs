@@ -73,14 +73,24 @@ pub trait ProblemFunctions: Sized {
     fn forcing(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
         0.0
     }
+
+    /// Value of the flux at the left-hand boundary
+    fn left_flux_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> f64 {
+        0.0
+    }
+
+    /// Value of the flux at the right-hand boundary
+    fn right_flux_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> f64 {
+        0.0
+    }
 }
 
 /// Trivial implementation of `ProblemFunctions` that leaves all functions as the default
 /// zero, corresponding to a pure diffusion problem with <math>D = 1</math> for all components
 #[derive(Copy, Clone)]
-pub struct DiffusionOnly;
+pub struct DiffusionZeroFluxBcs;
 
-impl ProblemFunctions for DiffusionOnly { }
+impl ProblemFunctions for DiffusionZeroFluxBcs { }
 
 /// The main problem type
 pub struct Problem1D<F> {
@@ -200,14 +210,19 @@ impl<F> Problem1D<F>
 
         // flux (includes diffusion and advection)
         result += {
+            // TODO this condition might need to change to allow equations without BCs e.g. C_b.
+            // Probably need to add a flag for each variable and test it here. When not applying
+            // BCs, treat the first and last cells the same as the rest.
             let flux_m = if cell == Cell(1) {
-                0.0
+                // At the left-hand boundary
+                self.functions.left_flux_bc(&self, var)
             } else {
                 self.flux_m(var, cell)
             };
 
             let flux_p = if cell == Cell(self.domain.n_cell) {
-                0.0
+                // At the right-hand boundary
+                self.functions.right_flux_bc(&self, var)
             } else {
                 self.flux_p(var, cell)
             };
@@ -396,7 +411,7 @@ mod tests {
         use std::io::BufWriter;
 
         let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionOnly { };
+        let functions = DiffusionZeroFluxBcs { };
 
         // Zero variable edge case
         let problem = Problem1D::new(0, domain, functions);
@@ -431,7 +446,7 @@ mod tests {
         use std::io::BufWriter;
 
         let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionOnly { };
+        let functions = DiffusionZeroFluxBcs { };
 
         let problem = Problem1D::new(3, domain, functions);
         let mut output = Vec::new();
@@ -444,7 +459,7 @@ mod tests {
 
     #[test]
     fn x_coords() {
-        let functions = DiffusionOnly { };
+        let functions = DiffusionZeroFluxBcs { };
 
         let domain = DomainParams { n_cell: 1, width: 1.0 };
         let problem = Problem1D::new(1, domain, functions);
@@ -464,7 +479,7 @@ mod tests {
 
     #[test]
     fn cells_iter() {
-        let functions = DiffusionOnly { };
+        let functions = DiffusionZeroFluxBcs { };
         let domain = DomainParams { n_cell: 10, width: 1.0 };
         let problem = Problem1D::new(1, domain, functions);
         for (idx, cell) in (1..=10).zip(problem.interior_cells()) {
