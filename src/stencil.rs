@@ -4,6 +4,7 @@ pub trait Stencil {
     fn stencil() -> &'static [(isize, f64)];
 
     /// Apply the stencil to a function `f`, centring at index `i`
+    #[inline]
     fn apply<F>(i: usize, f: F) -> f64
     where
         F: Fn(usize) -> f64,
@@ -20,6 +21,7 @@ macro_rules! stencil_impl {
         #[allow(dead_code)]
         pub struct $s;
         impl crate::stencil::Stencil for $s {
+            #[inline]
             fn stencil() -> &'static [(isize, f64)] {
                 &$e
             }

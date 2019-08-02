@@ -267,16 +267,19 @@ impl<F> Problem1D<F>
         self.functions.velocity_p_at_midpoint(&self, var, cell.left())
     }
 
+    #[inline]
     pub fn dvar_dx_p_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
         first_order::Forward1::apply(cell.0, |i| {
             self.var(var, Cell(i)) / self.dx
         })
     }
 
+    #[inline]
     pub fn dvar_dx_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
         self.dvar_dx_p_at_midpoint(var, cell.left())
     }
 
+    #[inline]
     fn var_point_value_x_p(&self, var: Variable, cell: Cell) -> f64 {
         match self.functions.velocity_p_at_midpoint(&self, var, cell) {
             v if v > 0.0 => self.var_point_value_at_face(var, cell, Face::East),
@@ -284,6 +287,7 @@ impl<F> Problem1D<F>
         }
     }
 
+    #[inline]
     fn var_point_value_x_m(&self, var: Variable, cell: Cell) -> f64 {
         match self.velocity_m_at_midpoint(var, cell) {
             v if v > 0.0 => self.var_point_value_at_face(var, cell.left(), Face::East),
@@ -291,6 +295,7 @@ impl<F> Problem1D<F>
         }
     }
 
+    #[inline]
     fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
         let value = self.var(var, cell);
         match face {
