@@ -170,8 +170,12 @@ impl<F> Problem1D<F>
     }
 
     /// Get the value of the given variable at the centre of the given cell
-    pub fn var(&self, var: Variable, cell: Cell) -> f64 {
+    #[inline]
+    pub fn var<V>(&self, var: V, cell: Cell) -> f64
+        where V: Into<Variable>
+    {
         let idx = self.index(cell);
+        let var = var.into();
         match idx {
             idx if idx == 0 => {
                 self.ghost_data[(var.0, 0)]
@@ -187,8 +191,12 @@ impl<F> Problem1D<F>
 
     /// Get a mutable reference to the value of the given variable at the centre of the
     /// given cell
-    pub fn var_mut(&mut self, var: Variable, cell: Cell) -> &mut f64 {
+    #[inline]
+    pub fn var_mut<V>(&mut self, var: V, cell: Cell) -> &mut f64
+        where V: Into<Variable>
+    {
         let idx = self.index(cell);
+        let var = var.into();
         match idx {
             idx if idx == 0 => &mut self.ghost_data[(var.0, 0)],
             idx if idx == self.domain.n_cell + 1 => &mut self.ghost_data[(var.0, 1)],
