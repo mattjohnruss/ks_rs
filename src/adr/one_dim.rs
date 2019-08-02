@@ -86,11 +86,8 @@ impl ProblemFunctions for DiffusionOnly { }
 pub struct Problem1D<F> {
     data: Array<f64, Ix2>,
     ghost_data: Array<f64, Ix2>,
-    // TODO: rename to n_var?
-    pub n_variable: usize,
+    n_variable: usize,
     pub time: f64,
-    // TODO: rename to var_names?
-    // TODO: change to HashMap<Variable, String>?
     pub variable_names: Vec<String>,
     pub domain: DomainParams,
     dx: f64,
@@ -159,8 +156,6 @@ impl<F> Problem1D<F>
     }
 
     /// Get the value of the given variable at the centre of the given cell
-    // TODO: rename, but what to? u() is possibly confusing, since in KS u = dC_dx; var()
-    // conflicts with the var parameters used everywhere; maybe value(), value_at_centre()?
     pub fn var(&self, var: Variable, cell: Cell) -> f64 {
         let idx = self.index(cell);
         match idx {
