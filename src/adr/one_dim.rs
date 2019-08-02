@@ -159,6 +159,10 @@ impl<F> Problem1D<F>
         self.output_data(buffer)?;
         Ok(())
     }
+
+    pub fn set_variable_names(&mut self, names: &[&str]) {
+        self.variable_names = names.iter().map(|&s| String::from(s)).collect();
+    }
     
     /// Get the x-coordinate of the centre of the given cell
     pub fn x(&self, cell: Cell) -> f64 {
