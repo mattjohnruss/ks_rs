@@ -7,7 +7,7 @@ use ks_rs::adr::one_dim::{
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
-    SspRungeKutta34,
+    SspRungeKutta33,
 };
 use std::fs;
 use std::io::{Write, BufWriter};
@@ -94,7 +94,7 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    let ssp_rk34 = SspRungeKutta34::new();
+    let ssp_rk33 = SspRungeKutta33::new();
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
     let t_max = 100.0;
 
     while problem.time < t_max {
-        ssp_rk34.step(&mut problem, dt);
+        ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
             let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
