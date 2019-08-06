@@ -222,9 +222,9 @@ impl<F> Problem1D<F>
 
         // flux (includes diffusion and advection)
         result += {
-            // TODO this condition might need to change to allow equations without BCs e.g. C_b.
-            // Probably need to add a flag for each variable and test it here. When not applying
-            // BCs, treat the first and last cells the same as the rest.
+            // This logic also works for equations with zero flux (i.e. ODEs parametrised by
+            // space; e.g. C_b in the chemokine model) if the diffusivity, advection velocity and
+            // flux BCs are set to zero
             let flux_m = if cell == Cell(1) {
                 // At the left-hand boundary
                 self.functions.left_flux_bc(&self, var)
