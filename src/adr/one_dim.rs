@@ -100,6 +100,7 @@ pub struct Problem1D<F> {
     pub time: f64,
     pub variable_names: Vec<String>,
     pub domain: DomainParams,
+    pub n_dof: usize,
     dx: f64,
     functions: F,
 }
@@ -113,6 +114,8 @@ impl<F> Problem1D<F>
             .map(|i| format!("var_{}", i))
             .collect();
 
+        let n_dof = n_variable * domain.n_cell;
+
         Problem1D {
             data: Array::zeros((n_variable, domain.n_cell)),
             ghost_data: Array::zeros((n_variable, 2)),
@@ -120,6 +123,7 @@ impl<F> Problem1D<F>
             time: 0.0,
             variable_names,
             domain,
+            n_dof,
             dx: domain.width / domain.n_cell as f64,
             functions,
         }
@@ -379,17 +383,14 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
         self.data.view_mut().into_shape(len).unwrap()
     }
 
-    fn rhs(&self) -> Array1<f64> {
-        let mut rhs = Array::zeros((self.n_variable, self.domain.n_cell));
+    fn rhs(&self, buffer: ArrayViewMut1<f64>) {
+        let mut buffer = buffer.into_shape((self.n_variable, self.domain.n_cell)).unwrap();
 
         for var in 0..self.n_variable {
             for (idx, cell) in self.interior_cells().enumerate() {
-                rhs[(var, idx)] = self.rhs(Variable(var), cell);
+                buffer[(var, idx)] = self.rhs(Variable(var), cell);
             }
         }
-
-        let len = self.data.len();
-        rhs.into_shape(len).unwrap()
     }
 
     fn actions_before_explicit_stage(&mut self) {

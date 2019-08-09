@@ -29,8 +29,8 @@ pub trait ExplicitTimeSteppable {
         *&mut self.dofs_mut() *= factor;
     }
 
-    /// Gets an owned array of the current right-hand side values
-    fn rhs(&self) -> Array1<f64>;
+    /// Fills the given buffer with the current right-hand side values
+    fn rhs(&self, buffer: ArrayViewMut1<f64>);
 
     /// Actions performed before each explicit timestep
     fn actions_before_explicit_timestep(&mut self) { }
@@ -48,25 +48,30 @@ pub trait ExplicitTimeSteppable {
 /// Trait for explicit timesteppers
 pub trait ExplicitTimeStepper {
     /// Take a timestep of length `dt` on the timesteppable object `obj`
-    fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64);
+    fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64);
 }
 
 /// Euler forward timestepper
-pub struct EulerForward;
+pub struct EulerForward {
+    rhs_buffer: Array1<f64>,
+}
 
 impl EulerForward {
-    /// Create a new `EulerForward` timestepper
-    pub fn new() -> Self {
-        EulerForward {}
+    /// Create a new forward Euler timestepper
+    pub fn new(n_dof: usize) -> Self {
+        EulerForward {
+            rhs_buffer: Array::zeros(n_dof),
+        }
     }
 }
 
 impl ExplicitTimeStepper for EulerForward {
-    fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64) {
+    fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64) {
         obj.actions_before_explicit_timestep();
         obj.actions_before_explicit_stage();
 
-        obj.increment_and_multiply_dofs(obj.rhs().view(), dt);
+        obj.rhs(self.rhs_buffer.view_mut());
+        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
         *obj.time_mut() += dt;
 
         obj.actions_after_explicit_stage();
@@ -75,56 +80,64 @@ impl ExplicitTimeStepper for EulerForward {
 }
 
 /// Fourth-order, four stage Runge-Kutta timestepper
-pub struct RungeKutta44;
+pub struct RungeKutta44 {
+    rhs_buffer: Array1<f64>,
+}
 
 impl RungeKutta44 {
     /// Create a new Runge-Kutta timestepper
-    pub fn new() -> Self {
-        RungeKutta44 {}
+    pub fn new(n_dof: usize) -> Self {
+        RungeKutta44 {
+            rhs_buffer: Array::zeros(n_dof),
+        }
     }
 }
 
 impl ExplicitTimeStepper for RungeKutta44 {
-    fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64) {
+    fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64) {
         obj.actions_before_explicit_timestep();
 
         obj.actions_before_explicit_stage();
 
-        let dofs = obj.dofs().to_vec();
+        let dofs = obj.dofs().to_owned();
 
         // Stage 1
-        let k_1 = obj.rhs().to_vec();
-        obj.increment_and_multiply_dofs(aview1(&k_1), 0.5 * dt);
+        obj.rhs(self.rhs_buffer.view_mut());
+        let k_1 = self.rhs_buffer.to_owned();
+        obj.increment_and_multiply_dofs(k_1.view(), 0.5 * dt);
         *obj.time_mut() += 0.5 * dt;
         obj.actions_after_explicit_stage();
 
         obj.actions_before_explicit_stage();
 
         // Stage 2
-        let k_2 = obj.rhs().to_vec();
-        obj.set_dofs(aview1(&dofs));
-        obj.increment_and_multiply_dofs(aview1(&k_2), 0.5 * dt);
+        obj.rhs(self.rhs_buffer.view_mut());
+        let k_2 = self.rhs_buffer.to_owned();
+        obj.set_dofs(dofs.view());
+        obj.increment_and_multiply_dofs(k_2.view(), 0.5 * dt);
         obj.actions_after_explicit_stage();
 
         obj.actions_before_explicit_stage();
 
         // Stage 3
-        let k_3 = obj.rhs().to_vec();
-        obj.set_dofs(aview1(&dofs));
-        obj.increment_and_multiply_dofs(aview1(&k_3), dt);
+        obj.rhs(self.rhs_buffer.view_mut());
+        let k_3 = self.rhs_buffer.to_owned();
+        obj.set_dofs(dofs.view());
+        obj.increment_and_multiply_dofs(k_3.view(), dt);
         *obj.time_mut() += 0.5 * dt;
         obj.actions_after_explicit_stage();
 
         obj.actions_before_explicit_stage();
 
         // Stage 4
-        let k_4 = obj.rhs().to_vec();
-        obj.set_dofs(aview1(&dofs));
+        obj.rhs(self.rhs_buffer.view_mut());
+        let k_4 = self.rhs_buffer.to_owned();
+        obj.set_dofs(dofs.view());
 
-        obj.increment_and_multiply_dofs(aview1(&k_1), dt / 6.0);
-        obj.increment_and_multiply_dofs(aview1(&k_2), dt / 3.0);
-        obj.increment_and_multiply_dofs(aview1(&k_3), dt / 3.0);
-        obj.increment_and_multiply_dofs(aview1(&k_4), dt / 6.0);
+        obj.increment_and_multiply_dofs(k_1.view(), dt / 6.0);
+        obj.increment_and_multiply_dofs(k_2.view(), dt / 3.0);
+        obj.increment_and_multiply_dofs(k_3.view(), dt / 3.0);
+        obj.increment_and_multiply_dofs(k_4.view(), dt / 6.0);
 
         obj.actions_after_explicit_stage();
 
@@ -133,29 +146,34 @@ impl ExplicitTimeStepper for RungeKutta44 {
 }
 
 /// Third-order, three stage strong stability-preserving Runge-Kutta timestepper
-pub struct SspRungeKutta33;
+pub struct SspRungeKutta33 {
+    rhs_buffer: Array1<f64>,
+}
 
 impl SspRungeKutta33 {
     /// Create a new SSP-RK timestepper
-    pub fn new() -> Self {
-        SspRungeKutta33 {}
+    pub fn new(n_dof: usize) -> Self {
+        SspRungeKutta33 {
+            rhs_buffer: Array::zeros(n_dof),
+        }
     }
 }
 
 impl ExplicitTimeStepper for SspRungeKutta33 {
     // NOTE from Hesthaven & Warburton (2008), p.158
     // NOTE double check the placement of actions_before/after_explicit_stage()
-    fn step<T: ExplicitTimeSteppable>(&self, obj: &mut T, dt: f64) {
+    fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64) {
         obj.actions_before_explicit_timestep();
 
         // get the current dofs
-        let v_0 = obj.dofs().to_vec();
+        let v_0 = obj.dofs().to_owned();
 
         // work out f(v_0, t)
         obj.actions_before_explicit_stage();
-        let rhs_1 = obj.rhs().to_vec();
+        obj.rhs(self.rhs_buffer.view_mut());
+        let rhs_1 = self.rhs_buffer.to_owned();
         // multipliy by dt and add to current dofs (an Euler step)
-        obj.increment_and_multiply_dofs(aview1(&rhs_1), dt);
+        obj.increment_and_multiply_dofs(rhs_1.view(), dt);
         // don't actually need to save a copy of v_1
         //let v_1 = obj.dofs().to_vec();
 
@@ -165,14 +183,15 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
 
         // work out f(v_1, t + dt)
         obj.actions_before_explicit_stage();
-        let rhs_2 = obj.rhs().to_vec();
+        obj.rhs(self.rhs_buffer.view_mut());
+        let rhs_2 = self.rhs_buffer.to_owned();
         // pre: dofs == v_1; post: dofs == v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(aview1(&rhs_2), dt);
+        obj.increment_and_multiply_dofs(rhs_2.view(), dt);
         // pre: dofs == v_1 + dt*rhs_2; post: dofs == 3.0*v_0 + v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(aview1(&v_0), 3.0);
+        obj.increment_and_multiply_dofs(v_0.view(), 3.0);
         // pre: dofs == 3.0*v_0 + v_1 + dt*rhs_2; post: dofs == 0.25*(3.0*v_0 + v_1 + dt*rhs_2)
         obj.scale_dofs(0.25);
-        let v_2 = obj.dofs().to_vec();
+        let v_2 = obj.dofs().to_owned();
 
         // this is strange, but apparently the next rhs is evaluated back half a step...
         *obj.time_mut() -= 0.5 * dt;
@@ -180,13 +199,14 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
 
         // work out f(v_2, t + 0.5*dt)
         obj.actions_before_explicit_stage();
-        let rhs_3 = obj.rhs().to_vec();
+        obj.rhs(self.rhs_buffer.view_mut());
+        let rhs_3 = self.rhs_buffer.to_owned();
         // pre: dofs == v_2; post: dofs == 2.0*v_2
-        obj.increment_and_multiply_dofs(aview1(&v_2), 1.0);
+        obj.increment_and_multiply_dofs(v_2.view(), 1.0);
         // pre: dofs == 2.0*v_2; post: dofs == v_0 + 2.0*v_2
-        obj.increment_and_multiply_dofs(aview1(&v_0), 1.0);
+        obj.increment_and_multiply_dofs(v_0.view(), 1.0);
         // pre: dofs == v_0 + 2.0*v_2; post: dofs == v_0 + 2.0*v_2 + 2.0*dt*rhs_3
-        obj.increment_and_multiply_dofs(aview1(&rhs_3), 2.0 * dt);
+        obj.increment_and_multiply_dofs(rhs_3.view(), 2.0 * dt);
         // pre: dofs == v_0 + 2.0*v_2 2.0*dt*rhs_3; post: dofs == 1/3(v_0 + 2.0*v_2 + 2.0*dt*rhs_3)
         obj.scale_dofs(1.0/3.0);
 
@@ -248,12 +268,10 @@ mod test {
             self.data.view_mut()
         }
 
-        fn rhs(&self) -> Array1<f64> {
-            let mut rhs = Array1::zeros(self.n_dof);
+        fn rhs(&self, mut buffer: ArrayViewMut1<f64>) {
             for i in 0..self.n_dof {
-                rhs[i] = self.calculate_rhs(i);
+                buffer[i] = self.calculate_rhs(i);
             }
-            rhs
         }
     }
 
@@ -266,7 +284,7 @@ mod test {
         let mut buf_writer = BufWriter::new(file);
 
         let mut problem = DummyProblem::new(1);
-        let timestepper = EulerForward {};
+        let mut timestepper = EulerForward::new(1);
 
         problem.data[0] = 1.0;
         writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
@@ -284,7 +302,7 @@ mod test {
         let mut buf_writer = BufWriter::new(file);
 
         let mut problem = DummyProblem::new(1);
-        let timestepper = RungeKutta44 {};
+        let mut timestepper = RungeKutta44::new(1);
 
         problem.data[0] = 1.0;
         writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
@@ -301,7 +319,7 @@ mod test {
         let mut buf_writer = BufWriter::new(file);
 
         let mut problem = DummyProblem::new(1);
-        let timestepper = SspRungeKutta33 {};
+        let mut timestepper = SspRungeKutta33::new(1);
 
         problem.data[0] = 1.0;
         writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();

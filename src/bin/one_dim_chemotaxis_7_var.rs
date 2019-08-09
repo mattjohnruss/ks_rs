@@ -305,7 +305,7 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    let ssp_rk33 = SspRungeKutta33::new();
+    let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);

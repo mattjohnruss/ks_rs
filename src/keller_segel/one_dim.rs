@@ -126,6 +126,7 @@ pub struct Problem1D {
     pub p: Parameters,
     data: Array<f64, ndarray::Ix1>,
     pub time: f64,
+    pub n_dof: usize,
 }
 
 impl Problem1D {
@@ -139,6 +140,7 @@ impl Problem1D {
             p,
             data: Array::zeros(n_variable * n_cell),
             time: 0.0,
+            n_dof: n_variable * n_cell,
         }
     }
 
@@ -571,15 +573,11 @@ impl ExplicitTimeSteppable for Problem1D {
         self.dof_data_mut()
     }
 
-    fn rhs(&self) -> Array1<f64> {
-        let mut rhs = Array::zeros(2 * self.p.n_interior_cell_1d);
-
+    fn rhs(&self, mut buffer: ArrayViewMut1<f64>) {
         for cell in 1..=self.p.n_interior_cell_1d {
-            rhs[cell - 1] = self.rhs_rho_bar(cell);
-            rhs[self.p.n_interior_cell_1d + cell - 1] = self.rhs_c(cell);
+            buffer[cell - 1] = self.rhs_rho_bar(cell);
+            buffer[self.p.n_interior_cell_1d + cell - 1] = self.rhs_c(cell);
         }
-
-        rhs
     }
 
     fn actions_before_explicit_stage(&mut self) {

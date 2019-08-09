@@ -196,9 +196,9 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    //let euler_forward = EulerForward::new();
-    let ssp_rk33 = SspRungeKutta33::new();
-    //let runge_kutta_4 = RungeKutta4::new();
+    //let mut euler_forward = EulerForward::new(problem.n_dof);
+    let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
+    //let mut runge_kutta_4 = RungeKutta4::new(problem.n_dof);
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let buf_writer = BufWriter::new(file);
