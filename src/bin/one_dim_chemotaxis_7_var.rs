@@ -270,6 +270,16 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     }
 }
 
+#[allow(dead_code)]
+fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
+    where T: Default + Serialize
+{
+    let file = fs::File::create(filename)?;
+    let writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(writer, &T::default())?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
