@@ -148,6 +148,8 @@ impl ExplicitTimeStepper for RungeKutta44 {
 /// Third-order, three stage strong stability-preserving Runge-Kutta timestepper
 pub struct SspRungeKutta33 {
     rhs_buffer: Array1<f64>,
+    v_0: Array1<f64>,
+    v_2: Array1<f64>,
 }
 
 impl SspRungeKutta33 {
@@ -155,6 +157,8 @@ impl SspRungeKutta33 {
     pub fn new(n_dof: usize) -> Self {
         SspRungeKutta33 {
             rhs_buffer: Array::zeros(n_dof),
+            v_0: Array::zeros(n_dof),
+            v_2: Array::zeros(n_dof),
         }
     }
 }
@@ -166,14 +170,13 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         obj.actions_before_explicit_timestep();
 
         // get the current dofs
-        let v_0 = obj.dofs().to_owned();
+        self.v_0.assign(&obj.dofs());
 
         // work out f(v_0, t)
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
-        let rhs_1 = self.rhs_buffer.to_owned();
         // multipliy by dt and add to current dofs (an Euler step)
-        obj.increment_and_multiply_dofs(rhs_1.view(), dt);
+        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
         // don't actually need to save a copy of v_1
         //let v_1 = obj.dofs().to_vec();
 
@@ -184,14 +187,13 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         // work out f(v_1, t + dt)
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
-        let rhs_2 = self.rhs_buffer.to_owned();
         // pre: dofs == v_1; post: dofs == v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(rhs_2.view(), dt);
+        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
         // pre: dofs == v_1 + dt*rhs_2; post: dofs == 3.0*v_0 + v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(v_0.view(), 3.0);
+        obj.increment_and_multiply_dofs(self.v_0.view(), 3.0);
         // pre: dofs == 3.0*v_0 + v_1 + dt*rhs_2; post: dofs == 0.25*(3.0*v_0 + v_1 + dt*rhs_2)
         obj.scale_dofs(0.25);
-        let v_2 = obj.dofs().to_owned();
+        self.v_2.assign(&obj.dofs());
 
         // this is strange, but apparently the next rhs is evaluated back half a step...
         *obj.time_mut() -= 0.5 * dt;
@@ -200,13 +202,12 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         // work out f(v_2, t + 0.5*dt)
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
-        let rhs_3 = self.rhs_buffer.to_owned();
         // pre: dofs == v_2; post: dofs == 2.0*v_2
-        obj.increment_and_multiply_dofs(v_2.view(), 1.0);
+        obj.increment_and_multiply_dofs(self.v_2.view(), 1.0);
         // pre: dofs == 2.0*v_2; post: dofs == v_0 + 2.0*v_2
-        obj.increment_and_multiply_dofs(v_0.view(), 1.0);
+        obj.increment_and_multiply_dofs(self.v_0.view(), 1.0);
         // pre: dofs == v_0 + 2.0*v_2; post: dofs == v_0 + 2.0*v_2 + 2.0*dt*rhs_3
-        obj.increment_and_multiply_dofs(rhs_3.view(), 2.0 * dt);
+        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), 2.0 * dt);
         // pre: dofs == v_0 + 2.0*v_2 2.0*dt*rhs_3; post: dofs == 1/3(v_0 + 2.0*v_2 + 2.0*dt*rhs_3)
         obj.scale_dofs(1.0/3.0);
 
