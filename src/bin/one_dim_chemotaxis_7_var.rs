@@ -10,15 +10,18 @@ use ks_rs::timestepping::{
     SspRungeKutta33,
 };
 use std::fs;
-use std::io::{Write, BufWriter};
+use std::io::{Write, BufWriter, BufReader};
 use std::path::Path;
 use structopt::StructOpt;
+use serde::{Serialize, Deserialize};
 
-//type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "chemotaxis")]
 struct Opt {
+    #[structopt(long, default_value = "101")]
+    n_cell: usize,
     #[structopt(long, default_value = "100.0")]
     t_max: f64,
     #[structopt(long, default_value = "1.0e-6")]
@@ -27,75 +30,44 @@ struct Opt {
     output_interval: usize,
     #[structopt(long, default_value = "res")]
     dir: String,
-    #[structopt(flatten)]
-    params: Chemotaxis,
+    #[structopt(long = "config")]
+    config_path: String,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
 struct Chemotaxis {
-    #[structopt(long, default_value = "0.01")]
     phi_i_max_over_c_0: f64,
-    #[structopt(long, default_value = "1.0")]
     pe: f64,
-    #[structopt(long, default_value = "10.0")]
     alpha_1: f64,
-    #[structopt(long, default_value = "5.0")]
     beta_1: f64,
-    #[structopt(long, default_value = "10.0")]
     alpha_2: f64,
-    #[structopt(long, default_value = "5.0")]
     beta_2: f64,
-    #[structopt(long, default_value = "10.0")]
     alpha_3: f64,
-    #[structopt(long, default_value = "5.0")]
     beta_3: f64,
-    #[structopt(long, default_value = "10.0")]
     alpha_4: f64,
-    #[structopt(long, default_value = "5.0")]
     beta_4: f64,
-    #[structopt(long, default_value = "0.0")]
     gamma_ui: f64,
-    #[structopt(long, default_value = "0.0")]
     gamma_um: f64,
-    #[structopt(long, default_value = "0.0")]
     gamma_bi: f64,
-    #[structopt(long, default_value = "0.0")]
     gamma_bm: f64,
-    #[structopt(long, default_value = "0.0")]
     q_u: f64,
-    #[structopt(long, default_value = "0.0")]
     q_b: f64,
-    #[structopt(long, default_value = "0.0")]
     q_s: f64,
-    #[structopt(long, default_value = "100.0")]
     d_su: f64,
-    #[structopt(long, default_value = "0.01")]
     d_iu: f64,
-    #[structopt(long, default_value = "0.01")]
     d_mu: f64,
-    #[structopt(long, default_value = "0.01")]
     d_phi_c_u: f64,
-    #[structopt(long, default_value = "0.01")]
     d_phi_c_b: f64,
-    #[structopt(long, default_value = "0.0")]
     nu_u: f64,
-    #[structopt(long, default_value = "1.0")]
     nu_b: f64,
-    #[structopt(long, default_value = "0.0")]
     nu_s: f64,
-    #[structopt(long, default_value = "0.0")]
     chi_u: f64,
-    #[structopt(long, default_value = "1.0")]
     chi_b: f64,
-    #[structopt(long, default_value = "0.0")]
     chi_s: f64,
-    #[structopt(long, default_value = "10.0")]
     r: f64,
-    #[structopt(long, default_value = "5.0")]
     m: f64,
-    #[structopt(long, default_value = "1.0")]
     p: f64,
-    #[structopt(long, default_value = "0.5")]
     s: f64,
 }
 
@@ -296,17 +268,22 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     }
 }
 
-//fn main() -> Result<()> {
-fn main() -> std::result::Result<(), std::io::Error> {
+fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let chemotaxis = opt.params;
+    let chemotaxis: Chemotaxis = {
+        let config_file = fs::File::open(&opt.config_path)?;
+        let reader = BufReader::new(config_file);
+        serde_json::from_reader(reader)?
+    };
+
+    let n_cell = opt.n_cell;
     let t_max = opt.t_max;
     let dt = opt.dt;
     let output_interval = opt.output_interval;
     let dir = opt.dir;
 
-    let domain = DomainParams { n_cell: 101, width: 1.0 };
+    let domain = DomainParams { n_cell, width: 1.0 };
 
     let mut problem = Problem1D::new(ChemotaxisVariable::N_VARIABLE, domain, chemotaxis);
     problem.set_variable_names(&["C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b"]);
