@@ -320,6 +320,7 @@ fn main() -> Result<()> {
         if i % output_interval == 0 {
             let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let mut buf_writer = BufWriter::new(file);
+            println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
         }
         i += 1;
