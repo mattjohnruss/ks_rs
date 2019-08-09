@@ -69,6 +69,7 @@ struct Chemotaxis {
     m: f64,
     p: f64,
     s: f64,
+    j_phi_c_b_left: f64,
 }
 
 impl Default for Chemotaxis {
@@ -106,6 +107,7 @@ impl Default for Chemotaxis {
             m: 5.0,
             p: 10.0,
             s: 0.0,
+            j_phi_c_b_left: 1.0,
         }
     }
 }
@@ -234,7 +236,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_I => 0.0,
             PHI_M => 0.0,
             PHI_C_U => 0.0,
-            PHI_C_B => -problem.var(PHI_C_B, Cell(1)),
+            PHI_C_B => -self.j_phi_c_b_left * problem.var(PHI_C_B, Cell(1)),
         }
     }
 
