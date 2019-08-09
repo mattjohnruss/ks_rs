@@ -555,8 +555,8 @@ impl Problem1D {
 }
 
 impl ExplicitTimeSteppable for Problem1D {
-    fn time(&self) -> &f64 {
-        &self.time
+    fn time(&self) -> f64 {
+        self.time
     }
 
     fn time_mut(&mut self) -> &mut f64 {
@@ -567,22 +567,8 @@ impl ExplicitTimeSteppable for Problem1D {
         self.dof_data()
     }
 
-    fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
-        for (dof, dof_new) in self.dof_data_mut().iter_mut().zip(dofs.iter()) {
-            *dof = *dof_new
-        }
-    }
-
-    fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
-        for (dof, inc) in self.dof_data_mut().iter_mut().zip(increment.iter()) {
-            *dof += factor * *inc;
-        }
-    }
-
-    fn scale_dofs(&mut self, factor: f64) {
-        for dof in self.dof_data_mut().iter_mut() {
-            *dof *= factor;
-        }
+    fn dofs_mut(&mut self) -> ArrayViewMut1<f64> {
+        self.dof_data_mut()
     }
 
     fn rhs(&self) -> Array1<f64> {

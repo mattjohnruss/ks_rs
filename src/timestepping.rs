@@ -1,12 +1,9 @@
 use ndarray::prelude::*;
 
 /// Represent an object whose data can be timestepped with an explicit scheme
-/// TODO clean up this trait's interface. E.g., increment_and_multiply_dofs() could be a
-/// provided function if say set_dofs() is replaced with dofs_mut(); time() could return by
-/// value...
 pub trait ExplicitTimeSteppable {
     /// Get the current time
-    fn time(&self) -> &f64;
+    fn time(&self) -> f64;
 
     /// Get a mut reference to the current time
     fn time_mut(&mut self) -> &mut f64;
@@ -14,14 +11,23 @@ pub trait ExplicitTimeSteppable {
     /// Get an `ArrayView1` into the current state of the degrees of freedom
     fn dofs(&self) -> ArrayView1<f64>;
 
+    /// Get an `ArrayViewMut1` into the current state of the degrees of freedom
+    fn dofs_mut(&mut self) -> ArrayViewMut1<f64>;
+
     /// Set the object's degrees of freedom from `dofs`
-    fn set_dofs(&mut self, dofs: ArrayView1<f64>);
+    fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
+        self.dofs_mut().assign(&dofs);
+    }
 
     /// Perform `dofs += factor * increment`
-    fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64);
+    fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
+        *&mut self.dofs_mut() += &(factor * &increment);
+    }
 
     /// Perform `dofs *= factor`
-    fn scale_dofs(&mut self, factor: f64);
+    fn scale_dofs(&mut self, factor: f64) {
+        *&mut self.dofs_mut() *= factor;
+    }
 
     /// Gets an owned array of the current right-hand side values
     fn rhs(&self) -> Array1<f64>;
@@ -226,8 +232,8 @@ mod test {
     }
 
     impl ExplicitTimeSteppable for DummyProblem {
-        fn time(&self) -> &f64 {
-            &self.time
+        fn time(&self) -> f64 {
+            self.time
         }
 
         fn time_mut(&mut self) -> &mut f64 {
@@ -238,16 +244,8 @@ mod test {
             self.data.view()
         }
 
-        fn set_dofs(&mut self, dofs: ArrayView1<f64>) {
-            self.data.assign(&dofs);
-        }
-
-        fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
-            self.data += &(factor * &increment);
-        }
-
-        fn scale_dofs(&mut self, factor: f64) {
-            self.data *= factor;
+        fn dofs_mut(&mut self) -> ArrayViewMut1<f64> {
+            self.data.view_mut()
         }
 
         fn rhs(&self) -> Array1<f64> {
