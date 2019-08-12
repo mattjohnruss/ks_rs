@@ -219,12 +219,6 @@ impl<F> Problem1D<F>
         }
     }
 
-    /// Get an ArrayView for all variables in the given cell
-    fn all_vars(&self, cell: Cell) -> ArrayView1<f64> {
-        let idx = self.index(cell) - 1;
-        self.data.slice(s![.., idx])
-    }
-
     /// Convert from a `Cell` to a `usize` index
     fn index(&self, cell: Cell) -> usize {
         cell.0
