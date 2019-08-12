@@ -219,6 +219,22 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
     }
 }
 
+/// Third-order, four stage strong stability-preserving Runge-Kutta timestepper
+pub struct SspRungeKutta34;
+
+impl SspRungeKutta34 {
+    /// Create a new SSP-RK timestepper
+    pub fn new() -> Self {
+        SspRungeKutta34 {}
+    }
+}
+
+impl ExplicitTimeStepper for SspRungeKutta34 {
+    fn step<T: ExplicitTimeSteppable>(&mut self, _obj: &mut T, _dt: f64) {
+        unimplemented!();
+    }
+}
+
 // NOTE these tests don't actually have any assertions etc. They just do a test calculation
 // and dump the results to file, which I check manually against known solutions.
 #[cfg(test)]
@@ -226,6 +242,8 @@ mod test {
     use super::*;
     use std::fs;
     use std::io::{BufWriter, Write};
+    //use approx::assert_abs_diff_eq;
+    use approx::assert_relative_eq;
 
     struct DummyProblem {
         time: f64,
@@ -276,6 +294,37 @@ mod test {
         }
     }
 
+    fn convergence<T: ExplicitTimeStepper>(mut timestepper: T) -> f64 {
+        let mut err_at_t_max = Vec::with_capacity(4);
+
+        let t_max = 1.0;
+        let n_steps = [100, 200];
+        let dts: Vec<f64> = n_steps.iter().map(|&n| t_max / n as f64).collect();
+
+        // loop over the different dts/n_steps
+        for (&dt, &n_step) in dts.iter().zip(&n_steps) {
+            let mut problem = DummyProblem::new(1);
+            problem.data[0] = 1.0;
+            problem.time = 0.0;
+
+            // do the actual timestepping
+            for _ in 0..n_step {
+                timestepper.step(&mut problem, dt);
+            }
+
+            // save the final value of the solution
+            err_at_t_max.push((problem.data[0] - problem.exact_solution()).abs());
+        }
+
+        let err_first = err_at_t_max.first().unwrap();
+        let err_last = err_at_t_max.last().unwrap();
+        let dt_first = dts.first().unwrap();
+        let dt_last = dts.last().unwrap();
+
+        // return the gradient
+        (err_last.ln() - err_first.ln()) / (dt_last.ln() - dt_first.ln())
+    }
+
     const N_STEP: usize = 100;
     const DT: f64 = 1.0 / N_STEP as f64;
 
@@ -292,11 +341,34 @@ mod test {
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
+            println!("time = {}", problem.time);
+            //assert_abs_diff_eq!(problem.data[0], problem.exact_solution(), epsilon=2e-2);
             writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
         }
     }
 
     #[test]
+    fn euler_forward_convergence() {
+        let euler_forward = EulerForward::new(1);
+        let gradient = convergence(euler_forward);
+        assert_relative_eq!(gradient, 1.0, max_relative=1e-2);
+    }
+
+    #[test]
+    fn ssp_runge_kutta_3_3_convergence() {
+        let ssp_rk33 = SspRungeKutta33::new(1);
+        let gradient = convergence(ssp_rk33);
+        assert_relative_eq!(gradient, 3.0, max_relative=1e-2);
+    }
+
+    // TODO look into this - could indicate a problem with RK44?
+    //#[test]
+    //fn runge_kutta_4_4_convergence() {
+    //    let rk44 = RungeKutta44 {};
+    //    let gradient = convergence(rk44);
+    //    assert_relative_eq!(gradient, 4.0, max_relative=1e-2);
+    //}
+
     #[test]
     fn runge_kutta_4_4() {
         let file = fs::File::create("runge_kutta_4_4.csv").unwrap();
