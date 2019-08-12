@@ -102,7 +102,7 @@ pub struct Problem1D<F> {
     pub domain: DomainParams,
     pub n_dof: usize,
     dx: f64,
-    functions: F,
+    pub functions: F,
 }
 
 impl<F> Problem1D<F>

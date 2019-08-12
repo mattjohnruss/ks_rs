@@ -273,6 +273,14 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     }
 }
 
+fn update_params(problem: &mut Problem1D<Chemotaxis>) {
+    problem.functions.m = if problem.time < 3.5 {
+        2.0
+    } else {
+        7.0
+    };
+}
+
 #[allow(dead_code)]
 fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
     where T: Default + Serialize
@@ -318,6 +326,7 @@ fn main() -> Result<()> {
     let mut i = 1;
 
     while problem.time < t_max {
+        update_params(&mut problem);
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
