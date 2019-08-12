@@ -190,7 +190,6 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     }
 }
 
-//fn main() -> Result<()> {
 fn main() -> std::result::Result<(), std::io::Error> {
     let domain = DomainParams { n_cell: 101, width: 1.0 };
 
