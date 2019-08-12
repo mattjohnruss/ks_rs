@@ -4,6 +4,7 @@ use ks_rs::adr::one_dim::{
     ProblemFunctions,
     Variable,
     Cell,
+    Face,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
@@ -229,22 +230,24 @@ impl ProblemFunctions for Chemotaxis {
 
     fn left_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
         match var.into() {
-            C_U => self.phi_i_max_over_c_0 * self.p * problem.var(PHI_M, Cell(1)) - self.s * problem.var(C_U, Cell(1)),
-            //C_U => 1.0,
+            C_U => {
+                self.phi_i_max_over_c_0 * self.p * problem.var_point_value_at_face(PHI_M.into(), Cell(1), Face::West)
+                    - self.s * problem.var_point_value_at_face(C_U.into(), Cell(1), Face::West)
+            }
             C_B => 0.0,
-            C_S => -problem.var(C_S, Cell(1)),
+            C_S => -problem.var_point_value_at_face(C_S.into(), Cell(1), Face::West),
             PHI_I => 0.0,
             PHI_M => 0.0,
             PHI_C_U => 0.0,
-            PHI_C_B => -self.j_phi_c_b_left * problem.var(PHI_C_B, Cell(1)),
+            PHI_C_B => -self.j_phi_c_b_left * problem.var_point_value_at_face(PHI_C_B.into(), Cell(1), Face::West),
         }
     }
 
     fn right_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
         match var.into() {
-            C_U => problem.var(C_U, Cell(problem.domain.n_cell)),
+            C_U => problem.var_point_value_at_face(C_U.into(), Cell(problem.domain.n_cell), Face::East),
             C_B => 0.0,
-            C_S => problem.var(C_S, Cell(problem.domain.n_cell)),
+            C_S => problem.var_point_value_at_face(C_S.into(), Cell(problem.domain.n_cell), Face::East),
             PHI_I => 0.0,
             PHI_M => 0.0,
             PHI_C_U => 0.0,

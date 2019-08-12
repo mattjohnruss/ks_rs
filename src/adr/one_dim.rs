@@ -26,7 +26,7 @@ impl Cell {
 
 /// The faces of 1D cells
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Face {
+pub enum Face {
     East,
     West,
 }
@@ -311,7 +311,7 @@ impl<F> Problem1D<F>
     }
 
     #[inline]
-    fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
+    pub fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
         let value = self.var(var, cell);
         match face {
             Face::East => value + 0.5 * self.dx * self.dvar_dx(var, cell),
