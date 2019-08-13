@@ -143,7 +143,7 @@ impl<F> Problem1D<F>
     /// Output the data to the given writer
     fn output_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
         let time = self.time;
-        
+
         for cell in self.interior_cells() {
             // Values at West face
             let x_m = self.x(cell) - 0.5 * self.dx;
@@ -168,10 +168,33 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
+    /// Output the cell averages to the given writer
+    fn output_cell_average_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+        let time = self.time;
+
+        for cell in self.interior_cells() {
+            let x = self.x(cell);
+            buffer.write_all(format!("{:.6e} {:.6e}", time, x).as_bytes())?;
+            for var in 0..self.n_variable {
+                let var = Variable(var);
+                buffer.write_all(format!(" {:.6e}", self.var(var, cell)).as_bytes())?;
+            }
+            buffer.write_all(b"\n")?;
+        }
+        Ok(())
+    }
+
     /// Output the current state of the problem to the given writer
     pub fn output<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_data(buffer)?;
+        Ok(())
+    }
+
+    /// Output the current state of the problem to the given writer
+    pub fn output_cell_averages<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+        self.output_header(buffer)?;
+        self.output_cell_average_data(buffer)?;
         Ok(())
     }
 
@@ -452,7 +475,6 @@ mod tests {
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x var_0 var_1 var_2\n");
     }
 
-    // TODO fix this test - broken since output was changed
     #[test]
     fn output() {
         use std::io::BufWriter;
@@ -465,6 +487,22 @@ mod tests {
         {
             let mut output_writer = BufWriter::new(&mut output);
             problem.output_data(&mut output_writer).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 0.000000e0 0.000000e0 0.000000e0 0.000000e0\n0.000000e0 1.000000e0 0.000000e0 0.000000e0 0.000000e0\n\n");
+    }
+
+    #[test]
+    fn output_cell_averages() {
+        use std::io::BufWriter;
+
+        let domain = DomainParams { n_cell: 1, width: 1.0 };
+        let functions = DiffusionZeroFluxBcs { };
+
+        let problem = Problem1D::new(3, domain, functions);
+        let mut output = Vec::new();
+        {
+            let mut output_writer = BufWriter::new(&mut output);
+            problem.output_cell_average_data(&mut output_writer).unwrap();
         }
         assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 5.000000e-1 0.000000e0 0.000000e0 0.000000e0\n");
     }
