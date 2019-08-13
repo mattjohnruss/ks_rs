@@ -198,8 +198,16 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
-    pub fn set_variable_names(&mut self, names: &[&str]) {
-        self.variable_names = names.iter().map(|&s| String::from(s)).collect();
+    /// Set the names of the variables. Used in the headers of output files etc. Returns `Err(...)`
+    /// if the number of variable names given doesn't match the number of variables
+    pub fn set_variable_names(&mut self, names: &[&str]) -> Result<(), String> {
+        let n = names.len();
+        if names.len() == self.n_variable {
+            self.variable_names = names.iter().map(|&s| String::from(s)).collect();
+            Ok(())
+        } else {
+            Err(format!("{} variable names given, but there are {} variables", n, self.n_variable))
+        }
     }
     
     /// Get the x-coordinate of the centre of the given cell
@@ -473,6 +481,54 @@ mod tests {
             problem.output_header(&mut header_writer).unwrap();
         }
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x var_0 var_1 var_2\n");
+    }
+
+    #[test]
+    fn variable_names() {
+        use std::io::BufWriter;
+
+        let domain = DomainParams { n_cell: 1, width: 1.0 };
+        let functions = DiffusionZeroFluxBcs { };
+
+        // Zero variable edge case
+        let mut problem = Problem1D::new(0, domain, functions);
+        let result = problem.set_variable_names(&[]);
+        assert!(result.is_ok());
+
+        let mut header = Vec::new();
+        {
+            let mut header_writer = BufWriter::new(&mut header);
+            problem.output_header(&mut header_writer).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&header).unwrap(), "t x\n");
+
+        // 3 variables, 3 names
+        let mut problem = Problem1D::new(3, domain, functions);
+        let result = problem.set_variable_names(&["a", "b", "c"]);
+        assert!(result.is_ok());
+
+        let mut header = Vec::new();
+        {
+            let mut header_writer = BufWriter::new(&mut header);
+            problem.output_header(&mut header_writer).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&header).unwrap(), "t x a b c\n");
+    }
+
+    #[test]
+    fn variable_names_fail() {
+        let domain = DomainParams { n_cell: 1, width: 1.0 };
+        let functions = DiffusionZeroFluxBcs { };
+
+        // 3 variables, 2 names
+        let mut problem = Problem1D::new(3, domain, functions);
+        let result = problem.set_variable_names(&["a", "b"]);
+        assert_eq!(result, Err("2 variable names given, but there are 3 variables".to_string()));
+
+        // 3 variables, 4 names
+        let mut problem = Problem1D::new(3, domain, functions);
+        let result = problem.set_variable_names(&["a", "b", "c", "d"]);
+        assert_eq!(result, Err("4 variable names given, but there are 3 variables".to_string()));
     }
 
     #[test]

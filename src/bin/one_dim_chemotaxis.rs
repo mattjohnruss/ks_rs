@@ -13,7 +13,7 @@ use std::fs;
 use std::io::{Write, BufWriter};
 use std::path::Path;
 
-//type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 struct Chemotaxis {
     pe: f64,
@@ -190,13 +190,13 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     }
 }
 
-fn main() -> std::result::Result<(), std::io::Error> {
+fn main() -> Result<()> {
     let domain = DomainParams { n_cell: 101, width: 1.0 };
 
     let chemotaxis = Chemotaxis::default();
 
     let mut problem = Problem1D::new(ChemotaxisVariable::N_VARIABLE, domain, chemotaxis);
-    problem.set_variable_names(&["C_u", "C_b", "C_s", "phi_i", "phi_m"]);
+    problem.set_variable_names(&["C_u", "C_b", "C_s", "phi_i", "phi_m"])?;
 
     set_initial_conditions(&mut problem);
 
