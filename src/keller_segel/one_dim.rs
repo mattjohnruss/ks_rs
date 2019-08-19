@@ -140,7 +140,7 @@ impl Problem1D {
             p,
             data: Array::zeros(n_variable * n_cell),
             time: 0.0,
-            n_dof: n_variable * n_cell,
+            n_dof: n_variable * n_interior_cell_1d,
         }
     }
 
