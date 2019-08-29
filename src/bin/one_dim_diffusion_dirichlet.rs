@@ -59,7 +59,7 @@ fn trace<F, W>(problem: &Problem1D<F>, buffer: &mut W) -> std::io::Result<()>
 }
 
 fn main() -> Result<()> {
-    let domain = DomainParams { n_cell: 101, width: 1.0 };
+    let domain = DomainParams { n_cell: 11, width: 1.0 };
 
     // Use the parameters from the Painter and Hillen paper
     let diffusion_dirichlet = DiffusionDirichlet {};
@@ -78,6 +78,7 @@ fn main() -> Result<()> {
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
+    problem.update_ghost_cells();
     problem.output(&mut buf_writer)?;
     //problem.output_cell_averages(&mut buf_writer)?;
     buf_writer.flush()?;
