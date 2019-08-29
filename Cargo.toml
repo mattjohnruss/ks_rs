@@ -41,6 +41,12 @@ test = false
 doctest = false
 
 [[bin]]
+name = "one_dim_diffusion_dirichlet"
+path = "src/bin/one_dim_diffusion_dirichlet.rs"
+test = false
+doctest = false
+
+[[bin]]
 name = "two_dim"
 path = "src/bin/two_dim.rs"
 test = false
