@@ -5,6 +5,7 @@ use ks_rs::adr::one_dim::{
     Variable,
     Cell,
     Face,
+    BoundaryCondition,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
@@ -228,8 +229,8 @@ impl ProblemFunctions for Chemotaxis {
         }
     }
 
-    fn left_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
-        match var.into() {
+    fn left_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+        let flux = match var.into() {
             C_U => {
                 self.phi_i_max_over_c_0 * self.p * problem.var_point_value_at_face(PHI_M.into(), Cell(1), Face::West)
                     - self.s * problem.var_point_value_at_face(C_U.into(), Cell(1), Face::West)
@@ -240,11 +241,12 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => 0.0,
             PHI_C_U => 0.0,
             PHI_C_B => -self.j_phi_c_b_left * problem.var_point_value_at_face(PHI_C_B.into(), Cell(1), Face::West),
-        }
+        };
+        BoundaryCondition::Flux(flux)
     }
 
-    fn right_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
-        match var.into() {
+    fn right_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+        let flux = match var.into() {
             C_U => problem.var_point_value_at_face(C_U.into(), Cell(problem.domain.n_cell), Face::East),
             C_B => 0.0,
             C_S => problem.var_point_value_at_face(C_S.into(), Cell(problem.domain.n_cell), Face::East),
@@ -252,7 +254,8 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => 0.0,
             PHI_C_U => 0.0,
             PHI_C_B => 0.0,
-        }
+        };
+        BoundaryCondition::Flux(flux)
     }
 }
 

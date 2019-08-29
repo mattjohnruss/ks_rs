@@ -40,6 +40,11 @@ pub struct DomainParams {
     pub width: f64,
 }
 
+pub enum BoundaryCondition {
+    Dirichlet(f64),
+    Flux(f64),
+}
+
 /// Allows for used-specified functions for diffusivity, advection velocity, reaction terms and
 /// forcing. All functions have access to the current variable, cell and public methods of the
 /// underlying `Problem`.
@@ -75,13 +80,13 @@ pub trait ProblemFunctions: Sized {
     }
 
     /// Value of the flux at the left-hand boundary
-    fn left_flux_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> f64 {
-        0.0
+    fn left_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> BoundaryCondition {
+        BoundaryCondition::Flux(0.0)
     }
 
     /// Value of the flux at the right-hand boundary
-    fn right_flux_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> f64 {
-        0.0
+    fn right_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> BoundaryCondition {
+        BoundaryCondition::Flux(0.0)
     }
 }
 
@@ -267,14 +272,20 @@ impl<F> Problem1D<F>
             // flux BCs are set to zero
             let flux_m = if cell == Cell(1) {
                 // At the left-hand boundary
-                self.functions.left_flux_bc(&self, var)
+                match self.functions.left_bc(&self, var) {
+                    BoundaryCondition::Flux(flux) => flux,
+                    BoundaryCondition::Dirichlet(_) => self.flux_simple_m(var, cell),
+                }
             } else {
                 self.flux_m(var, cell)
             };
 
             let flux_p = if cell == Cell(self.domain.n_cell) {
                 // At the right-hand boundary
-                self.functions.right_flux_bc(&self, var)
+                match self.functions.right_bc(&self, var) {
+                    BoundaryCondition::Flux(flux) => flux,
+                    BoundaryCondition::Dirichlet(_) => self.flux_simple_p(var, cell),
+                }
             } else {
                 self.flux_p(var, cell)
             };
@@ -301,6 +312,31 @@ impl<F> Problem1D<F>
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
+    }
+
+    // FOR TESTING DIRICHLET BCS
+    // This currently approximates the value at the face by a simple average of the neighbouring
+    // cell averages. Seems to not prevent negative values - is it because this doesn't use the
+    // flux limiter?
+    fn flux_simple_p(&self, var: Variable, cell: Cell) -> f64 {
+        let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
+        let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
+        let var_point_value_average_p = 0.5 * (self.var(var, cell) + self.var(var, cell.right()));
+        // Hopefully eventually use var_point_value_at_face() instead of a simple average.
+        // Would this actually be correct? What about
+        // It also requires a more complicated update_ghost_cells().
+        //self.var_point_value_at_face(var, cell, Face::East) * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
+        var_point_value_average_p * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
+    }
+
+    // FOR TESTING DIRICHLET BCS
+    fn flux_simple_m(&self, var: Variable, cell: Cell) -> f64 {
+        let velocity_m = self.velocity_m_at_midpoint(var, cell);
+        let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
+        let var_point_value_average_m = 0.5 * (self.var(var, cell.left()) + self.var(var, cell));
+        // Comment in flux_simple_p() applies here too
+        //self.var_point_value_at_face(var, cell, Face::West) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
+        var_point_value_average_m * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
     }
 
     fn velocity_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
@@ -374,9 +410,27 @@ impl<F> Problem1D<F>
     fn update_ghost_cells(&mut self) {
         for var in 0..self.n_variable {
             let var = Variable(var);
-            *self.var_mut(var, Cell(0)) = self.var(var, Cell(1));
-            *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
-                self.var(var, Cell(self.domain.n_cell));
+
+            match self.functions.left_bc(&self, var) {
+                BoundaryCondition::Flux(_) => {
+                    *self.var_mut(var, Cell(0)) = self.var(var, Cell(1));
+                }
+                BoundaryCondition::Dirichlet(value) => {
+                    // This will change if/when we switch to the flux limited version above
+                    *self.var_mut(var, Cell(0)) = 2.0 * value - self.var(var, Cell(1));
+                }
+            }
+
+            match self.functions.right_bc(&self, var) {
+                BoundaryCondition::Flux(_) => {
+                    *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
+                        self.var(var, Cell(self.domain.n_cell));
+                }
+                BoundaryCondition::Dirichlet(value) => {
+                    // This will change if/when we switch to the flux limited version above
+                    *self.var_mut(var, Cell(self.domain.n_cell + 1)) = 2.0 * value - self.var(var, Cell(self.domain.n_cell));
+                }
+            }
         }
     }
 

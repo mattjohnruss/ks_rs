@@ -4,6 +4,7 @@ use ks_rs::adr::one_dim::{
     ProblemFunctions,
     Variable,
     Cell,
+    BoundaryCondition,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
@@ -154,24 +155,26 @@ impl ProblemFunctions for Chemotaxis {
         }
     }
 
-    fn left_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
-        match var.into() {
+    fn left_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+        let flux = match var.into() {
             C_U => 1.0,
             C_B => 0.0,
             C_S => -problem.var(C_S, Cell(1)),
             PHI_I => 0.0,
             PHI_M => -problem.var(PHI_M, Cell(1)),
-        }
+        };
+        BoundaryCondition::Flux(flux)
     }
 
-    fn right_flux_bc(&self, problem: &Problem1D<Self>, var: Variable) -> f64 {
-        match var.into() {
+    fn right_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+        let flux = match var.into() {
             C_U => problem.var(C_U, Cell(problem.domain.n_cell)),
             C_B => 0.0,
             C_S => problem.var(C_S, Cell(problem.domain.n_cell)),
             PHI_I => 0.0,
             PHI_M => 0.0,
-        }
+        };
+        BoundaryCondition::Flux(flux)
     }
 }
 
