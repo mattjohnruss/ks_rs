@@ -13,13 +13,13 @@ use structopt::StructOpt;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "ks_rs")]
+#[structopt(name = "ks_rs", rename_all = "verbatim")]
 struct Opt {
     /// Initial conditions
     #[structopt(
         long,
         default_value = "constant",
-        raw(possible_values = "&[\"constant\", \"perturbed\", \"gaussian\", \"exact\"]")
+        possible_values = &["constant", "perturbed", "gaussian", "exact"]
     )]
     ics: String,
 

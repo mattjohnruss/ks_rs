@@ -20,7 +20,7 @@ use serde::{Serialize, Deserialize};
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "chemotaxis")]
+#[structopt(name = "chemotaxis", rename_all = "verbatim")]
 struct Opt {
     #[structopt(long, default_value = "101")]
     n_cell: usize,

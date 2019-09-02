@@ -8,8 +8,8 @@ edition = "2018"
 ndarray = { version = "0.12.1", features = ["blas"] }
 blas-src = { version = "0.2", default-features = false, features = ["openblas"] }
 openblas-src = { version = "0.6", default-features = false, features = ["cblas", "static"] }
-structopt = "0.2"
-rand = "0.6.5"
+structopt = "0.3"
+rand = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
