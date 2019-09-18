@@ -371,16 +371,19 @@ impl<F> Problem1D<F>
         }
     }
 
+    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited (also omitted)
     #[inline]
     pub fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
         let value = self.var(var, cell);
         match face {
-            Face::East => value + 0.5 * self.dx * self.dvar_dx(var, cell),
-            Face::West => value - 0.5 * self.dx * self.dvar_dx(var, cell),
+            Face::East => value + 0.5 * self.dvar_limited(var, cell),
+            Face::West => value - 0.5 * self.dvar_limited(var, cell),
         }
     }
 
-    fn dvar_dx(&self, var: Variable, cell: Cell) -> f64 {
+    // We omit the 1/dx factor on the returned value here since it cancels the dx in
+    // var_point_value_at_face (also omitted there, the only place this function is called from).
+    fn dvar_limited(&self, var: Variable, cell: Cell) -> f64 {
         let dvar_central = second_order::Central1::apply(cell.0, |i| {
             self.var(var, Cell(i))
         });
@@ -389,7 +392,7 @@ impl<F> Problem1D<F>
         let test_m = self.var(var, cell) - 0.5 * dvar_central;
 
         if test_p >= 0.0 && test_m >= 0.0 {
-            dvar_central / self.dx
+            dvar_central
         } else {
             let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
                 self.var(var, Cell(i))
@@ -400,9 +403,9 @@ impl<F> Problem1D<F>
             });
 
             minmod(&[
-                   2.0 * dvar_forward / self.dx,
-                   dvar_central / self.dx,
-                   2.0 * dvar_backward / self.dx,
+                   2.0 * dvar_forward,
+                   dvar_central,
+                   2.0 * dvar_backward,
             ])
         }
     }
