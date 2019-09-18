@@ -274,7 +274,7 @@ impl<F> Problem1D<F>
                 // At the left-hand boundary
                 match self.functions.left_bc(&self, var) {
                     BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_simple_m(var, cell),
+                    BoundaryCondition::Dirichlet(_) => self.flux_m_for_dirichlet_bc(var, cell),
                 }
             } else {
                 self.flux_m(var, cell)
@@ -284,7 +284,7 @@ impl<F> Problem1D<F>
                 // At the right-hand boundary
                 match self.functions.right_bc(&self, var) {
                     BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_simple_p(var, cell),
+                    BoundaryCondition::Dirichlet(_) => self.flux_p_for_dirichlet_bc(var, cell),
                 }
             } else {
                 self.flux_p(var, cell)
@@ -315,28 +315,19 @@ impl<F> Problem1D<F>
     }
 
     // FOR TESTING DIRICHLET BCS
-    // This currently approximates the value at the face by a simple average of the neighbouring
-    // cell averages. Seems to not prevent negative values - is it because this doesn't use the
-    // flux limiter?
-    fn flux_simple_p(&self, var: Variable, cell: Cell) -> f64 {
+    fn flux_p_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
-        let var_point_value_average_p = 0.5 * (self.var(var, cell) + self.var(var, cell.right()));
-        // Hopefully eventually use var_point_value_at_face() instead of a simple average.
-        // Would this actually be correct? What about
-        // It also requires a more complicated update_ghost_cells().
-        //self.var_point_value_at_face(var, cell, Face::East) * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
-        var_point_value_average_p * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
+        let var_point_value_at_face = self.var_point_value_at_face_for_dirichlet_bcs(var, cell, Face::East);
+        var_point_value_at_face * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
     }
 
     // FOR TESTING DIRICHLET BCS
-    fn flux_simple_m(&self, var: Variable, cell: Cell) -> f64 {
+    fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        let var_point_value_average_m = 0.5 * (self.var(var, cell.left()) + self.var(var, cell));
-        // Comment in flux_simple_p() applies here too
-        //self.var_point_value_at_face(var, cell, Face::West) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
-        var_point_value_average_m * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
+        let var_point_value_at_face = self.var_point_value_at_face_for_dirichlet_bcs(var, cell, Face::West);
+        var_point_value_at_face * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
     }
 
     fn velocity_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
@@ -410,7 +401,150 @@ impl<F> Problem1D<F>
         }
     }
 
-    fn update_ghost_cells(&mut self) {
+    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited_for_dirichlet_bcs (also omitted)
+    #[inline]
+    pub fn var_point_value_at_face_for_dirichlet_bcs(&self, var: Variable, cell: Cell, face: Face) -> f64 {
+        let value = self.var(var, cell);
+        match face {
+            Face::East => value + 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell),
+            Face::West => value - 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell),
+        }
+    }
+
+    // We omit the 1/dx factor on the returned value here since it cancels the dx in
+    // var_point_value_at_face_for_dirichlet_bcs (also omitted there, the only place this function
+    // is called from).
+    fn dvar_limited_for_dirichlet_bcs(&self, var: Variable, cell: Cell) -> f64 {
+        let dvar_central = second_order::Central1::apply(cell.0, |i| {
+            self.var(var, Cell(i))
+        });
+
+        let test_p = self.var(var, cell) + 0.5 * dvar_central;
+        let test_m = self.var(var, cell) - 0.5 * dvar_central;
+
+        if test_p >= 0.0 && test_m >= 0.0 {
+            dvar_central
+        } else {
+            match cell {
+                cell if cell == Cell(1) => {
+                    let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
+                        self.var(var, Cell(i))
+                    });
+
+                    if dvar_central > 0.0 && 2.0 * dvar_backward > 0.0 {
+                        (dvar_central).min(2.0 * dvar_backward)
+                    } else if dvar_central < 0.0 && 2.0 * dvar_backward < 0.0 {
+                        (dvar_central).max(2.0 * dvar_backward)
+                    } else {
+                        0.0
+                    }
+                }
+                cell if cell == Cell(self.domain.n_cell) => {
+                    let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
+                        self.var(var, Cell(i))
+                    });
+
+                    if 2.0 * dvar_forward > 0.0 && dvar_central > 0.0 {
+                        (2.0 * dvar_forward).min(dvar_central)
+                    } else if 2.0 * dvar_forward < 0.0 && dvar_central < 0.0 {
+                        (2.0 * dvar_forward).max(dvar_central)
+                    } else {
+                        0.0
+                    }
+                }
+                _ => panic!("Should only be called on the first or last cell")
+            }
+        }
+    }
+
+    // Calculates the appropriate value for the ghost cell so that when the flux is
+    // calculated, the desired Dirichlet boundary condition is effectively applied.
+    fn ghost_cell_value_for_dirichlet_bc(
+        &self,
+        var: Variable,
+        cell: Cell,
+        //face: Face,
+        dirichlet_value: f64
+    ) -> Option<f64> {
+        let dvar_central = 0.5 * (self.var(var, cell.right()) - self.var(var, cell.left()));
+
+        let test_p = self.var(var, cell) + 0.5 * dvar_central;
+        let test_m = self.var(var, cell) - 0.5 * dvar_central;
+
+        if test_p >= 0.0 && test_m >= 0.0 {
+            Some(match cell {
+                cell if cell == Cell(1) => {
+                    4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
+                }
+                cell if cell == Cell(self.domain.n_cell) => {
+                    4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                }
+                _ => panic!("Should only be called on the first or last cell")
+            })
+        } else {
+            match cell {
+                cell if cell == Cell(1) => {
+                    let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
+                        self.var(var, Cell(i))
+                    });
+
+                    if dvar_central > 0.0 && 2.0 * dvar_backward > 0.0 {
+                        // if both are positive, use the smallest
+                        Some(if dvar_central < 2.0 * dvar_backward {
+                            // use dvar_central
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                        } else {
+                            // use 2.0 * dvar_backward
+                            dirichlet_value
+                        })
+                    } else if dvar_central < 0.0 && 2.0 * dvar_backward < 0.0 {
+                        // if both are negative, use the largest (smallest in magnitude)
+                        Some(if dvar_central > 2.0 * dvar_backward {
+                            // use dvar_central
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                        } else {
+                            // use 2.0 * dvar_backward
+                            dirichlet_value
+                        })
+                    } else {
+                        // else they have different signs so use gradient 0.0
+                        None
+                    }
+                }
+                cell if cell == Cell(self.domain.n_cell) => {
+                    let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
+                        self.var(var, Cell(i))
+                    });
+
+                    if 2.0 * dvar_forward > 0.0 && dvar_central > 0.0 {
+                        // if both are positive, use the smallest
+                        Some(if 2.0 * dvar_forward < dvar_central {
+                            // use 2.0 * dvar_forward
+                            dirichlet_value
+                        } else {
+                            // use dvar_central
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                        })
+                    } else if 2.0 * dvar_forward < 0.0 && dvar_central < 0.0 {
+                        // else if both are negative, use the largest (smallest in magnitude)
+                        Some(if 2.0 * dvar_forward > dvar_central {
+                            // use 2.0 * dvar_forward
+                            dirichlet_value
+                        } else {
+                            // use dvar_central
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                        })
+                    } else {
+                        // else they have different signs so use gradient 0.0
+                        None
+                    }
+                }
+                _ => panic!("Should only be called on the first or last cell")
+            }
+        }
+    }
+
+    pub fn update_ghost_cells(&mut self) {
         for var in 0..self.n_variable {
             let var = Variable(var);
 
@@ -418,9 +552,12 @@ impl<F> Problem1D<F>
                 BoundaryCondition::Flux(_) => {
                     *self.var_mut(var, Cell(0)) = self.var(var, Cell(1));
                 }
-                BoundaryCondition::Dirichlet(value) => {
-                    // This will change if/when we switch to the flux limited version above
-                    *self.var_mut(var, Cell(0)) = 2.0 * value - self.var(var, Cell(1));
+                BoundaryCondition::Dirichlet(dirichlet_value) => {
+                    let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(1), dirichlet_value);
+                    match ghost_cell_value {
+                        Some(ghost_cell_value) => *self.var_mut(var, Cell(0)) = ghost_cell_value,
+                        None => *self.var_mut(var, Cell(1)) = dirichlet_value,
+                    }
                 }
             }
 
@@ -429,9 +566,12 @@ impl<F> Problem1D<F>
                     *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
                         self.var(var, Cell(self.domain.n_cell));
                 }
-                BoundaryCondition::Dirichlet(value) => {
-                    // This will change if/when we switch to the flux limited version above
-                    *self.var_mut(var, Cell(self.domain.n_cell + 1)) = 2.0 * value - self.var(var, Cell(self.domain.n_cell));
+                BoundaryCondition::Dirichlet(dirichlet_value) => {
+                    let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(self.domain.n_cell), dirichlet_value);
+                    match ghost_cell_value {
+                        Some(ghost_cell_value) => *self.var_mut(var, Cell(self.domain.n_cell + 1)) = ghost_cell_value,
+                        None => *self.var_mut(var, Cell(self.domain.n_cell)) = dirichlet_value,
+                    }
                 }
             }
         }
