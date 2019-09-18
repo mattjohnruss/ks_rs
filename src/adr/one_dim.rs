@@ -478,6 +478,10 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
     fn actions_before_explicit_stage(&mut self) {
         self.update_ghost_cells();
     }
+
+    fn actions_after_explicit_timestep(&mut self) {
+        self.update_ghost_cells();
+    }
 }
 
 /// Iterates over the interior cells of a problem
