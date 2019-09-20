@@ -47,21 +47,21 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     for cell in problem.interior_cells() {
         *problem.var_mut(DiffusionDirichlet::C, cell) = 1.0 - (1.0 - problem.x(cell)).powi(2);
     }
+
+    problem.update_ghost_cells();
 }
 
 fn trace_header<W: Write>(buffer: &mut W) -> std::io::Result<()> {
-    buffer.write_all(b"t c_left_d c_right_d c_left c_right\n")
+    buffer.write_all(b"t c_left c_right\n")
 }
 
 fn trace<F, W>(problem: &Problem1D<F>, buffer: &mut W) -> std::io::Result<()>
     where F: ProblemFunctions,
           W: Write
 {
-    let left_val_d = problem.var_point_value_at_face_for_dirichlet_bcs(DiffusionDirichlet::C, Cell(1), Face::West);
-    let right_val_d = problem.var_point_value_at_face_for_dirichlet_bcs(DiffusionDirichlet::C, Cell(problem.domain.n_cell), Face::East);
     let left_val = problem.var_point_value_at_face(DiffusionDirichlet::C, Cell(1), Face::West);
     let right_val = problem.var_point_value_at_face(DiffusionDirichlet::C, Cell(problem.domain.n_cell), Face::East);
-    buffer.write_all(format!("{} {} {} {} {}\n", problem.time, left_val_d, right_val_d, left_val, right_val).as_bytes())
+    buffer.write_all(format!("{} {} {}\n", problem.time, left_val, right_val).as_bytes())
 }
 
 fn main() -> Result<()> {
@@ -85,7 +85,6 @@ fn main() -> Result<()> {
     let cell_averages_file = fs::File::create(dir_path.join(format!("output_averages_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     let mut cell_averages_buf_writer = BufWriter::new(cell_averages_file);
-    problem.update_ghost_cells();
     problem.output(&mut buf_writer)?;
     problem.output_cell_averages(&mut cell_averages_buf_writer)?;
     buf_writer.flush()?;

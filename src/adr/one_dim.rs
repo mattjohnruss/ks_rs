@@ -45,6 +45,15 @@ pub enum BoundaryCondition {
     Flux(f64),
 }
 
+impl BoundaryCondition {
+    fn is_dirichlet(&self) -> bool {
+        match self {
+            BoundaryCondition::Dirichlet(_) => true,
+            _ => false,
+        }
+    }
+}
+
 /// Allows for used-specified functions for diffusivity, advection velocity, reaction terms and
 /// forcing. All functions have access to the current variable, cell and public methods of the
 /// underlying `Problem`.
@@ -314,19 +323,20 @@ impl<F> Problem1D<F>
         self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
     }
 
-    // FOR TESTING DIRICHLET BCS
+    // Flux functions for Dirichlet boundary conditions. These don't upwind the point values,
+    // instead getting the appropriate point value directly, since upwinding could cause an
+    // out-of-bounds array access when used at a boundary.
     fn flux_p_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
-        let var_point_value_at_face = self.var_point_value_at_face_for_dirichlet_bcs(var, cell, Face::East);
+        let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::East);
         var_point_value_at_face * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
     }
 
-    // FOR TESTING DIRICHLET BCS
     fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        let var_point_value_at_face = self.var_point_value_at_face_for_dirichlet_bcs(var, cell, Face::West);
+        let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
         var_point_value_at_face * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
     }
 
@@ -366,9 +376,16 @@ impl<F> Problem1D<F>
     #[inline]
     pub fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
         let value = self.var(var, cell);
-        match face {
-            Face::East => value + 0.5 * self.dvar_limited(var, cell),
-            Face::West => value - 0.5 * self.dvar_limited(var, cell),
+        let sign = match face {
+            Face::East => 1.0,
+            Face::West => -1.0,
+        };
+
+        if (cell == Cell(1) && self.functions.left_bc(&self, var).is_dirichlet())
+            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(&self, var).is_dirichlet()) {
+            value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
+        } else {
+            value + sign * 0.5 * self.dvar_limited(var, cell)
         }
     }
 
@@ -398,16 +415,6 @@ impl<F> Problem1D<F>
                    dvar_central,
                    2.0 * dvar_backward,
             ])
-        }
-    }
-
-    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited_for_dirichlet_bcs (also omitted)
-    #[inline]
-    pub fn var_point_value_at_face_for_dirichlet_bcs(&self, var: Variable, cell: Cell, face: Face) -> f64 {
-        let value = self.var(var, cell);
-        match face {
-            Face::East => value + 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell),
-            Face::West => value - 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell),
         }
     }
 
@@ -463,7 +470,6 @@ impl<F> Problem1D<F>
         &self,
         var: Variable,
         cell: Cell,
-        //face: Face,
         dirichlet_value: f64
     ) -> Option<f64> {
         let dvar_central = 0.5 * (self.var(var, cell.right()) - self.var(var, cell.left()));
@@ -544,6 +550,9 @@ impl<F> Problem1D<F>
         }
     }
 
+    /// Update the values in the ghost cells. Automatically called before/after timestepping as
+    /// apprappropriate, but must be called manually after modifying any values (e.g. setting
+    /// initial conditions) for the piecewise linear reconstruction of the solution to be correct.
     pub fn update_ghost_cells(&mut self) {
         for var in 0..self.n_variable {
             let var = Variable(var);
