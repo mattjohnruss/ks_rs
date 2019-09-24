@@ -297,7 +297,6 @@ mod test {
     }
 
     #[test]
-    #[test]
     fn runge_kutta_4_4() {
         let file = fs::File::create("runge_kutta_4_4.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
