@@ -9,8 +9,8 @@ use ks_rs::adr::one_dim::{
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
-    EulerForward,
-    //SspRungeKutta33,
+    //EulerForward,
+    SspRungeKutta33,
 };
 use std::fs;
 use std::io::{Write, BufWriter};
@@ -36,6 +36,14 @@ impl ProblemFunctions for DiffusionDirichlet {
 
     fn right_bc(&self, _problem: &Problem1D<Self>, _var: Variable) -> BoundaryCondition {
         BoundaryCondition::Dirichlet(1.0)
+    }
+
+    fn diffusivity(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+        2.0
+    }
+
+    fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
+        100.0 - 100.0 * problem.var(var, cell)
     }
 }
 
@@ -78,8 +86,8 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    let mut euler_forward = EulerForward::new(problem.n_dof);
-    //let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
+    //let mut euler_forward = EulerForward::new(problem.n_dof);
+    let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let cell_averages_file = fs::File::create(dir_path.join(format!("output_averages_{:05}.csv", 0)))?;
@@ -95,14 +103,14 @@ fn main() -> Result<()> {
     trace_header(&mut trace_writer)?;
     trace_writer.flush()?;
 
-    let output_interval = 100;
+    let output_interval = 1000;
     let mut i = 1;
-    let dt = 1e-5;
+    let dt = 1e-6;
     let t_max = 1.0;
 
     while problem.time < t_max {
-        euler_forward.step(&mut problem, dt);
-        //ssp_rk33.step(&mut problem, dt);
+        //euler_forward.step(&mut problem, dt);
+        ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
             let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
