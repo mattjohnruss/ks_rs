@@ -230,32 +230,30 @@ impl ProblemFunctions for Chemotaxis {
     }
 
     fn left_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
-        let flux = match var.into() {
-            C_U => {
-                self.phi_i_max_over_c_0 * self.p * problem.var_point_value_at_face(PHI_M.into(), Cell(1), Face::West)
-                    - self.s * problem.var_point_value_at_face(C_U.into(), Cell(1), Face::West)
+        match var.into() {
+            C_U => BoundaryCondition::Dirichlet(1.0),
+            C_B => BoundaryCondition::Flux(0.0),
+            C_S => BoundaryCondition::Dirichlet(0.0),
+            PHI_I => BoundaryCondition::Flux(0.0),
+            PHI_M => BoundaryCondition::Flux(0.0),
+            PHI_C_U => BoundaryCondition::Flux(0.0),
+            PHI_C_B => {
+                let flux = -self.j_phi_c_b_left * problem.var_point_value_at_face(PHI_C_B.into(), Cell(1), Face::West);
+                BoundaryCondition::Flux(flux)
             }
-            C_B => 0.0,
-            C_S => -problem.var_point_value_at_face(C_S.into(), Cell(1), Face::West),
-            PHI_I => 0.0,
-            PHI_M => 0.0,
-            PHI_C_U => 0.0,
-            PHI_C_B => -self.j_phi_c_b_left * problem.var_point_value_at_face(PHI_C_B.into(), Cell(1), Face::West),
-        };
-        BoundaryCondition::Flux(flux)
+        }
     }
 
-    fn right_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
-        let flux = match var.into() {
-            C_U => problem.var_point_value_at_face(C_U.into(), Cell(problem.domain.n_cell), Face::East),
-            C_B => 0.0,
-            C_S => problem.var_point_value_at_face(C_S.into(), Cell(problem.domain.n_cell), Face::East),
-            PHI_I => 0.0,
-            PHI_M => 0.0,
-            PHI_C_U => 0.0,
-            PHI_C_B => 0.0,
-        };
-        BoundaryCondition::Flux(flux)
+    fn right_bc(&self, _problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+        match var.into() {
+            C_U => BoundaryCondition::Dirichlet(0.0),
+            C_B => BoundaryCondition::Flux(0.0),
+            C_S => BoundaryCondition::Dirichlet(0.0),
+            PHI_I => BoundaryCondition::Flux(0.0),
+            PHI_M => BoundaryCondition::Flux(0.0),
+            PHI_C_U => BoundaryCondition::Flux(0.0),
+            PHI_C_B => BoundaryCondition::Flux(0.0),
+        }
     }
 }
 
@@ -263,10 +261,10 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
     where F: ProblemFunctions
 {
     for cell in problem.interior_cells() {
-        //let x = problem.x(cell);
+        let x = problem.x(cell);
 
-        //*problem.var_mut(C_U, cell) = 1.0 - x;
-        *problem.var_mut(C_U, cell) = 0.0;
+        *problem.var_mut(C_U, cell) = 1.0 - x;
+        //*problem.var_mut(C_U, cell) = 0.0;
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
         *problem.var_mut(PHI_I, cell) = 0.1;
