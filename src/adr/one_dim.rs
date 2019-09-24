@@ -372,7 +372,8 @@ impl<F> Problem1D<F>
         }
     }
 
-    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited (also omitted)
+    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited* (also omitted).
+    // Chooses the appropriate form of the gradient depending on the boundary conditions.
     #[inline]
     pub fn var_point_value_at_face(&self, var: Variable, cell: Cell, face: Face) -> f64 {
         let value = self.var(var, cell);
@@ -387,6 +388,22 @@ impl<F> Problem1D<F>
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
         }
+    }
+
+    // We omit the dx factor here since it cancels with the 1/dx in dvar_limited_for_dirichlet_bcs
+    // (also omitted). This version assumes that `cell` is on a boundary and that Dirichlet BCs
+    // are applied at that boundary. This separate function is needed so that Dirichlet BCs
+    // themselves can depend on values at the boundary without causing infinite function recursion.
+    #[inline]
+    pub fn var_point_value_at_face_for_dirichlet_bcs(&self, var: Variable, cell: Cell, face: Face) -> f64 {
+        debug_assert!(cell == Cell(1) || cell == Cell(self.domain.n_cell), "Should only be called on the first or last cell");
+
+        let value = self.var(var, cell);
+        let sign = match face {
+            Face::East => 1.0,
+            Face::West => -1.0,
+        };
+        value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
     }
 
     // We omit the 1/dx factor on the returned value here since it cancels the dx in
@@ -419,8 +436,7 @@ impl<F> Problem1D<F>
     }
 
     // We omit the 1/dx factor on the returned value here since it cancels the dx in
-    // var_point_value_at_face_for_dirichlet_bcs (also omitted there, the only place this function
-    // is called from).
+    // var_point_value_at_face* (also omitted there, the only places this function is called from).
     fn dvar_limited_for_dirichlet_bcs(&self, var: Variable, cell: Cell) -> f64 {
         let dvar_central = second_order::Central1::apply(cell.0, |i| {
             self.var(var, Cell(i))

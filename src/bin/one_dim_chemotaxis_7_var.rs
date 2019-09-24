@@ -238,7 +238,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => {
-                let flux = -self.j_phi_c_b_left * problem.var_point_value_at_face(PHI_C_B.into(), Cell(1), Face::West);
+                let flux = -self.j_phi_c_b_left * problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), Cell(1), Face::West);
                 BoundaryCondition::Flux(flux)
             }
         }
