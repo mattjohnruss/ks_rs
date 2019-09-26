@@ -249,6 +249,8 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
     }
+
+    problem.update_ghost_cells();
 }
 
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {

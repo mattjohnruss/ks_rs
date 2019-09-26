@@ -191,6 +191,8 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
         *problem.var_mut(PHI_I, cell) = 0.1;
         *problem.var_mut(PHI_M, cell) = 0.0;
     }
+
+    problem.update_ghost_cells();
 }
 
 fn main() -> Result<()> {

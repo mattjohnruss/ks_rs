@@ -70,6 +70,8 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
         *problem.var_mut(KellerSegel::RHO, cell) = 1.0;
         *problem.var_mut(KellerSegel::C, cell) = 1.0 + thread_rng().sample(uniform);
     }
+
+    problem.update_ghost_cells();
 }
 
 fn main() -> Result<()> {
