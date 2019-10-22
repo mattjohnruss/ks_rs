@@ -266,11 +266,19 @@ impl ProblemFunctions for Chemotaxis {
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
+    fn cos_ramp(x: f64, n: f64) -> f64 {
+        use std::f64::consts::PI;
+        if x < 1.0 / n {
+            0.5 * (1.0 + (n * PI * x).cos())
+        } else {
+            0.0
+        }
+    }
+
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
-        *problem.var_mut(C_U, cell) = 1.0 - x;
-        //*problem.var_mut(C_U, cell) = 0.0;
+        *problem.var_mut(C_U, cell) = cos_ramp(x, 5.0);
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
         *problem.var_mut(PHI_I, cell) = problem.functions.phi_i_init;
