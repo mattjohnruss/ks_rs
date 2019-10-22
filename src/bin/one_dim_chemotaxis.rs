@@ -38,6 +38,7 @@ struct Chemotaxis {
     chi_s: f64,
     r: f64,
     m: f64,
+    phi_i_init: f64,
 }
 
 #[allow(non_camel_case_types)]
@@ -93,6 +94,7 @@ impl Default for Chemotaxis {
             chi_s: 1.0,
             r: 10.0,
             m: 5.0,
+            phi_i_init: 0.1,
         }
     }
 }
@@ -178,8 +180,7 @@ impl ProblemFunctions for Chemotaxis {
     }
 }
 
-fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
-    where F: ProblemFunctions
+fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
 {
     for cell in problem.interior_cells() {
         //let x = problem.x(cell);
@@ -188,7 +189,7 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
         *problem.var_mut(C_U, cell) = 0.0;
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
-        *problem.var_mut(PHI_I, cell) = 0.1;
+        *problem.var_mut(PHI_I, cell) = problem.functions.phi_i_init;
         *problem.var_mut(PHI_M, cell) = 0.0;
     }
 
