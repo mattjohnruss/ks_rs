@@ -254,6 +254,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
     problem.update_ghost_cells();
 }
 
+#[allow(dead_code)]
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     problem.functions.m = if problem.time < 3.5 {
         2.0
@@ -307,7 +308,7 @@ fn main() -> Result<()> {
     let mut i = 1;
 
     while problem.time < t_max {
-        update_params(&mut problem);
+        //update_params(&mut problem);
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
