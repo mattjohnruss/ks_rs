@@ -1,3 +1,9 @@
+use serde::Serialize;
+use std::fs;
+use std::io::BufWriter;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 // Starting with NaN works because f64::max ignores the NaN and picks the other value
 fn max(v: &[f64]) -> f64 {
     v.iter().copied().fold(std::f64::NAN, f64::max)
@@ -23,6 +29,15 @@ pub fn minmod(v: &[f64]) -> f64 {
     } else {
         0.0
     }
+}
+
+pub fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
+    where T: Default + Serialize
+{
+    let file = fs::File::create(filename)?;
+    let writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(writer, &T::default())?;
+    Ok(())
 }
 
 #[cfg(test)]
