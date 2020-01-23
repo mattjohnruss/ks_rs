@@ -70,7 +70,12 @@ struct Chemotaxis {
     chi_b: f64,
     chi_s: f64,
     r: f64,
+    m_h: f64,
+    m_i: f64,
+    #[serde(skip)]
     m: f64,
+    t_1: f64,
+    t_2: f64,
     p: f64,
     s: f64,
     j_phi_c_b_left: f64,
@@ -111,7 +116,11 @@ impl Default for Chemotaxis {
             chi_b: 1.0,
             chi_s: 0.0,
             r: 10.0,
+            m_h: 2.0,
+            m_i: 7.0,
             m: 5.0,
+            t_1: 1.0,
+            t_2: 2.0,
             p: 10.0,
             s: 0.0,
             j_phi_c_b_left: 1.0,
@@ -292,10 +301,14 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 
 #[allow(dead_code)]
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
-    problem.functions.m = if problem.time < 3.5 {
-        2.0
+    let t_1 = problem.functions.t_1;
+    let t_2 = problem.functions.t_2;
+    let time = problem.time;
+
+    problem.functions.m = if time < t_1 || time > t_2 {
+        problem.functions.m_h
     } else {
-        7.0
+        problem.functions.m_i
     };
 }
 
@@ -334,7 +347,7 @@ fn main() -> Result<()> {
     let mut i = 1;
 
     while problem.time < t_max {
-        //update_params(&mut problem);
+        update_params(&mut problem);
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
