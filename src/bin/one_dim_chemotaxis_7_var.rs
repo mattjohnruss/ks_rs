@@ -80,6 +80,7 @@ struct Chemotaxis {
     s: f64,
     j_phi_c_b_left: f64,
     phi_i_init: f64,
+    phi_m_init: f64,
 }
 
 impl Default for Chemotaxis {
@@ -125,6 +126,7 @@ impl Default for Chemotaxis {
             s: 0.0,
             j_phi_c_b_left: 1.0,
             phi_i_init: 0.1,
+            phi_m_init: 0.1,
         }
     }
 }
@@ -291,7 +293,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
         *problem.var_mut(PHI_I, cell) = problem.functions.phi_i_init;
-        *problem.var_mut(PHI_M, cell) = 0.0;
+        *problem.var_mut(PHI_M, cell) = problem.functions.phi_m_init;
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
     }
