@@ -3,6 +3,7 @@ name = "ks_rs"
 version = "0.1.0"
 authors = ["Matthew Russell <matthewjohnrussell@gmail.com>"]
 edition = "2018"
+default-run = "one_dim_chemotaxis_7_var"
 
 [dependencies]
 ndarray = { version = "0.13", features = ["blas"] }
