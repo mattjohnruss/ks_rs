@@ -280,6 +280,7 @@ mod test {
     const DT: f64 = 1.0 / N_STEP as f64;
 
     #[test]
+    #[ignore]
     fn euler_forward() {
         let file = fs::File::create("euler_forward.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
@@ -297,6 +298,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn runge_kutta_4_4() {
         let file = fs::File::create("runge_kutta_4_4.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
@@ -314,6 +316,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn ssp_runge_kutta_3_3() {
         let file = fs::File::create("ssp_runge_kutta_3_3.csv").unwrap();
         let mut buf_writer = BufWriter::new(file);
