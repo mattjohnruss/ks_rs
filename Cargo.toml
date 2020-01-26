@@ -59,5 +59,11 @@ path = "src/bin/two_dim.rs"
 test = false
 doctest = false
 
+[[bin]]
+name = "mesh_test"
+path = "src/bin/mesh_test.rs"
+test = false
+doctest = false
+
 [dev-dependencies]
 approx = "0.3.2"
