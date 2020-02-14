@@ -18,6 +18,44 @@ impl<'a> Cell<'a> {
         let vertices = self.vertices();
         0.5 * (vertices[0] + vertices[1])
     }
+
+    pub fn neighbour_left(&self) -> Option<Cell> {
+        if self.idx >= 1 {
+            Some(Cell {
+                idx: self.idx - 1,
+                mesh: self.mesh,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn neighbour_right(&self) -> Option<Cell> {
+        if self.idx <= self.mesh.n_cells - 2 {
+            Some(Cell {
+                idx: self.idx + 1,
+                mesh: self.mesh,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn dx_left(&self) -> f64 {
+        let left = match self.neighbour_left() {
+            Some(cell) => cell,
+            None => panic!("No left neighbour"),
+        };
+        self.centre() - left.centre()
+    }
+
+    pub fn dx_right(&self) -> f64 {
+        let left = match self.neighbour_left() {
+            Some(cell) => cell,
+            None => panic!("No left neighbour"),
+        };
+        self.centre() - left.centre()
+    }
 }
 
 #[derive(Debug)]
@@ -70,6 +108,11 @@ impl Mesh1D {
         }
     }
 
+    /// Returns the number of cells in the mesh
+    pub fn n_cells(&self) -> usize {
+        self.n_cells
+    }
+
     /// Returns an iterator over the cells
     pub fn cells(&self) -> CellIter {
         let cell = Cell { idx: 0, mesh: self };
@@ -85,10 +128,13 @@ impl Mesh1D {
         self.n_cells += 1;
     }
 
-    fn refine_uniformly(&mut self) {
-        // We must loop by a step of 2, and up to twice the current number of cells
-        for idx in (0..2 * self.n_cells).step_by(2) {
-            self.refine(idx);
+    /// Perform uniform refinements of the mesh the requested number of times
+    pub fn refine_uniformly(&mut self, n_refinements: usize) {
+        for _ in 0..n_refinements {
+            // We must loop by a step of 2, and up to twice the current number of cells
+            for idx in (0..2 * self.n_cells).step_by(2) {
+                self.refine(idx);
+            }
         }
     }
 
@@ -161,7 +207,7 @@ mod tests {
     #[test]
     fn uniform_refinement() {
         let mut mesh = Mesh1D::new_uniform(0.0, 2.0, 4);
-        mesh.refine_uniformly();
+        mesh.refine_uniformly(1);
         assert_abs_diff_eq!(mesh.vertices[0], 0.0);
         assert_abs_diff_eq!(mesh.vertices[1], 0.25);
         assert_abs_diff_eq!(mesh.vertices[2], 0.5);

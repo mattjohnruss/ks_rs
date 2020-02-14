@@ -1,22 +1,29 @@
 use ks_rs::mesh::*;
-use std::rc::Rc;
+use ks_rs::dof_handler::*;
+use ks_rs::scheme::*;
 
-struct DofHandler {
-    mesh: Rc<Mesh1D>,
+struct DummyScheme {
 }
 
-impl DofHandler {
-    fn new(mesh: Rc<Mesh1D>) -> Self {
-        DofHandler { mesh }
+impl Scheme for DummyScheme {
+    const N_DOFS_PER_CELL: usize = 2;
+
+    fn rhs(&self, cell: &Cell, local_dof: usize) -> f64 {
+        0.0
     }
 }
 
 fn main() {
-    let mesh = Rc::new(Mesh1D::new_uniform(0.0, 1.0, 2));
-    //let mesh = Rc::new(mesh);
-    let dof_handler = DofHandler { mesh: mesh.clone() };
+    let mesh = Mesh1D::new_uniform(0.0, 1.0, 10);
+    let scheme = DummyScheme {};
 
-    for cell in mesh.cells() {
-        dbg!(cell);
-    }
+    let dof_handler = DofHandler::new(&mesh, &scheme);
+
+    dbg!(&dof_handler);
+
+    //for cell in mesh.cells() {
+        //dbg!(cell);
+    //}
+
+    //mesh.refine_uniformly(1);
 }
