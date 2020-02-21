@@ -187,13 +187,23 @@ impl<F> Problem1D<F>
         let time = self.time;
 
         for cell in self.interior_cells() {
-            let x = self.x(cell);
-            buffer.write_all(format!("{:.6e} {:.6e}", time, x).as_bytes())?;
+            let x_m = self.x(cell) - 0.5 * self.dx;
+            buffer.write_all(format!("{:.6e} {:.6e}", time, x_m).as_bytes())?;
             for var in 0..self.n_variable {
                 let var = Variable(var);
                 buffer.write_all(format!(" {:.6e}", self.var(var, cell)).as_bytes())?;
             }
+
             buffer.write_all(b"\n")?;
+
+            let x_p = self.x(cell) + 0.5 * self.dx;
+            buffer.write_all(format!("{:.6e} {:.6e}", time, x_p).as_bytes())?;
+            for var in 0..self.n_variable {
+                let var = Variable(var);
+                buffer.write_all(format!(" {:.6e}", self.var(var, cell)).as_bytes())?;
+            }
+
+            buffer.write_all(b"\n\n")?;
         }
         Ok(())
     }
