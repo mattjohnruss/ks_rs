@@ -325,6 +325,9 @@ fn main() -> Result<()> {
         serde_json::from_reader(reader)?
     };
 
+    println!("{:#?}", opt);
+    println!("{:#?}", chemotaxis);
+
     let n_cell = opt.n_cell;
     let t_max = opt.t_max;
     let dt = opt.dt;
