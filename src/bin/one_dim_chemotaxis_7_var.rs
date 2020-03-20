@@ -337,7 +337,7 @@ fn main() -> Result<()> {
     let domain = DomainParams { n_cell, width: 1.0 };
 
     let mut problem = Problem1D::new(ChemotaxisVariable::N_VARIABLE, domain, chemotaxis);
-    problem.set_variable_names(&["C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b"])?;
+    problem.set_variable_names(&["$C_u$", "$C_b$", "$C_s$", "$\\\\phi_i$", "$\\\\phi_m$", "$\\\\phi_{C_u}$", "$\\\\phi_{C_b}$"])?;
 
     set_initial_conditions(&mut problem);
 
