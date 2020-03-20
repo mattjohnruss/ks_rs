@@ -79,6 +79,7 @@ struct Chemotaxis {
     p: f64,
     s: f64,
     j_phi_c_b_left: f64,
+    j_phi_i_right: f64,
     phi_i_init: f64,
     phi_m_init: f64,
 }
@@ -125,6 +126,7 @@ impl Default for Chemotaxis {
             p: 10.0,
             s: 0.0,
             j_phi_c_b_left: 1.0,
+            j_phi_i_right: 0.0,
             phi_i_init: 0.1,
             phi_m_init: 0.1,
         }
@@ -268,7 +270,7 @@ impl ProblemFunctions for Chemotaxis {
             C_U => BoundaryCondition::Dirichlet(0.0),
             C_B => BoundaryCondition::Flux(0.0),
             C_S => BoundaryCondition::Dirichlet(0.0),
-            PHI_I => BoundaryCondition::Flux(0.0),
+            PHI_I => BoundaryCondition::Flux(-self.j_phi_i_right * self.m),
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Flux(0.0),
