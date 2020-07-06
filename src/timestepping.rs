@@ -175,7 +175,7 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         // work out f(v_0, t)
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
-        // multipliy by dt and add to current dofs (an Euler step)
+        // multiply by dt and add to current dofs (an Euler step)
         obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
         // don't actually need to save a copy of v_1
         //let v_1 = obj.dofs().to_vec();
