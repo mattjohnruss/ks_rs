@@ -222,6 +222,23 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
+    /// Calculate the integral of `var` over `cell` using a simple rectangle rule. There's
+    /// no advantage to using e.g. the trapezium rule since the point value at the centre
+    /// of each cell already represents the cell average of the variable and the point
+    /// values at the cell edges are computed so as to preserve the cell average anyway.
+    pub fn integrate_cell(&self, var: impl Into<Variable>, cell: Cell) -> f64 {
+        self.dx * self.var(var.into(), cell)
+    }
+
+    /// Calculate the integral of `var` over the whole domain using the rectangle rule on
+    /// each cell
+    pub fn integrate_solution(&self, var: impl Into<Variable>) -> f64 {
+        let var = var.into();
+        self.interior_cells()
+            .map(|cell| self.integrate_cell(var, cell))
+            .fold(0.0, |total, x| total + x)
+    }
+
     /// Set the names of the variables. Used in the headers of output files etc. Returns `Err(...)`
     /// if the number of variable names given doesn't match the number of variables
     pub fn set_variable_names(&mut self, names: &[&str]) -> Result<(), String> {
