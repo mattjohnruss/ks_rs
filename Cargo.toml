@@ -59,5 +59,11 @@ path = "src/bin/two_dim_ks.rs"
 test = false
 doctest = false
 
+[[bin]]
+name = "one_dim_binding_pulsating_bcs"
+path = "src/bin/one_dim_binding_pulsating_bcs.rs"
+test = false
+doctest = false
+
 [dev-dependencies]
 approx = "0.3.2"
