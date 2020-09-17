@@ -235,8 +235,7 @@ impl<F> Problem1D<F>
     pub fn integrate_solution(&self, var: impl Into<Variable>) -> f64 {
         let var = var.into();
         self.interior_cells()
-            .map(|cell| self.integrate_cell(var, cell))
-            .fold(0.0, |total, x| total + x)
+            .fold(0.0, |total, cell| total + self.integrate_cell(var, cell))
     }
 
     /// Set the names of the variables. Used in the headers of output files etc. Returns `Err(...)`
