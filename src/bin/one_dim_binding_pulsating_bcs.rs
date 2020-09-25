@@ -142,6 +142,19 @@ fn set_initial_conditions(problem: &mut Problem1D<BindingFluctuatingBCs>) {
     problem.update_ghost_cells();
 }
 
+fn trace(problem: &Problem1D<BindingFluctuatingBCs>, mut trace_writer: impl Write) -> Result<()> {
+    let c_u_total = problem.integrate_solution(C_U);
+    let c_b_total = problem.integrate_solution(C_B);
+
+    if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(&problem, C_U.into()) {
+        writeln!(&mut trace_writer, "{} {} {} {}", problem.time, c_u_total, c_b_total, c_u_0)?;
+    } else {
+        return Err("No Dirichlet condition for C_U - shouldn't happen.".into())
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
@@ -194,14 +207,8 @@ fn main() -> Result<()> {
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
 
-            let c_u_total = problem.integrate_solution(C_U);
-            let c_b_total = problem.integrate_solution(C_B);
-
-            if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(&problem, C_U.into()) {
-                writeln!(&mut trace_writer, "{} {} {} {}", problem.time, c_u_total, c_b_total, c_u_0)?;
-            } else {
-                return Err("No Dirichlet condition for C_U - shouldn't happen.".into());
             }
+            trace(&problem, &mut trace_writer)?;
         }
         i += 1;
     }
