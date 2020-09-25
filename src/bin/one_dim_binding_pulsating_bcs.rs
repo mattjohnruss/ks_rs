@@ -34,6 +34,8 @@ struct Opt {
     dir: String,
     #[structopt(long = "config")]
     config_path: String,
+    #[structopt(long, short = "s")]
+    suppress_full_output: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -172,6 +174,7 @@ fn main() -> Result<()> {
     let dt = opt.dt;
     let output_interval = opt.output_interval;
     let dir = opt.dir;
+    let suppress_full_output = opt.suppress_full_output;
 
     let domain = DomainParams { n_cell, width: 1.0 };
 
@@ -186,10 +189,12 @@ fn main() -> Result<()> {
     //let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
     let mut rk44 = RungeKutta44::new(problem.n_dof);
 
-    let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
-    let mut buf_writer = BufWriter::new(file);
-    problem.output(&mut buf_writer)?;
-    buf_writer.flush()?;
+    if !suppress_full_output {
+        let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
+        let mut buf_writer = BufWriter::new(file);
+        problem.output(&mut buf_writer)?;
+        buf_writer.flush()?;
+    }
 
     let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
     let mut trace_writer = BufWriter::new(trace_file);
@@ -202,11 +207,11 @@ fn main() -> Result<()> {
         rk44.step(&mut problem, dt);
 
         if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
-            let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
-            problem.output(&mut buf_writer)?;
-
+            if !suppress_full_output {
+                let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+                let mut buf_writer = BufWriter::new(file);
+                problem.output(&mut buf_writer)?;
             }
             trace(&problem, &mut trace_writer)?;
         }
