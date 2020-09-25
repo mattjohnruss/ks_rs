@@ -8,8 +8,8 @@ use ks_rs::adr::one_dim::{
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
-    //SspRungeKutta33,
-    RungeKutta44,
+    SspRungeKutta33,
+    //RungeKutta44,
 };
 use std::fs;
 use std::io::{Write, BufWriter, BufReader};
@@ -186,8 +186,8 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
-    //let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
-    let mut rk44 = RungeKutta44::new(problem.n_dof);
+    let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
+    //let mut rk44 = RungeKutta44::new(problem.n_dof);
 
     if !suppress_full_output {
         let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
@@ -203,8 +203,8 @@ fn main() -> Result<()> {
     let mut i = 1;
 
     while problem.time < t_max {
-        //ssp_rk33.step(&mut problem, dt);
-        rk44.step(&mut problem, dt);
+        ssp_rk33.step(&mut problem, dt);
+        //rk44.step(&mut problem, dt);
 
         if i % output_interval == 0 {
             println!("Outputting at time = {}, i = {}", problem.time, i);
