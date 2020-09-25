@@ -39,6 +39,7 @@ struct Opt {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
 struct BindingFluctuatingBCs {
+    d: f64,
     pe: f64,
     alpha_1: f64,
     beta_1: f64,
@@ -49,6 +50,7 @@ struct BindingFluctuatingBCs {
 impl Default for BindingFluctuatingBCs {
     fn default() -> Self {
         Self {
+            d: 1.0,
             pe: 1.0,
             alpha_1: 10.0,
             beta_1: 1.0,
@@ -87,7 +89,7 @@ impl From<BindingFluctuatingBCsVariable> for Variable {
 impl ProblemFunctions for BindingFluctuatingBCs {
     fn diffusivity(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
         match var.into() {
-            C_U => 1.0,
+            C_U => self.d,
             C_B => 0.0,
         }
     }
