@@ -200,8 +200,7 @@ fn main() -> Result<()> {
             if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(&problem, C_U.into()) {
                 writeln!(&mut trace_writer, "{} {} {} {}", problem.time, c_u_total, c_b_total, c_u_0)?;
             } else {
-                eprintln!("No Dirichlet condition for C_U - shouldn't happen.");
-                std::process::exit(1);
+                return Err("No Dirichlet condition for C_U - shouldn't happen.".into());
             }
         }
         i += 1;
