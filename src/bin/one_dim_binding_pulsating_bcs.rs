@@ -41,8 +41,8 @@ struct Opt {
 struct BindingFluctuatingBCs {
     d: f64,
     pe: f64,
-    alpha_1: f64,
-    beta_1: f64,
+    alpha: f64,
+    k: f64,
     t_p: f64,
     n_p: usize,
 }
@@ -52,8 +52,8 @@ impl Default for BindingFluctuatingBCs {
         Self {
             d: 1.0,
             pe: 1.0,
-            alpha_1: 10.0,
-            beta_1: 1.0,
+            alpha: 10.0,
+            k: 10.0,
             t_p: 1.0,
             n_p: 3,
         }
@@ -102,9 +102,10 @@ impl ProblemFunctions for BindingFluctuatingBCs {
     }
 
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
+        let beta = self.alpha / self.k;
         match var.into() {
-            C_U => - self.alpha_1 * problem.var(C_U, cell) + self.beta_1 * problem.var(C_B, cell),
-            C_B => self.alpha_1 * problem.var(C_U, cell) - self.beta_1 * problem.var(C_B, cell),
+            C_U => - self.alpha * problem.var(C_U, cell) + beta * problem.var(C_B, cell),
+            C_B => self.alpha * problem.var(C_U, cell) - beta * problem.var(C_B, cell),
         }
     }
 
