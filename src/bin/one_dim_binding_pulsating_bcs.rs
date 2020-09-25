@@ -12,10 +12,11 @@ use ks_rs::timestepping::{
     //RungeKutta44,
 };
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+//use std::io::{Write, BufWriter, BufReader};
+use std::io::{Write, BufWriter};
 use std::path::Path;
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
+//use serde::{Serialize, Deserialize};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -32,21 +33,25 @@ struct Opt {
     outputs_per_cycle: usize,
     #[structopt(long, default_value = "res")]
     dir: String,
-    #[structopt(long = "config")]
-    config_path: String,
+    //#[structopt(long = "config")]
+    //config_path: String,
     #[structopt(long, short = "s")]
     suppress_full_output: bool,
+    #[structopt(flatten)]
+    binding_pulsating_bcs: BindingFluctuatingBCs,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(default)]
+//#[derive(Debug, Serialize, Deserialize)]
+//#[serde(default)]
+#[derive(Debug, StructOpt)]
+#[structopt(rename_all = "verbatim")]
 struct BindingFluctuatingBCs {
-    d: f64,
-    pe: f64,
-    alpha: f64,
-    k: f64,
-    t_p: f64,
-    n_p: usize,
+    #[structopt(long, default_value = "1.0")] d: f64,
+    #[structopt(long, default_value = "1.0")] pe: f64,
+    #[structopt(long, default_value = "1.0")] alpha: f64,
+    #[structopt(long, default_value = "1.0")] k: f64,
+    #[structopt(long, default_value = "1.0")] t_p: f64,
+    #[structopt(long, default_value = "1")]   n_p: usize,
 }
 
 impl Default for BindingFluctuatingBCs {
@@ -160,14 +165,13 @@ fn trace(problem: &Problem1D<BindingFluctuatingBCs>, mut trace_writer: impl Writ
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let binding_pulsating_bcs: BindingFluctuatingBCs = {
-        let config_file = fs::File::open(&opt.config_path)?;
-        let reader = BufReader::new(config_file);
-        serde_json::from_reader(reader)?
-    };
+    //let binding_pulsating_bcs: BindingFluctuatingBCs = {
+    //    let config_file = fs::File::open(&opt.config_path)?;
+    //    let reader = BufReader::new(config_file);
+    //    serde_json::from_reader(reader)?
+    //};
 
     println!("{:#?}", opt);
-    println!("{:#?}", binding_pulsating_bcs);
 
     let n_cell = opt.n_cell;
     let t_max = opt.t_max;
@@ -178,7 +182,7 @@ fn main() -> Result<()> {
 
     let domain = DomainParams { n_cell, width: 1.0 };
 
-    let mut problem = Problem1D::new(BindingFluctuatingBCsVariable::N_VARIABLE, domain, binding_pulsating_bcs);
+    let mut problem = Problem1D::new(BindingFluctuatingBCsVariable::N_VARIABLE, domain, opt.binding_pulsating_bcs);
     problem.set_variable_names(&["$C_u$", "$C_b$"])?;
 
     set_initial_conditions(&mut problem);
