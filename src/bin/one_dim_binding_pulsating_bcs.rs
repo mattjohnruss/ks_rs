@@ -149,7 +149,7 @@ fn trace(problem: &Problem1D<BindingFluctuatingBCs>, mut trace_writer: impl Writ
     let c_b_total = problem.integrate_solution(C_B);
 
     if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(&problem, C_U.into()) {
-        writeln!(&mut trace_writer, "{} {} {} {}", problem.time, c_u_total, c_b_total, c_u_0)?;
+        writeln!(&mut trace_writer, "{:.6e} {:.8e} {:.8e} {:.6e}", problem.time, c_u_total, c_b_total, c_u_0)?;
     } else {
         return Err("No Dirichlet condition for C_U - shouldn't happen.".into())
     }
@@ -198,7 +198,9 @@ fn main() -> Result<()> {
 
     let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
     let mut trace_writer = BufWriter::new(trace_file);
-    writeln!(&mut trace_writer, "t C_u_total C_b_total")?;
+    writeln!(&mut trace_writer, "t C_u_total C_b_total C_u_0")?;
+
+    trace(&problem, &mut trace_writer)?;
 
     let mut i = 1;
 
