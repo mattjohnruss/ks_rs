@@ -204,7 +204,10 @@ fn main() -> Result<()> {
 
     let mut i = 1;
 
-    while problem.time < t_max {
+    let t_max_cycles_plus_five =
+        problem.functions.t_p * (problem.functions.n_p + 5) as f64;
+
+    while problem.time < t_max_cycles_plus_five.min(t_max) {
         ssp_rk33.step(&mut problem, dt);
         //rk44.step(&mut problem, dt);
 
