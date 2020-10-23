@@ -3,6 +3,7 @@ use crate::utilities::minmod;
 use crate::timestepping::ExplicitTimeSteppable;
 use ndarray::prelude::*;
 use std::io::prelude::*;
+use std::cell::RefCell;
 
 /// Wrapper type for variable numbers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,6 +118,7 @@ pub struct Problem1D<F> {
     pub n_dof: usize,
     dx: f64,
     pub functions: F,
+    steady_state_temp: RefCell<Array1<f64>>,
 }
 
 impl<F> Problem1D<F>
@@ -140,6 +142,7 @@ impl<F> Problem1D<F>
             n_dof,
             dx: domain.width / domain.n_cell as f64,
             functions,
+            steady_state_temp: RefCell::new(Array::zeros(n_variable * domain.n_cell)),
         }
     }
 
@@ -633,6 +636,17 @@ impl<F> Problem1D<F>
             cell: Cell(1),
             n_cell: self.domain.n_cell,
         }
+    }
+
+    pub fn is_steady_state(&self, threshold: f64) -> bool {
+        let mut buffer = self.steady_state_temp.borrow_mut();
+        <Self as ExplicitTimeSteppable>::rhs(self, buffer.view_mut());
+        for value in buffer.iter() {
+            if value.abs() >= threshold {
+                return false
+            }
+        }
+        true
     }
 }
 

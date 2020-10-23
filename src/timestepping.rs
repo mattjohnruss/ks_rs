@@ -45,10 +45,46 @@ pub trait ExplicitTimeSteppable {
     fn actions_after_explicit_timestep(&mut self) { }
 }
 
+pub(crate) mod private {
+    use super::{ArrayView1, ArrayViewMut1};
+    pub trait BufferedExplicitTimeStepper {
+        fn rhs_buffer(&self) -> ArrayView1<f64>;
+        fn rhs_buffer_mut(&mut self) -> ArrayViewMut1<f64>;
+    }
+}
+
+macro_rules! buffered_explicit_time_stepper_impl {
+    ($s:ident) => {
+        impl crate::timestepping::private::BufferedExplicitTimeStepper for $s {
+            fn rhs_buffer(&self) -> ArrayView1<f64> {
+                self.rhs_buffer.view()
+            }
+
+            fn rhs_buffer_mut(&mut self) -> ArrayViewMut1<f64> {
+                self.rhs_buffer.view_mut()
+            }
+        }
+    }
+}
+
 /// Trait for explicit timesteppers
-pub trait ExplicitTimeStepper {
+pub trait ExplicitTimeStepper: private::BufferedExplicitTimeStepper {
     /// Take a timestep of length `dt` on the timesteppable object `obj`
     fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64);
+
+    /// Estimate whether the system has reached a steady state to the given threshold
+    /// Uses forward Euler estimate of time derivative by simply calculating the rhs of the
+    /// equation. Then checks whether the d/dt of every dof is below threshold
+    fn is_steady_state<T: ExplicitTimeSteppable>(&mut self, obj: &T, threshold: f64) -> bool {
+        obj.rhs(self.rhs_buffer_mut());
+
+        for value in self.rhs_buffer().iter() {
+            if value.abs() >= threshold {
+                return false
+            }
+        }
+        true
+    }
 }
 
 /// Euler forward timestepper
@@ -64,6 +100,8 @@ impl EulerForward {
         }
     }
 }
+
+buffered_explicit_time_stepper_impl!(EulerForward);
 
 impl ExplicitTimeStepper for EulerForward {
     fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64) {
@@ -92,6 +130,8 @@ impl RungeKutta44 {
         }
     }
 }
+
+buffered_explicit_time_stepper_impl!(RungeKutta44);
 
 impl ExplicitTimeStepper for RungeKutta44 {
     fn step<T: ExplicitTimeSteppable>(&mut self, obj: &mut T, dt: f64) {
@@ -162,6 +202,8 @@ impl SspRungeKutta33 {
         }
     }
 }
+
+buffered_explicit_time_stepper_impl!(SspRungeKutta33);
 
 impl ExplicitTimeStepper for SspRungeKutta33 {
     // NOTE from Hesthaven & Warburton (2008), p.158

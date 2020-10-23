@@ -210,7 +210,9 @@ fn main() -> Result<()> {
 
     let output_time_interval = problem.functions.t_p / outputs_per_cycle as f64;
 
-    while problem.time < t_max_cycles_plus_five.min(t_max) {
+    let mut should_stop = false;
+
+    while !should_stop {
         ssp_rk33.step(&mut problem, dt);
         //rk44.step(&mut problem, dt);
 
@@ -225,6 +227,15 @@ fn main() -> Result<()> {
             outputs += 1;
         }
         i += 1;
+
+        if problem.time >= t_max_cycles_plus_five.min(t_max)
+            //|| ssp_rk33.is_steady_state(&problem, 1.0e-8)
+        {
+            //if !problem.is_steady_state(1.0e-8) {
+                //eprintln!("one method for detecting steady states passed but the other failed");
+            //}
+            should_stop = true;
+        }
     }
 
     Ok(())
