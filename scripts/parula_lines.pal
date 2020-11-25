@@ -1,0 +1,21 @@
+# New default Matlab line colors, introduced together with parula (2014b)
+set style line 1  lc rgb '#0072bd' # blue
+set style line 2  lc rgb '#d95319' # orange
+set style line 3  lc rgb '#edb120' # yellow
+set style line 4  lc rgb '#7e2f8e' # purple
+set style line 5  lc rgb '#77ac30' # green
+set style line 6  lc rgb '#4dbeee' # light-blue
+set style line 7  lc rgb '#a2142f' # red
+#set style line 8  lc rgb '#000000' # black
+
+# palette
+set palette defined (\
+0 '#352a87',\
+1 '#0363e1',\
+2 '#1485d4',\
+3 '#06a7c6',\
+4 '#38b99e',\
+5 '#92bf73',\
+6 '#d9ba56',\
+7 '#fcce2e',\
+8 '#f9fb0e')
