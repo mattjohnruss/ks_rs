@@ -45,6 +45,12 @@ test = false
 doctest = false
 
 [[bin]]
+name = "one_dim_chemotaxis_7_var_corrected"
+path = "src/bin/one_dim_chemotaxis_7_var_corrected.rs"
+test = false
+doctest = false
+
+[[bin]]
 name = "one_dim_chemotaxis_6_var"
 path = "src/bin/one_dim_chemotaxis_6_var.rs"
 test = false
