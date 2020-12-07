@@ -343,7 +343,7 @@ fn main() -> Result<()> {
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
-    problem.output_cell_averages(&mut buf_writer)?;
+    problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
 
     let mut i = 1;
@@ -356,7 +356,7 @@ fn main() -> Result<()> {
             let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
-            problem.output_cell_averages(&mut buf_writer)?;
+            problem.output(&mut buf_writer)?;
         }
         i += 1;
     }
