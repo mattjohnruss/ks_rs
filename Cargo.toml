@@ -6,9 +6,9 @@ edition = "2018"
 default-run = "one_dim_chemotaxis_7_var"
 
 [dependencies]
-ndarray = { version = "0.13", features = ["blas"] }
-blas-src = { version = "0.2", default-features = false, features = ["openblas"] }
-openblas-src = { version = "0.6", default-features = false, features = ["cblas", "static"] }
+ndarray = { version = "0.14", features = ["blas"] }
+blas-src = { version = "0.6.1", default-features = false, features = ["openblas"] }
+openblas-src = { version = "0.9", default-features = false, features = ["cblas", "static"] }
 structopt = "0.3"
 rand = "0.7"
 serde = { version = "1.0", features = ["derive"] }
