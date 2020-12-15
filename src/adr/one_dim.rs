@@ -812,7 +812,7 @@ mod tests {
             let mut output_writer = BufWriter::new(&mut output);
             problem.output_cell_average_data(&mut output_writer).unwrap();
         }
-        assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 5.000000e-1 0.000000e0 0.000000e0 0.000000e0\n");
+        assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 0.000000e0 0.000000e0 0.000000e0 0.000000e0\n0.000000e0 1.000000e0 0.000000e0 0.000000e0 0.000000e0\n\n");
     }
 
     #[test]
