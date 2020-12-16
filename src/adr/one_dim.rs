@@ -659,11 +659,12 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
     fn rhs(&self, buffer: ArrayViewMut1<f64>) {
         let mut buffer = buffer.into_shape((self.n_variable, self.domain.n_cell)).unwrap();
 
-        for var in 0..self.n_variable {
-            for (idx, cell) in self.interior_cells().enumerate() {
+        (0..self.n_variable).for_each(|var| {
+            self.interior_cells().for_each(|cell| {
+                let idx = cell.0 - 1;
                 buffer[(var, idx)] = self.rhs(Variable(var), cell);
-            }
-        }
+            });
+        });
     }
 
     fn actions_before_explicit_stage(&mut self) {
