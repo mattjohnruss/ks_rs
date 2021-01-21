@@ -634,6 +634,70 @@ impl<F> Problem1D<F>
             n_cell: self.domain.n_cell,
         }
     }
+
+    /// Calculates the largest timestep such that the solution remains positive after a forward
+    /// Euler step. The method used is a generalization of that in Chertock et al. (2018) and
+    /// related papers allowing for arbitrary velocities and reactions.
+    ///
+    /// It currently does not implement the extra factors that arise when an arbitrary function
+    /// g(rho) of each variable is allowed in the advective terms rather than the usual rho.
+    pub fn calculate_dt(&self) -> f64 {
+        // NOTE: We could avoid repeated allocations by putting these Vecs in the Problem struct
+        // (using interior mutability). Initial testing suggests it's actually slower than the
+        // naive approach, presumably because these allocations are optimised away. Similarly,
+        // avoiding accumulating all a, k and d entries by keeping track of just their running
+        // minimum sounds like it should be faster than this, but it appears also not to be.
+
+        // NOTE: Entries of the vectors a, k, d will be infinity if their denominator is zero, e.g.
+        // when a velocity is zero for a particular variable. This is the expected behaviour when a
+        // particular term doesn't contribute to the timestep restriction. This isn't a problem
+        // provided that at least one of the equations has, say, a nonzero diffusion coefficient.
+        // In the end the threshold on dt depends on the smallest of these quantities, and clearly
+        // min(x, inf) = x, provided x != inf.
+
+        // Advective terms for each variable
+        let mut a = Vec::with_capacity(self.n_variable);
+
+        // Reaction terms for each variable
+        let mut k = Vec::with_capacity(self.n_variable);
+
+        // Diffusion terms for each variable
+        let mut d = Vec::with_capacity(self.n_variable);
+
+        for var in 0..self.n_variable {
+            let var = Variable(var);
+
+            // TODO: These 3 loops over the cells could be combined into one.
+
+            let a_i_denom = self
+                .interior_cells()
+                .map(|cell| self.functions.velocity_p_at_midpoint(&self, var, cell).abs())
+                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+
+            let k_i_denom = self
+                .interior_cells()
+                .map(|cell| {
+                    2.0 * self.functions.diffusivity(&self, var, cell) / self.dx.powi(2)
+                        - self.functions.reactions(&self, var, cell) / self.var(var, cell)
+                })
+                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+
+            let diffusivity_max = self
+                .interior_cells()
+                .map(|cell| self.functions.diffusivity(&self, var, cell))
+                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+
+            a.push(self.dx / (8.0 * a_i_denom));
+            k.push(1.0 / k_i_denom);
+            d.push(0.25 * self.dx.powi(2) / diffusivity_max);
+        }
+
+        let a_min = a.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
+        let k_min = k.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
+        let d_min = d.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
+
+        [a_min, k_min, d_min].iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2))
+    }
 }
 
 impl<F> ExplicitTimeSteppable for Problem1D<F>
