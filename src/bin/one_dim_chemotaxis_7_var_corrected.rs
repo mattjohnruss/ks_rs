@@ -26,10 +26,8 @@ struct Opt {
     n_cell: usize,
     #[structopt(long, default_value = "100.0")]
     t_max: f64,
-    #[structopt(long, default_value = "1.0e-6")]
-    dt: f64,
-    #[structopt(long, default_value = "1000")]
-    output_interval: usize,
+    #[structopt(long, default_value = "0.01")]
+    output_time_interval: f64,
     #[structopt(long, default_value = "res")]
     dir: String,
     #[structopt(long = "config")]
@@ -325,8 +323,7 @@ fn main() -> Result<()> {
 
     let n_cell = opt.n_cell;
     let t_max = opt.t_max;
-    let dt = opt.dt;
-    let output_interval = opt.output_interval;
+    let output_time_interval = opt.output_time_interval;
     let dir = opt.dir;
 
     let domain = DomainParams { n_cell, width: 1.0 };
@@ -347,16 +344,20 @@ fn main() -> Result<()> {
     buf_writer.flush()?;
 
     let mut i = 1;
+    let mut outputs = 1;
 
     while problem.time < t_max {
         update_params(&mut problem);
+
+        let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
 
-        if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+        if problem.time >= outputs as f64 * output_time_interval {
+            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", outputs)))?;
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
+            outputs += 1;
         }
         i += 1;
     }

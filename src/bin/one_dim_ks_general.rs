@@ -103,20 +103,22 @@ fn main() -> Result<()> {
     problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
 
-    let output_interval = 10;
-    let mut i = 1;
-    let dt = 1e-4;
+    let output_time_interval = 0.001;
     let t_max = 100.0;
 
+    let mut outputs = 1;
+
     while problem.time < t_max {
+        let dt = problem.calculate_dt();
+        println!("dt = {}", dt);
         ssp_rk33.step(&mut problem, dt);
 
-        if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+        if problem.time >= outputs as f64 * output_time_interval {
+            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", outputs)))?;
             let mut buf_writer = BufWriter::new(file);
             problem.output(&mut buf_writer)?;
+            outputs += 1;
         }
-        i += 1;
     }
 
     Ok(())
