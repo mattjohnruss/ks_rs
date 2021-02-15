@@ -3,6 +3,7 @@ use crate::utilities::minmod;
 use crate::timestepping::ExplicitTimeSteppable;
 use ndarray::prelude::*;
 use std::io::prelude::*;
+use crate::utilities::IterMinMax;
 
 /// Wrapper type for variable numbers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -672,7 +673,7 @@ impl<F> Problem1D<F>
             let a_i_denom = self
                 .interior_cells()
                 .map(|cell| self.functions.velocity_p_at_midpoint(&self, var, cell).abs())
-                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+                .max_all();
 
             let k_i_denom = self
                 .interior_cells()
@@ -680,23 +681,23 @@ impl<F> Problem1D<F>
                     2.0 * self.functions.diffusivity(&self, var, cell) / self.dx.powi(2)
                         - self.functions.reactions(&self, var, cell) / self.var(var, cell)
                 })
-                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+                .max_all();
 
             let diffusivity_max = self
                 .interior_cells()
                 .map(|cell| self.functions.diffusivity(&self, var, cell))
-                .fold(0.0, |x_1: f64, x_2: f64| x_1.max(x_2));
+                .max_all();
 
             a.push(self.dx / (8.0 * a_i_denom));
             k.push(1.0 / k_i_denom);
             d.push(0.25 * self.dx.powi(2) / diffusivity_max);
         }
 
-        let a_min = a.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
-        let k_min = k.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
-        let d_min = d.iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2));
+        let a_min = a.iter().min_all();
+        let k_min = k.iter().min_all();
+        let d_min = d.iter().min_all();
 
-        [a_min, k_min, d_min].iter().fold(f64::INFINITY, |x_1, &x_2| x_1.min(x_2))
+        [a_min, k_min, d_min].iter().min_all()
     }
 }
 

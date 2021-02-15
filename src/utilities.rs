@@ -1,8 +1,36 @@
 use serde::Serialize;
 use std::fs;
 use std::io::BufWriter;
+use std::borrow::Borrow;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+/// Extension trait providing functions to find the minimum and maximum values from an iterator
+/// over f64
+pub(crate) trait IterMinMax
+{
+    fn min_all(self) -> f64;
+    fn max_all(self) -> f64;
+}
+
+/// Implement `IterMinMax` for any iterator over types that can be borrowed as f64.
+impl<F, T> IterMinMax for T
+where
+    F: Borrow<f64>,
+    T: Iterator<Item=F>
+{
+    /// The minimum of the items in the iterator. Base case is `INFINITY` and this is returned if
+    /// no item is less than this.
+    fn min_all(self) -> f64 {
+        self.fold(f64::INFINITY, |x_1, x_2| x_1.min(*x_2.borrow()))
+    }
+
+    /// The maximum of the items in the iterator. Base case is 0 and this is returned if no item is
+    /// greater than this.
+    fn max_all(self) -> f64 {
+        self.fold(0.0, |x_1, x_2| x_1.max(*x_2.borrow()))
+    }
+}
 
 // Starting with NaN works because f64::max ignores the NaN and picks the other value
 fn max(v: &[f64]) -> f64 {
