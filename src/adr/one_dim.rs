@@ -256,6 +256,12 @@ impl<F> Problem1D<F>
         (cell.0 as f64 - 0.5) * self.dx
     }
 
+    /// Get the width of the given cell
+    pub fn dx(&self, _cell: Cell) -> f64 {
+        // Currently, only uniform meshes are supported
+        self.dx
+    }
+
     /// Get the value of the given variable at the centre of the given cell
     #[inline]
     pub fn var<V>(&self, var: V, cell: Cell) -> f64
