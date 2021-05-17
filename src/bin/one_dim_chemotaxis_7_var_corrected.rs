@@ -39,10 +39,10 @@ struct Opt {
 struct Chemotaxis {
     phi_bar_over_c_0: f64,
     pe: f64,
-    alpha_1: f64,
-    beta_1: f64,
-    alpha_2: f64,
-    beta_2: f64,
+    alpha_plus: f64,
+    alpha_minus: f64,
+    beta_plus: f64,
+    beta_minus: f64,
     n_ccr7: f64,
     k_inhib: f64,
     n_inhib: f64,
@@ -53,9 +53,9 @@ struct Chemotaxis {
     q_u: f64,
     q_b: f64,
     q_s: f64,
-    d_su: f64,
-    d_iu: f64,
-    d_mu: f64,
+    d_c_s: f64,
+    d_phi_i: f64,
+    d_phi_m: f64,
     d_phi_c_u: f64,
     d_phi_c_b: f64,
     nu_u: f64,
@@ -84,10 +84,10 @@ impl Default for Chemotaxis {
         Chemotaxis {
             phi_bar_over_c_0: 0.01,
             pe: 1.0,
-            alpha_1: 10.0,
-            beta_1: 5.0,
-            alpha_2: 10.0,
-            beta_2: 5.0,
+            alpha_plus: 10.0,
+            alpha_minus: 5.0,
+            beta_plus: 10.0,
+            beta_minus: 5.0,
             n_ccr7: 30000.0,
             k_inhib: 1.0,
             n_inhib: 0.0,
@@ -98,9 +98,9 @@ impl Default for Chemotaxis {
             q_u: 0.0,
             q_b: 0.0,
             q_s: 0.0,
-            d_su: 100.0,
-            d_iu: 0.01,
-            d_mu: 0.01,
+            d_c_s: 100.0,
+            d_phi_i: 0.01,
+            d_phi_m: 0.01,
             d_phi_c_u: 0.01,
             d_phi_c_b: 0.01,
             nu_u: 0.0,
@@ -161,9 +161,9 @@ impl ProblemFunctions for Chemotaxis {
         match var.into() {
             C_U => 1.0,
             C_B => 0.0,
-            C_S => self.d_su,
-            PHI_I => self.d_iu,
-            PHI_M => self.d_mu,
+            C_S => self.d_c_s,
+            PHI_I => self.d_phi_i,
+            PHI_M => self.d_phi_m,
             PHI_C_U => self.d_phi_c_u,
             PHI_C_B => self.d_phi_c_b,
         }
@@ -193,19 +193,19 @@ impl ProblemFunctions for Chemotaxis {
 
         match var.into() {
             C_U => {
-                - self.alpha_1 * problem.var(C_U, cell)
-                    + self.beta_1 * problem.var(C_B, cell)
-                    - self.n_ccr7 * self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
-                    + self.n_ccr7 * self.phi_bar_over_c_0 * self.beta_2 * problem.var(PHI_C_U, cell)
+                - self.alpha_plus * problem.var(C_U, cell)
+                    + self.alpha_minus * problem.var(C_B, cell)
+                    - self.n_ccr7 * self.beta_plus * problem.var(C_U, cell) * problem.var(PHI_M, cell)
+                    + self.n_ccr7 * self.phi_bar_over_c_0 * self.beta_minus * problem.var(PHI_C_U, cell)
                     - inhib * self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
                     - inhib * self.gamma_um * problem.var(PHI_M, cell) * problem.var(C_U, cell)
                     - self.q_u * problem.var(PHI_I, cell) * problem.var(C_U, cell)
             }
             C_B => {
-                self.alpha_1 * problem.var(C_U, cell)
-                    - self.beta_1 * problem.var(C_B, cell)
-                    - self.n_ccr7 * self.alpha_2 * problem.var(C_B, cell) * problem.var(PHI_M, cell)
-                    + self.n_ccr7 * self.phi_bar_over_c_0 * self.beta_2 * problem.var(PHI_C_B, cell)
+                self.alpha_plus * problem.var(C_U, cell)
+                    - self.alpha_minus * problem.var(C_B, cell)
+                    - self.n_ccr7 * self.beta_plus * problem.var(C_B, cell) * problem.var(PHI_M, cell)
+                    + self.n_ccr7 * self.phi_bar_over_c_0 * self.beta_minus * problem.var(PHI_C_B, cell)
                     - inhib * self.gamma_bi * problem.var(PHI_I, cell) * problem.var(C_B, cell)
                     - inhib * self.gamma_bm * problem.var(PHI_M, cell) * problem.var(C_B, cell)
                     - self.q_b * problem.var(PHI_I, cell) * problem.var(C_B, cell)
@@ -223,22 +223,22 @@ impl ProblemFunctions for Chemotaxis {
             },
             PHI_M => {
                 self.m * problem.var(PHI_I, cell)
-                    - c_0_over_phi_bar * self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
-                    + self.beta_2 * problem.var(PHI_C_U, cell)
-                    - c_0_over_phi_bar * self.alpha_2 * problem.var(C_B, cell) * problem.var(PHI_M, cell)
-                    + self.beta_2 * problem.var(PHI_C_B, cell)
+                    - c_0_over_phi_bar * self.beta_plus * problem.var(C_U, cell) * problem.var(PHI_M, cell)
+                    + self.beta_minus * problem.var(PHI_C_U, cell)
+                    - c_0_over_phi_bar * self.beta_plus * problem.var(C_B, cell) * problem.var(PHI_M, cell)
+                    + self.beta_minus * problem.var(PHI_C_B, cell)
             },
             PHI_C_U => {
-                - self.alpha_1 * problem.var(PHI_C_U, cell)
-                    + self.beta_1 * problem.var(PHI_C_B, cell)
-                    + c_0_over_phi_bar * self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
-                    - self.beta_2 * problem.var(PHI_C_U, cell)
+                - self.alpha_plus * problem.var(PHI_C_U, cell)
+                    + self.alpha_minus * problem.var(PHI_C_B, cell)
+                    + c_0_over_phi_bar * self.beta_plus * problem.var(C_U, cell) * problem.var(PHI_M, cell)
+                    - self.beta_minus * problem.var(PHI_C_U, cell)
             }
             PHI_C_B => {
-                self.alpha_1 * problem.var(PHI_C_U, cell)
-                    - self.beta_1 * problem.var(PHI_C_B, cell)
-                    + c_0_over_phi_bar * self.alpha_2 * problem.var(C_B, cell) * problem.var(PHI_M, cell)
-                    - self.beta_2 * problem.var(PHI_C_B, cell)
+                self.alpha_plus * problem.var(PHI_C_U, cell)
+                    - self.alpha_minus * problem.var(PHI_C_B, cell)
+                    + c_0_over_phi_bar * self.beta_plus * problem.var(C_B, cell) * problem.var(PHI_M, cell)
+                    - self.beta_minus * problem.var(PHI_C_B, cell)
             }
         }
     }
