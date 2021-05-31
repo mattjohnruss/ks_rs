@@ -73,7 +73,13 @@ struct Chemotaxis {
     t_2: f64,
     //p: f64,
     //s: f64,
+    j_phi_c_b_left_h: f64,
+    j_phi_c_b_left_i: f64,
+    #[serde(skip)]
     j_phi_c_b_left: f64,
+    j_phi_i_right_h: f64,
+    j_phi_i_right_i: f64,
+    #[serde(skip)]
     j_phi_i_right: f64,
     phi_i_init: f64,
     phi_m_init: f64,
@@ -117,7 +123,11 @@ impl Default for Chemotaxis {
             t_2: 2.0,
             //p: 10.0,
             //s: 0.0,
+            j_phi_c_b_left_h: 1.0,
+            j_phi_c_b_left_i: 1.0,
             j_phi_c_b_left: 1.0,
+            j_phi_i_right_h: 0.0,
+            j_phi_i_right_i: 0.0,
             j_phi_i_right: 0.0,
             phi_i_init: 0.1,
             phi_m_init: 0.1,
@@ -263,7 +273,7 @@ impl ProblemFunctions for Chemotaxis {
             C_U => BoundaryCondition::Dirichlet(0.0),
             C_B => BoundaryCondition::Flux(0.0),
             C_S => BoundaryCondition::Dirichlet(0.0),
-            PHI_I => BoundaryCondition::Flux(-self.j_phi_i_right * self.m),
+            PHI_I => BoundaryCondition::Flux(-self.j_phi_i_right),
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Flux(0.0),
@@ -296,17 +306,25 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     problem.update_ghost_cells();
 }
 
-#[allow(dead_code)]
-fn update_params(problem: &mut Problem1D<Chemotaxis>) {
+fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
     let t_1 = problem.functions.t_1;
     let t_2 = problem.functions.t_2;
     let time = problem.time;
 
-    problem.functions.m = if time < t_1 || time > t_2 {
-        problem.functions.m_h
+    // Simplest piecewise constant inflammation status
+    // TODO make this flexible/generic to allow different ramp functions?
+    if time < t_1 || time > t_2 {
+        0.0
     } else {
-        problem.functions.m_i
-    };
+        1.0
+    }
+}
+
+fn update_params(problem: &mut Problem1D<Chemotaxis>) {
+    let i_s = inflammation_status(problem);
+    problem.functions.m = (1.0 - i_s) * problem.functions.m_h + i_s * problem.functions.m_i;
+    problem.functions.j_phi_c_b_left = (1.0 - i_s) * problem.functions.j_phi_c_b_left_h + i_s * problem.functions.j_phi_c_b_left_i;
+    problem.functions.j_phi_i_right = (1.0 - i_s) * problem.functions.j_phi_i_right_h + i_s * problem.functions.j_phi_i_right_i;
 }
 
 fn main() -> Result<()> {
