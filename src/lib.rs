@@ -4,6 +4,7 @@ pub mod utilities;
 pub mod timestepping;
 pub mod adr;
 pub mod kde;
+pub mod models;
 
 extern crate ndarray;
 
