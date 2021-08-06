@@ -68,6 +68,35 @@ pub fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
     Ok(())
 }
 
+use ndarray::prelude::*;
+use ndarray_rand::RandomExt;
+use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::rand::{seq::SliceRandom, thread_rng};
+
+// Translation of the Python https://gist.github.com/jgomezdans/4739643, which itself is from the
+// MATLAB https://viewer.mathworks.com/?viewer=plain_code&url=https%3A%2F%2Fuk.mathworks.com%2Fmatlabcentral%2Fmlc-downloads%2Fdownloads%2Fsubmissions%2F4352%2Fversions%2F1%2Fcontents%2Flhsu.m
+fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
+    assert_eq!(x_min.len(), x_max.len());
+    let n_var = x_min.len();
+
+    let ran = Array::random((n_sample, n_var), Uniform::new(0.0_f64, 1.0));
+    let mut s = Array::zeros((n_sample, n_var));
+
+    let mut rng = thread_rng();
+
+    let mut idx: Vec<_> = (1..=n_sample).map(|i| i as f64).collect();
+
+    for j in 0..n_var {
+        idx.shuffle(&mut rng);
+        let idx = Array::from_vec(idx.clone());
+
+        let p = (idx - ran.index_axis(Axis(1), j)) / n_sample as f64;
+        let mut s_j = s.index_axis_mut(Axis(1), j);
+        s_j.assign(&(x_min[j] + (x_max[j] - x_min[j]) * p));
+    }
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
