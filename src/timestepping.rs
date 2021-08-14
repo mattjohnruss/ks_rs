@@ -209,7 +209,7 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         // pre: dofs == v_0 + 2.0*v_2; post: dofs == v_0 + 2.0*v_2 + 2.0*dt*rhs_3
         obj.increment_and_multiply_dofs(self.rhs_buffer.view(), 2.0 * dt);
         // pre: dofs == v_0 + 2.0*v_2 2.0*dt*rhs_3; post: dofs == 1/3(v_0 + 2.0*v_2 + 2.0*dt*rhs_3)
-        obj.scale_dofs(1.0/3.0);
+        obj.scale_dofs(1.0 / 3.0);
 
         // set the time to t + dt by going forwards half a step
         *obj.time_mut() += 0.5 * dt;
