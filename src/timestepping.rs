@@ -52,6 +52,7 @@ pub trait ExplicitTimeStepper {
 }
 
 /// Euler forward timestepper
+#[derive(Clone)]
 pub struct EulerForward {
     rhs_buffer: Array1<f64>,
 }
@@ -80,6 +81,7 @@ impl ExplicitTimeStepper for EulerForward {
 }
 
 /// Fourth-order, four stage Runge-Kutta timestepper
+#[derive(Clone)]
 pub struct RungeKutta44 {
     rhs_buffer: Array1<f64>,
 }
@@ -146,6 +148,7 @@ impl ExplicitTimeStepper for RungeKutta44 {
 }
 
 /// Third-order, three stage strong stability-preserving Runge-Kutta timestepper
+#[derive(Clone)]
 pub struct SspRungeKutta33 {
     rhs_buffer: Array1<f64>,
     v_0: Array1<f64>,

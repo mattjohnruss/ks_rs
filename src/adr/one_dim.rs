@@ -105,6 +105,7 @@ pub struct DiffusionZeroFluxBcs;
 impl ProblemFunctions for DiffusionZeroFluxBcs { }
 
 /// The main problem type
+#[derive(Clone)]
 pub struct Problem1D<F> {
     data: Array<f64, Ix2>,
     ghost_data: Array<f64, Ix2>,

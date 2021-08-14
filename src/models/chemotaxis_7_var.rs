@@ -8,7 +8,7 @@ use crate::adr::one_dim::{
 };
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Chemotaxis {
     pub phi_bar_over_c_0: f64,
