@@ -3,6 +3,11 @@ use std::fs;
 use std::io::BufWriter;
 use std::borrow::Borrow;
 
+use ndarray::prelude::*;
+use ndarray_rand::RandomExt;
+use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::rand::{seq::SliceRandom, thread_rng};
+
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Extension trait providing functions to find the minimum and maximum values from an iterator
@@ -68,14 +73,9 @@ pub fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
     Ok(())
 }
 
-use ndarray::prelude::*;
-use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::Uniform;
-use ndarray_rand::rand::{seq::SliceRandom, thread_rng};
-
 // Translation of the Python https://gist.github.com/jgomezdans/4739643, which itself is from the
 // MATLAB https://viewer.mathworks.com/?viewer=plain_code&url=https%3A%2F%2Fuk.mathworks.com%2Fmatlabcentral%2Fmlc-downloads%2Fdownloads%2Fsubmissions%2F4352%2Fversions%2F1%2Fcontents%2Flhsu.m
-fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
+pub fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
     assert_eq!(x_min.len(), x_max.len());
     let n_var = x_min.len();
 
