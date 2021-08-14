@@ -48,10 +48,7 @@ pub enum BoundaryCondition {
 
 impl BoundaryCondition {
     fn is_dirichlet(&self) -> bool {
-        match self {
-            BoundaryCondition::Dirichlet(_) => true,
-            _ => false,
-        }
+        matches!(self, BoundaryCondition::Dirichlet(_))
     }
 }
 
