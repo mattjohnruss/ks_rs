@@ -6,8 +6,6 @@ pub mod adr;
 pub mod kde;
 pub mod models;
 
-extern crate ndarray;
-
 use libc::c_double;
 
 // Pull in the erf() function from libm, as Rust's `std` doesn't have it
