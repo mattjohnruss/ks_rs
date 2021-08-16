@@ -79,8 +79,8 @@ pub fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
     assert_eq!(x_min.len(), x_max.len());
     let n_var = x_min.len();
 
-    let ran = Array::random((n_sample, n_var), Uniform::new(0.0_f64, 1.0));
-    let mut s = Array::zeros((n_sample, n_var));
+    let uniform_samples = Array::random((n_sample, n_var), Uniform::new(0.0_f64, 1.0));
+    let mut samples = Array::zeros((n_sample, n_var));
 
     let mut rng = thread_rng();
 
@@ -90,11 +90,11 @@ pub fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
         idx.shuffle(&mut rng);
         let idx = Array::from_vec(idx.clone());
 
-        let p = (idx - ran.index_axis(Axis(1), j)) / n_sample as f64;
-        let mut s_j = s.index_axis_mut(Axis(1), j);
-        s_j.assign(&(x_min[j] + (x_max[j] - x_min[j]) * p));
+        let p = (idx - uniform_samples.index_axis(Axis(1), j)) / n_sample as f64;
+        let mut sample_j = samples.index_axis_mut(Axis(1), j);
+        sample_j.assign(&(x_min[j] + (x_max[j] - x_min[j]) * p));
     }
-    s
+    samples
 }
 
 #[cfg(test)]
@@ -135,5 +135,24 @@ mod tests {
 
         let v = vec![-0.01, -0.1, -100.4, -2100.4];
         assert_eq!(all_negative(&v), true);
+    }
+
+    #[test]
+    fn lhsu_test() {
+        for _ in 0..1000 {
+            let x_min = &[0.3, 1.01, -3.123, 103.987];
+            let x_max = &[8.09123, 1.02, 0.0, 6123.123];
+            let n_sample = 1000;
+
+            let samples = lhsu(x_min, x_max, n_sample);
+
+            for sample in samples.axis_iter(Axis(0)) {
+                assert_eq!(sample.len(), 4);
+
+                for (s, (&s_min, &s_max)) in sample.iter().zip(x_min.iter().zip(x_max.iter())) {
+                    assert!((s_min..=s_max).contains(s));
+                }
+            }
+        }
     }
 }
