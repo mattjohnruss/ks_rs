@@ -6,7 +6,7 @@ edition = "2018"
 default-run = "one_dim_chemotaxis_7_var"
 
 [dependencies]
-ndarray = "0.15"
+ndarray = { version = "0.15", features = ["rayon"] }
 ndarray-rand = "0.14"
 structopt = "0.3"
 rand = "0.8"
@@ -41,6 +41,12 @@ doctest = false
 [[bin]]
 name = "one_dim_chemotaxis_7_var"
 path = "src/bin/one_dim_chemotaxis_7_var.rs"
+test = false
+doctest = false
+
+[[bin]]
+name = "one_dim_chemotaxis_7_var_param_sweep"
+path = "src/bin/one_dim_chemotaxis_7_var_param_sweep.rs"
 test = false
 doctest = false
 
