@@ -312,7 +312,7 @@ impl<F> Problem1D<F>
             // flux BCs are set to zero
             let flux_m = if cell == Cell(1) {
                 // At the left-hand boundary
-                match self.functions.left_bc(&self, var) {
+                match self.functions.left_bc(self, var) {
                     BoundaryCondition::Flux(flux) => flux,
                     BoundaryCondition::Dirichlet(_) => self.flux_m_for_dirichlet_bc(var, cell),
                 }
@@ -322,7 +322,7 @@ impl<F> Problem1D<F>
 
             let flux_p = if cell == Cell(self.domain.n_cell) {
                 // At the right-hand boundary
-                match self.functions.right_bc(&self, var) {
+                match self.functions.right_bc(self, var) {
                     BoundaryCondition::Flux(flux) => flux,
                     BoundaryCondition::Dirichlet(_) => self.flux_p_for_dirichlet_bc(var, cell),
                 }
@@ -334,45 +334,45 @@ impl<F> Problem1D<F>
         };
 
         // reactions
-        result += self.functions.reactions(&self, var, cell);
+        result += self.functions.reactions(self, var, cell);
 
         // forcing
-        result += self.functions.forcing(&self, var, cell);
+        result += self.functions.forcing(self, var, cell);
 
         result
     }
 
     fn flux_p(&self, var: Variable, cell: Cell) -> f64 {
-        let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
+        let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
-        self.var_point_value_x_p(var, cell) * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
+        self.var_point_value_x_p(var, cell) * velocity_p - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
     fn flux_m(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
+        self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
 
     // Flux functions for Dirichlet boundary conditions. These don't upwind the point values,
     // instead getting the appropriate point value directly, since upwinding could cause an
     // out-of-bounds array access when used at a boundary.
     fn flux_p_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
-        let velocity_p = self.functions.velocity_p_at_midpoint(&self, var, cell);
+        let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::East);
-        var_point_value_at_face * velocity_p - self.functions.diffusivity(&self, var, cell) * dvar_dx_p
+        var_point_value_at_face * velocity_p - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
     fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.velocity_m_at_midpoint(var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
-        var_point_value_at_face * velocity_m - self.functions.diffusivity(&self, var, cell) * dvar_dx_m
+        var_point_value_at_face * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
 
     fn velocity_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
-        self.functions.velocity_p_at_midpoint(&self, var, cell.left())
+        self.functions.velocity_p_at_midpoint(self, var, cell.left())
     }
 
     #[inline]
@@ -389,7 +389,7 @@ impl<F> Problem1D<F>
 
     #[inline]
     fn var_point_value_x_p(&self, var: Variable, cell: Cell) -> f64 {
-        match self.functions.velocity_p_at_midpoint(&self, var, cell) {
+        match self.functions.velocity_p_at_midpoint(self, var, cell) {
             v if v > 0.0 => self.var_point_value_at_face(var, cell, Face::East),
             _ => self.var_point_value_at_face(var, cell.right(), Face::West),
         }
@@ -413,8 +413,8 @@ impl<F> Problem1D<F>
             Face::West => -1.0,
         };
 
-        if (cell == Cell(1) && self.functions.left_bc(&self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(&self, var).is_dirichlet()) {
+        if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
+            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
             value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
@@ -604,7 +604,7 @@ impl<F> Problem1D<F>
         for var in 0..self.n_variable {
             let var = Variable(var);
 
-            match self.functions.left_bc(&self, var) {
+            match self.functions.left_bc(self, var) {
                 BoundaryCondition::Flux(_) => {
                     *self.var_mut(var, Cell(0)) = self.var(var, Cell(1));
                 }
@@ -617,7 +617,7 @@ impl<F> Problem1D<F>
                 }
             }
 
-            match self.functions.right_bc(&self, var) {
+            match self.functions.right_bc(self, var) {
                 BoundaryCondition::Flux(_) => {
                     *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
                         self.var(var, Cell(self.domain.n_cell));
@@ -676,20 +676,20 @@ impl<F> Problem1D<F>
 
             let a_i_denom = self
                 .interior_cells()
-                .map(|cell| self.functions.velocity_p_at_midpoint(&self, var, cell).abs())
+                .map(|cell| self.functions.velocity_p_at_midpoint(self, var, cell).abs())
                 .max_all();
 
             let k_i_denom = self
                 .interior_cells()
                 .map(|cell| {
-                    2.0 * self.functions.diffusivity(&self, var, cell) / self.dx.powi(2)
-                        - self.functions.reactions(&self, var, cell) / self.var(var, cell)
+                    2.0 * self.functions.diffusivity(self, var, cell) / self.dx.powi(2)
+                        - self.functions.reactions(self, var, cell) / self.var(var, cell)
                 })
                 .max_all();
 
             let diffusivity_max = self
                 .interior_cells()
-                .map(|cell| self.functions.diffusivity(&self, var, cell))
+                .map(|cell| self.functions.diffusivity(self, var, cell))
                 .max_all();
 
             a.push(self.dx / (8.0 * a_i_denom));

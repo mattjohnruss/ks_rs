@@ -148,7 +148,7 @@ fn trace(problem: &Problem1D<BindingFluctuatingBCs>, mut trace_writer: impl Writ
     let c_u_total = problem.integrate_solution(C_U);
     let c_b_total = problem.integrate_solution(C_B);
 
-    if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(&problem, C_U.into()) {
+    if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(problem, C_U.into()) {
         writeln!(&mut trace_writer, "{:.6e} {:.8e} {:.8e} {:.6e}", problem.time, c_u_total, c_b_total, c_u_0)?;
     } else {
         return Err("No Dirichlet condition for C_U - shouldn't happen.".into())
