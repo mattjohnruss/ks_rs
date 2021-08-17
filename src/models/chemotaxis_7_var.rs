@@ -43,8 +43,6 @@ pub struct Chemotaxis {
     pub m_i: f64,
     #[serde(skip)]
     pub m: f64,
-    pub t_1: f64,
-    pub t_2: f64,
     //pub p: f64,
     //pub s: f64,
     pub j_phi_c_b_left_h: f64,
@@ -57,6 +55,8 @@ pub struct Chemotaxis {
     pub j_phi_i_right: f64,
     pub phi_i_init: f64,
     pub phi_m_init: f64,
+    pub t_1: f64,
+    pub t_2: f64,
 }
 
 impl Default for Chemotaxis {
@@ -93,8 +93,6 @@ impl Default for Chemotaxis {
             m_h: 2.0,
             m_i: 7.0,
             m: 5.0,
-            t_1: 1.0,
-            t_2: 2.0,
             //p: 10.0,
             //s: 0.0,
             j_phi_c_b_left_h: 1.0,
@@ -105,6 +103,8 @@ impl Default for Chemotaxis {
             j_phi_i_right: 0.0,
             phi_i_init: 0.1,
             phi_m_init: 0.1,
+            t_1: 1.0,
+            t_2: 2.0,
         }
     }
 }
