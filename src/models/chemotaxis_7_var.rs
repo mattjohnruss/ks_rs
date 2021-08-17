@@ -89,7 +89,7 @@ impl Default for Chemotaxis {
             chi_u: 0.0,
             chi_b: 1.0,
             chi_s: 0.0,
-            r: 10.0,
+            r: 0.0,
             m_h: 2.0,
             m_i: 7.0,
             m: 5.0,
