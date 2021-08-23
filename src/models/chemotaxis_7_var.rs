@@ -32,9 +32,6 @@ pub struct Chemotaxis {
     pub d_phi_m: f64,
     pub d_phi_c_u: f64,
     pub d_phi_c_b: f64,
-    pub nu_u: f64,
-    pub nu_b: f64,
-    pub nu_s: f64,
     pub chi_u: f64,
     pub chi_b: f64,
     pub chi_s: f64,
@@ -83,9 +80,6 @@ impl Default for Chemotaxis {
             d_phi_m: 0.01,
             d_phi_c_u: 0.01,
             d_phi_c_b: 0.01,
-            nu_u: 0.0,
-            nu_b: 1.0,
-            nu_s: 0.0,
             chi_u: 0.0,
             chi_b: 1.0,
             chi_s: 0.0,
@@ -171,9 +165,9 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => 0.0,
             PHI_C_U => 0.0,
             PHI_C_B => {
-                self.nu_u * self.chi_u * problem.dvar_dx_p_at_midpoint(C_U.into(), cell)
-                    + self.nu_b * self.chi_b * problem.dvar_dx_p_at_midpoint(C_B.into(), cell)
-                    + self.nu_s * self.chi_s * problem.dvar_dx_p_at_midpoint(C_S.into(), cell)
+                self.chi_u * problem.dvar_dx_p_at_midpoint(C_U.into(), cell)
+                    + self.chi_b * problem.dvar_dx_p_at_midpoint(C_B.into(), cell)
+                    + self.chi_s * problem.dvar_dx_p_at_midpoint(C_S.into(), cell)
             }
         }
     }
