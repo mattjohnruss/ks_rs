@@ -153,27 +153,31 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
-    /// Output the data to the given writer
-    fn output_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
+    /// Generic function that outputs the data produced by the closure `f` to the given writer
+    fn output_data(&self, buffer: &mut impl Write, f: impl Fn(Variable, f64, Cell, Face) -> f64) -> std::io::Result<()> {
         let time = self.time;
 
         for cell in self.interior_cells() {
             // Values at West face
-            let x_m = self.x(cell) - 0.5 * self.dx;
-            buffer.write_all(format!("{:.6e} {:.6e}", time, x_m).as_bytes())?;
-            for var in 0..self.n_variable {
-                let var = Variable(var);
-                buffer.write_all(format!(" {:.6e}", self.var_point_value_at_face(var, cell, Face::West)).as_bytes())?;
+            {
+                let x_m = self.x(cell) - 0.5 * self.dx;
+                buffer.write_all(format!("{:.6e} {:.6e}", time, x_m).as_bytes())?;
+                for var in 0..self.n_variable {
+                    let value = f(Variable(var), x_m, cell, Face::West);
+                    buffer.write_all(format!(" {:.6e}", value).as_bytes())?;
+                }
             }
 
             buffer.write_all(b"\n")?;
 
             // Values at East face
-            let x_p = self.x(cell) + 0.5 * self.dx;
-            buffer.write_all(format!("{:.6e} {:.6e}", time, x_p).as_bytes())?;
-            for var in 0..self.n_variable {
-                let var = Variable(var);
-                buffer.write_all(format!(" {:.6e}", self.var_point_value_at_face(var, cell, Face::East)).as_bytes())?;
+            {
+                let x_p = self.x(cell) + 0.5 * self.dx;
+                buffer.write_all(format!("{:.6e} {:.6e}", time, x_p).as_bytes())?;
+                for var in 0..self.n_variable {
+                    let value = f(Variable(var), x_p, cell, Face::East);
+                    buffer.write_all(format!(" {:.6e}", value).as_bytes())?;
+                }
             }
 
             buffer.write_all(b"\n\n")?;
@@ -181,36 +185,20 @@ impl<F> Problem1D<F>
         Ok(())
     }
 
+    /// Output the values at face boundaries to the given writer
+    fn output_face_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
+        self.output_data(buffer, |var, _x, cell, face| self.var_point_value_at_face(var, cell, face))
+    }
+
     /// Output the cell averages to the given writer
     fn output_cell_average_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        let time = self.time;
-
-        for cell in self.interior_cells() {
-            let x_m = self.x(cell) - 0.5 * self.dx;
-            buffer.write_all(format!("{:.6e} {:.6e}", time, x_m).as_bytes())?;
-            for var in 0..self.n_variable {
-                let var = Variable(var);
-                buffer.write_all(format!(" {:.6e}", self.var(var, cell)).as_bytes())?;
-            }
-
-            buffer.write_all(b"\n")?;
-
-            let x_p = self.x(cell) + 0.5 * self.dx;
-            buffer.write_all(format!("{:.6e} {:.6e}", time, x_p).as_bytes())?;
-            for var in 0..self.n_variable {
-                let var = Variable(var);
-                buffer.write_all(format!(" {:.6e}", self.var(var, cell)).as_bytes())?;
-            }
-
-            buffer.write_all(b"\n\n")?;
-        }
-        Ok(())
+        self.output_data(buffer, |var, _x, cell, _face| self.var(var, cell))
     }
 
     /// Output the current state of the problem to the given writer
     pub fn output(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         self.output_header(buffer)?;
-        self.output_data(buffer)?;
+        self.output_face_data(buffer)?;
         Ok(())
     }
 
@@ -860,7 +848,7 @@ mod tests {
         let mut output = Vec::new();
         {
             let mut output_writer = BufWriter::new(&mut output);
-            problem.output_data(&mut output_writer).unwrap();
+            problem.output_face_data(&mut output_writer).unwrap();
         }
         assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 0.000000e0 0.000000e0 0.000000e0 0.000000e0\n0.000000e0 1.000000e0 0.000000e0 0.000000e0 0.000000e0\n\n");
     }
