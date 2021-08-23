@@ -195,6 +195,12 @@ impl<F> Problem1D<F>
         self.output_data(buffer, |var, _x, cell, _face| self.var(var, cell))
     }
 
+    /// Output the exact solution to the given writer
+    fn output_exact_solution_data(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64) -> f64>) -> std::io::Result<()>
+    {
+        self.output_data(buffer, |var, x, _cell, _face| (e_sol.sol)(var, x))
+    }
+
     /// Output the current state of the problem to the given writer
     pub fn output(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         self.output_header(buffer)?;
@@ -206,6 +212,13 @@ impl<F> Problem1D<F>
     pub fn output_cell_averages(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_cell_average_data(buffer)?;
+        Ok(())
+    }
+
+    /// Output the given exact solution to the given writer
+    pub fn output_exact_solution(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64) -> f64>) -> std::io::Result<()> {
+        self.output_header(buffer)?;
+        self.output_exact_solution_data(buffer, e_sol)?;
         Ok(())
     }
 
@@ -747,6 +760,10 @@ impl Iterator for InteriorCellsIter {
         self.cell.0 += 1;
         result
     }
+}
+
+pub struct ExactSolution<E: Fn(Variable, f64) -> f64> {
+    sol: E,
 }
 
 #[cfg(test)]
