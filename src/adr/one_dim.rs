@@ -144,7 +144,7 @@ impl<F> Problem1D<F>
 
     /// Output the header, consisting of space-separated variable names, to the given
     /// writer
-    fn output_header<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+    fn output_header(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         buffer.write_all("t x".as_bytes())?;
         for name in &self.variable_names {
             buffer.write_all(format!(" {}", name).as_bytes())?;
@@ -154,7 +154,7 @@ impl<F> Problem1D<F>
     }
 
     /// Output the data to the given writer
-    fn output_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+    fn output_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         let time = self.time;
 
         for cell in self.interior_cells() {
@@ -182,7 +182,7 @@ impl<F> Problem1D<F>
     }
 
     /// Output the cell averages to the given writer
-    fn output_cell_average_data<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+    fn output_cell_average_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         let time = self.time;
 
         for cell in self.interior_cells() {
@@ -208,14 +208,14 @@ impl<F> Problem1D<F>
     }
 
     /// Output the current state of the problem to the given writer
-    pub fn output<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+    pub fn output(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_data(buffer)?;
         Ok(())
     }
 
     /// Output the current state of the problem to the given writer
-    pub fn output_cell_averages<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
+    pub fn output_cell_averages(&self, buffer: &mut impl Write) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_cell_average_data(buffer)?;
         Ok(())
