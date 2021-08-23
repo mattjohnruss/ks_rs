@@ -262,9 +262,7 @@ impl<F> Problem1D<F>
 
     /// Get the value of the given variable at the centre of the given cell
     #[inline]
-    pub fn var<V>(&self, var: V, cell: Cell) -> f64
-        where V: Into<Variable>
-    {
+    pub fn var(&self, var: impl Into<Variable>, cell: Cell) -> f64 {
         let idx = self.index(cell);
         let var = var.into();
         match idx {
@@ -283,9 +281,7 @@ impl<F> Problem1D<F>
     /// Get a mutable reference to the value of the given variable at the centre of the
     /// given cell
     #[inline]
-    pub fn var_mut<V>(&mut self, var: V, cell: Cell) -> &mut f64
-        where V: Into<Variable>
-    {
+    pub fn var_mut(&mut self, var: impl Into<Variable>, cell: Cell) -> &mut f64 {
         let idx = self.index(cell);
         let var = var.into();
         match idx {
