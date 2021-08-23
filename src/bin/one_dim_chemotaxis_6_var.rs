@@ -128,7 +128,15 @@ use ChemotaxisVariable::*;
 
 impl From<Variable> for ChemotaxisVariable {
     fn from(var: Variable) -> Self {
-        unsafe { std::mem::transmute(var.0) }
+        match var.0 as usize {
+            0 => C_U,
+            1 => C_B,
+            2 => PHI_I,
+            3 => PHI_M,
+            4 => PHI_C_U,
+            5 => PHI_C_B,
+            _ => panic!("invalid variable number"),
+        }
     }
 }
 
