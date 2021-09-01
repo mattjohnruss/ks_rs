@@ -9,7 +9,6 @@ use crate::adr::one_dim::{
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(default)]
 pub struct Chemotaxis {
     pub phi_bar_over_c_0: f64,
     pub pe: f64,
@@ -18,8 +17,8 @@ pub struct Chemotaxis {
     pub beta_plus: f64,
     pub beta_minus: f64,
     pub n_ccr7: f64,
-    pub k_inhib: f64,
-    pub n_inhib: f64,
+    //pub k_inhib: f64,
+    //pub n_inhib: f64,
     pub gamma_ui: f64,
     pub gamma_um: f64,
     pub gamma_bi: f64,
@@ -54,53 +53,6 @@ pub struct Chemotaxis {
     pub phi_m_init: f64,
     pub t_1: f64,
     pub t_2: f64,
-}
-
-impl Default for Chemotaxis {
-    fn default() -> Self {
-        Chemotaxis {
-            phi_bar_over_c_0: 0.01,
-            pe: 1.0,
-            alpha_plus: 10.0,
-            alpha_minus: 5.0,
-            beta_plus: 10.0,
-            beta_minus: 5.0,
-            n_ccr7: 30000.0,
-            k_inhib: 1.0,
-            n_inhib: 0.0,
-            gamma_ui: 0.0,
-            gamma_um: 0.0,
-            gamma_bi: 0.0,
-            gamma_bm: 0.0,
-            q_u: 0.0,
-            q_b: 0.0,
-            q_s: 0.0,
-            d_c_s: 100.0,
-            d_phi_i: 0.01,
-            d_phi_m: 0.01,
-            d_phi_c_u: 0.01,
-            d_phi_c_b: 0.01,
-            chi_u: 0.0,
-            chi_b: 1.0,
-            chi_s: 0.0,
-            r: 0.0,
-            m_h: 2.0,
-            m_i: 7.0,
-            m: 5.0,
-            //p: 10.0,
-            //s: 0.0,
-            j_phi_c_b_left_h: 1.0,
-            j_phi_c_b_left_i: 1.0,
-            j_phi_c_b_left: 1.0,
-            j_phi_i_right_h: 0.0,
-            j_phi_i_right_i: 0.0,
-            j_phi_i_right: 0.0,
-            phi_i_init: 0.1,
-            phi_m_init: 0.1,
-            t_1: 1.0,
-            t_2: 2.0,
-        }
-    }
 }
 
 #[allow(non_camel_case_types)]
