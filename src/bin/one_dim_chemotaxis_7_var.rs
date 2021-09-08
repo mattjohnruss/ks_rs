@@ -72,8 +72,8 @@ fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     problem.functions.m = (1.0 - i_s) * problem.functions.m_h + i_s * problem.functions.m_i;
-    problem.functions.j_phi_c_b_left = (1.0 - i_s) * problem.functions.j_phi_c_b_left_h + i_s * problem.functions.j_phi_c_b_left_i;
-    problem.functions.j_phi_i_right = (1.0 - i_s) * problem.functions.j_phi_i_right_h + i_s * problem.functions.j_phi_i_right_i;
+    problem.functions.j_phi_c_b_bar = (1.0 - i_s) * problem.functions.j_phi_c_b_bar_h + i_s * problem.functions.j_phi_c_b_bar_i;
+    problem.functions.j_phi_i_bar = (1.0 - i_s) * problem.functions.j_phi_i_bar_h + i_s * problem.functions.j_phi_i_bar_i;
 }
 
 fn main() -> Result<()> {

@@ -41,14 +41,14 @@ pub struct Chemotaxis {
     pub m: f64,
     //pub p: f64,
     //pub s: f64,
-    pub j_phi_c_b_left_h: f64,
-    pub j_phi_c_b_left_i: f64,
+    pub j_phi_c_b_bar_h: f64,
+    pub j_phi_c_b_bar_i: f64,
     #[serde(skip)]
-    pub j_phi_c_b_left: f64,
-    pub j_phi_i_right_h: f64,
-    pub j_phi_i_right_i: f64,
+    pub j_phi_c_b_bar: f64,
+    pub j_phi_i_bar_h: f64,
+    pub j_phi_i_bar_i: f64,
     #[serde(skip)]
-    pub j_phi_i_right: f64,
+    pub j_phi_i_bar: f64,
     pub phi_i_init: f64,
     pub phi_m_init: f64,
     pub t_1: f64,
@@ -191,7 +191,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => {
-                let flux = -self.j_phi_c_b_left * problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), Cell(1), Face::West);
+                let flux = -self.j_phi_c_b_bar * problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), Cell(1), Face::West);
                 BoundaryCondition::Flux(flux)
             }
         }
@@ -202,7 +202,7 @@ impl ProblemFunctions for Chemotaxis {
             C_U => BoundaryCondition::Dirichlet(0.0),
             C_B => BoundaryCondition::Flux(0.0),
             C_S => BoundaryCondition::Dirichlet(0.0),
-            PHI_I => BoundaryCondition::Flux(-self.j_phi_i_right),
+            PHI_I => BoundaryCondition::Flux(-self.j_phi_i_bar),
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Flux(0.0),

@@ -26,13 +26,13 @@ struct Opt {
     #[structopt(long = "config")]
     config_path: String,
     #[structopt(long)]
-    j_phi_i_right_i_min: f64,
+    j_phi_i_bar_i_min: f64,
     #[structopt(long)]
-    j_phi_i_right_i_max: f64,
+    j_phi_i_bar_i_max: f64,
     #[structopt(long)]
-    j_phi_c_b_left_i_min: f64,
+    j_phi_c_b_bar_i_min: f64,
     #[structopt(long)]
-    j_phi_c_b_left_i_max: f64,
+    j_phi_c_b_bar_i_max: f64,
     #[structopt(long)]
     m_i_min: f64,
     #[structopt(long)]
@@ -83,10 +83,10 @@ fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     problem.functions.m = (1.0 - i_s) * problem.functions.m_h + i_s * problem.functions.m_i;
-    problem.functions.j_phi_c_b_left =
-        (1.0 - i_s) * problem.functions.j_phi_c_b_left_h + i_s * problem.functions.j_phi_c_b_left_i;
-    problem.functions.j_phi_i_right =
-        (1.0 - i_s) * problem.functions.j_phi_i_right_h + i_s * problem.functions.j_phi_i_right_i;
+    problem.functions.j_phi_c_b_bar =
+        (1.0 - i_s) * problem.functions.j_phi_c_b_bar_h + i_s * problem.functions.j_phi_c_b_bar_i;
+    problem.functions.j_phi_i_bar =
+        (1.0 - i_s) * problem.functions.j_phi_i_bar_h + i_s * problem.functions.j_phi_i_bar_i;
 }
 
 fn main() -> Result<()> {
@@ -154,13 +154,13 @@ fn main() -> Result<()> {
 
     // get a latin hypercube sample of the parameter space for the unknown inflammation parameters
     let param_min = &[
-        opt.j_phi_i_right_i_min,
-        opt.j_phi_c_b_left_i_min,
+        opt.j_phi_i_bar_i_min,
+        opt.j_phi_c_b_bar_i_min,
         opt.m_i_min,
     ];
     let param_max = &[
-        opt.j_phi_i_right_i_max,
-        opt.j_phi_c_b_left_i_max,
+        opt.j_phi_i_bar_i_max,
+        opt.j_phi_c_b_bar_i_max,
         opt.m_i_max,
     ];
 
@@ -183,8 +183,8 @@ fn main() -> Result<()> {
             let mut outputs = outputs;
 
             // set the relevant parameter values from the current sample
-            problem.functions.j_phi_i_right_i = sample[0];
-            problem.functions.j_phi_c_b_left_i = sample[1];
+            problem.functions.j_phi_i_bar_i = sample[0];
+            problem.functions.j_phi_c_b_bar_i = sample[1];
             problem.functions.m_i = sample[2];
 
             let inflammation_path: PathBuf = [&dir, &sample_idx.to_string()].iter().collect();
