@@ -84,7 +84,7 @@ fn update_params<F>(problem: &mut Problem1D<Chemotaxis<F>>) {
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let chemotaxis_params: ChemotaxisParameters = {
+    let chemotaxis_params = {
         let config_file = fs::File::open(&opt.config_path)?;
         let reader = BufReader::new(config_file);
         serde_json::from_reader(reader)?
