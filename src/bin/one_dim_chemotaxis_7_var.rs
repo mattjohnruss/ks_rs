@@ -1,6 +1,7 @@
 use ks_rs::adr::one_dim::{
     DomainParams,
     Problem1D,
+    ProblemFunctions,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
@@ -30,7 +31,10 @@ struct Opt {
     config_path: String,
 }
 
-fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
+fn set_initial_conditions<F>(problem: &mut Problem1D<Chemotaxis<F>>)
+where
+    Chemotaxis<F>: ProblemFunctions,
+{
     fn cos_ramp(x: f64, n: f64) -> f64 {
         use std::f64::consts::PI;
         if x < 1.0 / n {
@@ -46,8 +50,8 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
         *problem.var_mut(C_U, cell) = cos_ramp(x, 10.0);
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
-        *problem.var_mut(PHI_I, cell) = problem.functions.phi_i_init;
-        *problem.var_mut(PHI_M, cell) = problem.functions.phi_m_init;
+        *problem.var_mut(PHI_I, cell) = problem.functions.p.phi_i_init;
+        *problem.var_mut(PHI_M, cell) = problem.functions.p.phi_m_init;
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
     }
@@ -55,9 +59,9 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     problem.update_ghost_cells();
 }
 
-fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
-    let t_1 = problem.functions.t_1;
-    let t_2 = problem.functions.t_2;
+fn inflammation_status<F>(problem: &Problem1D<Chemotaxis<F>>) -> f64 {
+    let t_1 = problem.functions.p.t_1;
+    let t_2 = problem.functions.p.t_2;
     let time = problem.time;
 
     // Simplest piecewise constant inflammation status
@@ -69,24 +73,30 @@ fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
     }
 }
 
-fn update_params(problem: &mut Problem1D<Chemotaxis>) {
+fn update_params<F>(problem: &mut Problem1D<Chemotaxis<F>>) {
     let i_s = inflammation_status(problem);
-    problem.functions.m = (1.0 - i_s) * problem.functions.m_h + i_s * problem.functions.m_i;
-    problem.functions.j_phi_c_b_bar = (1.0 - i_s) * problem.functions.j_phi_c_b_bar_h + i_s * problem.functions.j_phi_c_b_bar_i;
-    problem.functions.j_phi_i_bar = (1.0 - i_s) * problem.functions.j_phi_i_bar_h + i_s * problem.functions.j_phi_i_bar_i;
+    let p = &mut problem.functions.p;
+    p.m = (1.0 - i_s) * p.m_h + i_s * p.m_i;
+    p.j_phi_c_b_bar = (1.0 - i_s) * p.j_phi_c_b_bar_h + i_s * p.j_phi_c_b_bar_i;
+    p.j_phi_i_bar = (1.0 - i_s) * p.j_phi_i_bar_h + i_s * p.j_phi_i_bar_i;
 }
 
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let chemotaxis: Chemotaxis = {
+    let chemotaxis_params: ChemotaxisParameters = {
         let config_file = fs::File::open(&opt.config_path)?;
         let reader = BufReader::new(config_file);
         serde_json::from_reader(reader)?
     };
 
     println!("{:#?}", opt);
-    println!("{:#?}", chemotaxis);
+    println!("{:#?}", chemotaxis_params);
+
+    let chemotaxis = Chemotaxis {
+        p: chemotaxis_params,
+        f: |_, _, _| { 0.0 },
+    };
 
     let n_cell = opt.n_cell;
     let t_max = opt.t_max;
