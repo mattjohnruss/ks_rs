@@ -196,9 +196,9 @@ impl<F> Problem1D<F>
     }
 
     /// Output the exact solution to the given writer
-    fn output_exact_solution_data(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64) -> f64>) -> std::io::Result<()>
+    fn output_exact_solution_data(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64, f64) -> f64>) -> std::io::Result<()>
     {
-        self.output_data(buffer, |var, x, _cell, _face| (e_sol.sol)(var, x))
+        self.output_data(buffer, |var, x, _cell, _face| (e_sol.sol)(var, x, self.time))
     }
 
     /// Output the current state of the problem to the given writer
@@ -216,7 +216,7 @@ impl<F> Problem1D<F>
     }
 
     /// Output the given exact solution to the given writer
-    pub fn output_exact_solution(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64) -> f64>) -> std::io::Result<()> {
+    pub fn output_exact_solution(&self, buffer: &mut impl Write, e_sol: &ExactSolution<impl Fn(Variable, f64, f64) -> f64>) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_exact_solution_data(buffer, e_sol)?;
         Ok(())
@@ -762,7 +762,7 @@ impl Iterator for InteriorCellsIter {
     }
 }
 
-pub struct ExactSolution<E: Fn(Variable, f64) -> f64> {
+pub struct ExactSolution<E: Fn(Variable, f64, f64) -> f64> {
     sol: E,
 }
 
