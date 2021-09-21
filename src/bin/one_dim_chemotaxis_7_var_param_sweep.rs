@@ -104,10 +104,7 @@ fn main() -> Result<()> {
     println!("{:#?}", opt);
     println!("{:#?}", chemotaxis_params);
 
-    let chemotaxis = Chemotaxis {
-        p: chemotaxis_params,
-        f: |_, _, _| { 0.0 },
-    };
+    let chemotaxis = Chemotaxis::without_forcing(chemotaxis_params);
 
     let n_cell = opt.n_cell;
     let t_max = opt.t_max;

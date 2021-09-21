@@ -15,6 +15,28 @@ pub struct Chemotaxis<F>
     pub f: F,
 }
 
+impl Chemotaxis<fn(Variable, f64, f64) -> f64> {
+    pub fn without_forcing(p: ChemotaxisParameters) -> Self {
+        const fn zero_forcing(_var: Variable, _x: f64, _t: f64) -> f64 {
+            0.0
+        }
+
+        Self {
+            p,
+            f: zero_forcing,
+        }
+    }
+}
+
+impl<F> Chemotaxis<F> {
+    pub fn with_forcing(p: ChemotaxisParameters, f: F) -> Self {
+        Self {
+            p,
+            f,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChemotaxisParameters {
     pub phi_bar_over_c_bar: f64,
