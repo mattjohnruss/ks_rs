@@ -15,9 +15,9 @@ pub struct Chemotaxis<F>
     pub f: F,
 }
 
-impl Chemotaxis<fn(Variable, f64, f64) -> f64> {
+impl Chemotaxis<fn(Variable, f64, f64, &ChemotaxisParameters) -> f64> {
     pub fn without_forcing(p: ChemotaxisParameters) -> Self {
-        const fn zero_forcing(_var: Variable, _x: f64, _t: f64) -> f64 {
+        const fn zero_forcing(_var: Variable, _x: f64, _t: f64, _p: &ChemotaxisParameters) -> f64 {
             0.0
         }
 
@@ -126,7 +126,7 @@ impl From<ChemotaxisVariable> for Variable {
 
 impl<F> ProblemFunctions for Chemotaxis<F>
 where
-    F: Fn(Variable, f64, f64) -> f64
+    F: Fn(Variable, f64, f64, &ChemotaxisParameters) -> f64
 {
     fn diffusivity(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
         match var.into() {
@@ -215,7 +215,7 @@ where
     }
 
     fn forcing(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
-        (self.f)(var, problem.x(cell), problem.time)
+        (self.f)(var, problem.x(cell), problem.time, &self.p)
     }
 
     fn left_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
