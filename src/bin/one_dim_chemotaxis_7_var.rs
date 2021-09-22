@@ -81,6 +81,18 @@ fn update_params<F>(problem: &mut Problem1D<Chemotaxis<F>>) {
     p.j_phi_i_bar = (1.0 - i_s) * p.j_phi_i_bar_h + i_s * p.j_phi_i_bar_i;
 }
 
+fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Write) -> Result<()> {
+    let c_u_total = problem.integrate_solution(C_U);
+    let c_b_total = problem.integrate_solution(C_B);
+    let c_s_total = problem.integrate_solution(C_S);
+    let phi_i_total = problem.integrate_solution(PHI_I);
+    let phi_m_total = problem.integrate_solution(PHI_M);
+    let phi_c_u_total = problem.integrate_solution(PHI_C_U);
+    let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+    writeln!(&mut trace_writer, "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e}", problem.time, c_u_total, c_b_total, c_s_total, phi_i_total, phi_m_total, phi_c_u_total, phi_c_b_total)?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
@@ -117,6 +129,12 @@ fn main() -> Result<()> {
     problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
 
+    let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
+    let mut trace_writer = BufWriter::new(trace_file);
+    writeln!(&mut trace_writer, "t c_u_total c_b_total c_s_total phi_i_total phi_m_total phi_c_u_total phi_c_b_total")?;
+
+    trace(&problem, &mut trace_writer)?;
+
     let mut i = 1;
     let mut outputs = 1;
 
@@ -131,6 +149,7 @@ fn main() -> Result<()> {
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
+            trace(&problem, &mut trace_writer)?;
             outputs += 1;
         }
         i += 1;
