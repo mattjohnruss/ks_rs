@@ -45,6 +45,12 @@ test = false
 doctest = false
 
 [[bin]]
+name = "one_dim_chemotaxis_7_var_exact_sol"
+path = "src/bin/one_dim_chemotaxis_7_var_exact_sol.rs"
+test = false
+doctest = false
+
+[[bin]]
 name = "one_dim_chemotaxis_7_var_param_sweep"
 path = "src/bin/one_dim_chemotaxis_7_var_param_sweep.rs"
 test = false
