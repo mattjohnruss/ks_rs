@@ -31,10 +31,7 @@ struct Opt {
     config_path: String,
 }
 
-fn set_initial_conditions<F>(problem: &mut Problem1D<Chemotaxis<F>>)
-where
-    Chemotaxis<F>: ProblemFunctions,
-{
+fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     fn cos_ramp(x: f64, n: f64) -> f64 {
         use std::f64::consts::PI;
         if x < 1.0 / n {
@@ -59,7 +56,7 @@ where
     problem.update_ghost_cells();
 }
 
-fn inflammation_status<F>(problem: &Problem1D<Chemotaxis<F>>) -> f64 {
+fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
     let t_1 = problem.functions.p.t_1;
     let t_2 = problem.functions.p.t_2;
     let time = problem.time;
@@ -73,7 +70,7 @@ fn inflammation_status<F>(problem: &Problem1D<Chemotaxis<F>>) -> f64 {
     }
 }
 
-fn update_params<F>(problem: &mut Problem1D<Chemotaxis<F>>) {
+fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     let p = &mut problem.functions.p;
     p.m = (1.0 - i_s) * p.m_h + i_s * p.m_i;

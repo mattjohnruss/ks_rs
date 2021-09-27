@@ -8,14 +8,15 @@ use crate::adr::one_dim::{
 };
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug)]
-pub struct Chemotaxis<F>
-{
+type ForcingFn = fn(Variable, f64, f64, &ChemotaxisParameters) -> f64;
+
+#[derive(Clone)]
+pub struct Chemotaxis {
     pub p: ChemotaxisParameters,
-    pub f: F,
+    pub f: ForcingFn,
 }
 
-impl Chemotaxis<fn(Variable, f64, f64, &ChemotaxisParameters) -> f64> {
+impl Chemotaxis {
     pub fn without_forcing(p: ChemotaxisParameters) -> Self {
         const fn zero_forcing(_var: Variable, _x: f64, _t: f64, _p: &ChemotaxisParameters) -> f64 {
             0.0
@@ -26,10 +27,8 @@ impl Chemotaxis<fn(Variable, f64, f64, &ChemotaxisParameters) -> f64> {
             f: zero_forcing,
         }
     }
-}
 
-impl<F> Chemotaxis<F> {
-    pub fn with_forcing(p: ChemotaxisParameters, f: F) -> Self {
+    pub fn with_forcing(p: ChemotaxisParameters, f: ForcingFn) -> Self {
         Self {
             p,
             f,
@@ -124,10 +123,7 @@ impl From<ChemotaxisVariable> for Variable {
     }
 }
 
-impl<F> ProblemFunctions for Chemotaxis<F>
-where
-    F: Fn(Variable, f64, f64, &ChemotaxisParameters) -> f64
-{
+impl ProblemFunctions for Chemotaxis {
     fn diffusivity(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
         match var.into() {
             C_U => 1.0,
