@@ -267,13 +267,13 @@ impl<F> Problem1D<F>
         let var = var.into();
         match idx {
             idx if idx == 0 => {
-                self.ghost_data[(var.0, 0)]
+                unsafe { *self.ghost_data.uget((var.0, 0)) }
             },
             idx if idx == self.domain.n_cell + 1 => {
-                self.ghost_data[(var.0, 1)]
+                unsafe { *self.ghost_data.uget((var.0, 1)) }
             },
             _ => {
-                self.data[(var.0, idx - 1)]
+                unsafe { *self.data.uget((var.0, idx - 1)) }
             },
         }
     }
@@ -285,9 +285,9 @@ impl<F> Problem1D<F>
         let idx = self.index(cell);
         let var = var.into();
         match idx {
-            idx if idx == 0 => &mut self.ghost_data[(var.0, 0)],
-            idx if idx == self.domain.n_cell + 1 => &mut self.ghost_data[(var.0, 1)],
-            _ => &mut self.data[(var.0, idx - 1)],
+            idx if idx == 0 => unsafe { self.ghost_data.uget_mut((var.0, 0)) },
+            idx if idx == self.domain.n_cell + 1 => unsafe { self.ghost_data.uget_mut((var.0, 1)) },
+            _ => unsafe { self.data.uget_mut((var.0, idx - 1)) },
         }
     }
 
