@@ -71,8 +71,8 @@ pub trait ProblemFunctions: Sized {
 
     /// Advection velocity at the `West` face of the given cell. Defaults to the velocity at the
     /// `East` face of the neighbouring cell.
-    fn velocity_m_at_midpoint(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
-        self.velocity_p_at_midpoint(_problem, _var, _cell.left())
+    fn velocity_m_at_midpoint(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
+        self.velocity_p_at_midpoint(problem, var, cell.left())
     }
 
     /// Reaction terms, sampled at the centre of the cell. Defaults to zero.
@@ -346,7 +346,7 @@ impl<F> Problem1D<F>
     }
 
     fn flux_m(&self, var: Variable, cell: Cell) -> f64 {
-        let velocity_m = self.velocity_m_at_midpoint(var, cell);
+        let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
@@ -362,14 +362,10 @@ impl<F> Problem1D<F>
     }
 
     fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
-        let velocity_m = self.velocity_m_at_midpoint(var, cell);
+        let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
         var_point_value_at_face * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
-    }
-
-    fn velocity_m_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
-        self.functions.velocity_p_at_midpoint(self, var, cell.left())
     }
 
     #[inline]
@@ -394,7 +390,7 @@ impl<F> Problem1D<F>
 
     #[inline]
     fn var_point_value_x_m(&self, var: Variable, cell: Cell) -> f64 {
-        match self.velocity_m_at_midpoint(var, cell) {
+        match self.functions.velocity_m_at_midpoint(self, var, cell) {
             v if v > 0.0 => self.var_point_value_at_face(var, cell.left(), Face::East),
             _ => self.var_point_value_at_face(var, cell, Face::West),
         }
