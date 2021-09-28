@@ -21,6 +21,12 @@ lto = true
 doctest = false
 
 [[bin]]
+name = "one_dim_manufactured_sol_binding_only"
+path = "src/bin/one_dim_manufactured_sol_binding_only.rs"
+test = false
+doctest = false
+
+[[bin]]
 name = "one_dim_ks"
 path = "src/bin/one_dim_ks.rs"
 test = false
