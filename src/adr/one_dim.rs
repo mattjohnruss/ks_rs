@@ -630,11 +630,8 @@ impl<F> Problem1D<F>
         }
     }
 
-    pub fn interior_cells(&self) -> InteriorCellsIter {
-        InteriorCellsIter {
-            cell: Cell(1),
-            n_cell: self.domain.n_cell,
-        }
+    pub fn interior_cells(&self) -> impl Iterator<Item=Cell> {
+        (0..self.domain.n_cell).map(|i| Cell(i + 1))
     }
 
     /// Calculates the largest timestep such that the solution remains positive after a forward
@@ -739,26 +736,6 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
 
     fn actions_after_explicit_timestep(&mut self) {
         self.update_ghost_cells();
-    }
-}
-
-/// Iterates over the interior cells of a problem
-pub struct InteriorCellsIter {
-    /// The current cell
-    cell: Cell,
-    /// The number of interior cells
-    n_cell: usize,
-}
-
-impl Iterator for InteriorCellsIter {
-    type Item = Cell;
-    fn next(&mut self) -> Option<Cell> {
-        let result = match self.cell {
-            Cell(i) if i <= self.n_cell => Some(self.cell),
-            _ => None,
-        };
-        self.cell.0 += 1;
-        result
     }
 }
 
