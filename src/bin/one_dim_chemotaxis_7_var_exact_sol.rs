@@ -89,6 +89,18 @@ fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
     }
 }
 
+fn exact_solution(var: Variable, x: f64, _time: f64, p: &ChemotaxisParameters) -> f64 {
+    match var.into() {
+        C_U => 1.0 - x,
+        C_B => x,
+        C_S => x * (1.0 - x),
+        PHI_I => 0.5 * x.powi(2) * (p.j_phi_i_bar / p.d_phi_i),
+        PHI_M => 1.0,
+        PHI_C_U => 1.0,
+        PHI_C_B => (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (1.0 - 0.5 * x),
+    }
+}
+
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
@@ -121,9 +133,16 @@ fn main() -> Result<()> {
 
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
+    // output ICs
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     problem.output(&mut buf_writer)?;
+    buf_writer.flush()?;
+
+    // output exact ICs
+    let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", 0)))?;
+    let mut buf_writer = BufWriter::new(file);
+    problem.output_fn(&mut buf_writer, |var, x, time| exact_solution(var, x, time, &problem.functions.p) )?;
     buf_writer.flush()?;
 
     let mut i = 1;
@@ -136,10 +155,18 @@ fn main() -> Result<()> {
         ssp_rk33.step(&mut problem, dt);
 
         if problem.time >= outputs as f64 * output_time_interval {
+            // output solution
             let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", outputs)))?;
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
+
+            // output exact solution
+            let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", outputs)))?;
+            let mut buf_writer = BufWriter::new(file);
+            problem.output_fn(&mut buf_writer, |var, x, time| exact_solution(var, x, time, &problem.functions.p) )?;
+            buf_writer.flush()?;
+
             outputs += 1;
         }
         i += 1;
