@@ -298,6 +298,7 @@ impl<F> Problem1D<F>
 
     /// Calculate all terms on the right-hand side of the equation for the given variable
     /// in the given cell
+    #[inline(always)]
     fn rhs(&self, var: Variable, cell: Cell) -> f64 {
         let mut result = 0.0;
 
