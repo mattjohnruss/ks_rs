@@ -4,7 +4,6 @@ use crate::adr::one_dim::{
     Variable,
     Cell,
     BoundaryCondition,
-    Face,
 };
 use serde::{Serialize, Deserialize};
 
@@ -214,7 +213,7 @@ impl ProblemFunctions for Chemotaxis {
         (self.f)(var, problem.x(cell), problem.time, &self.p)
     }
 
-    fn left_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+    fn left_bc(&self, _problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
         match var.into() {
             C_U => BoundaryCondition::Dirichlet(1.0),
             C_B => BoundaryCondition::Flux(0.0),
@@ -222,10 +221,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_I => BoundaryCondition::Flux(0.0),
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
-            PHI_C_B => {
-                let flux = -self.p.j_phi_c_b_bar * problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), Cell(1), Face::West);
-                BoundaryCondition::Flux(flux)
-            }
+            PHI_C_B => BoundaryCondition::Dirichlet(0.0),
         }
     }
 
