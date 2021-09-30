@@ -40,8 +40,8 @@ do for [i = 0:n:n_inc] {
         }
         else {
             if(exist("exact_file")) {
-                plot for [j = 1:n_var] fn(i)           u 2:2+word(vars,j) w l lc j lw 2 ti columnheader, \
-                     for [j = 1:n_var] fn_exact(i)     u 2:2+word(vars,j) w l lc j lw 2 dt 2 ti columnheader
+                plot for [j = 1:n_var] fn(i)           u 2:2+word(vars,j) w l lc j lw 1 ti columnheader, \
+                     for [j = 1:n_var] fn_exact(i)     u 2:2+word(vars,j) w l lc j lw 2 dt 3 ti columnheader
             }
             else {
                 plot for [j = 1:n_var] fn(i)           u 2:2+word(vars,j) w l lc j lw 2 smooth unique ti columnheader
