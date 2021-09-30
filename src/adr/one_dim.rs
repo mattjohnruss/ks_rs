@@ -409,6 +409,11 @@ impl<F> Problem1D<F>
         if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
             || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
             value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
+        } else if (cell == Cell(1) && !self.functions.left_bc(self, var).is_dirichlet())
+            || (cell == Cell(self.domain.n_cell) && !self.functions.right_bc(self, var).is_dirichlet()) {
+            // TODO if we're at a boundary that doesn't have dirichlet BCs, use double the computed
+            // gradient as described in the comment in `update_ghost_cells()`
+            value + sign * 1.0 * self.dvar_limited(var, cell)
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
         }
@@ -528,6 +533,7 @@ impl<F> Problem1D<F>
                 _ => panic!("Should only be called on the first or last cell")
             })
         } else {
+            // TODO: Some of the `left()`s here should surely be `right()`s?
             match cell {
                 cell if cell == Cell(1) => {
                     let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
@@ -538,7 +544,8 @@ impl<F> Problem1D<F>
                         // if both are positive, use the smallest
                         Some(if dvar_central < 2.0 * dvar_backward {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                            // TODO: Changed cell.left() to cell.right() and ...
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
                             dirichlet_value
@@ -547,7 +554,10 @@ impl<F> Problem1D<F>
                         // if both are negative, use the largest (smallest in magnitude)
                         Some(if dvar_central > 2.0 * dvar_backward {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                            // TODO: ... here. It seems to fix the crazy oscillations near the
+                            // boundary but I haven't rederived any of these expressions properly
+                            // to check it's actually correct
+                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
                             dirichlet_value
@@ -599,7 +609,29 @@ impl<F> Problem1D<F>
 
             match self.functions.left_bc(self, var) {
                 BoundaryCondition::Flux(_) => {
+                    // TODO: I don't think this is correct. It's kind of a piecewise constant
+                    // approximation of what I think we should be doing: something quite similar to
+                    // the dirichlet case, where we calculate the gradient using the limiter but
+                    // without upwinding. Then we use this in the piecewise linear reconstruction
+                    // of the solution to find the value at the centre (?) of the ghost cell. Will
+                    // this guarantee that the (reconstructed) solution remains positive, though?
+                    // UPDATE: Maybe it is OK, and all we have to do is compensate for the
+                    // zero gradient this will attempt to impose, which conflicts with the actual
+                    // flux being set, by doubling the reconstructed gradient in
+                    // `var_point_value_at_face()` at the boundaries (which we've done).
+                    // ANOTHERUPDATE: But maybe this is fix only works for purely diffusive
+                    // fluxes, because if there's some advective flux, doubling the gradient to
+                    // compensate implicitly assumes that "flux == gradient", which isn't true
+                    // unless advection = 0. I think that's why we still see the solution of
+                    // phi_c_b creep up in time at the RHS boundary - because that equation has
+                    // nonzero advective flux. This doesn't explain why c_u and c_s seem fine
+                    // though - maybe because their advective terms are linear or something?
                     *self.var_mut(var, Cell(0)) = self.var(var, Cell(1));
+
+                    // TODO: this extrapolates the solution to the centre of the ghost cell. It is
+                    // kinda an improvement, but it doesn't seem to preserve positivity of the
+                    // solution in the first cell...
+                    //*self.var_mut(var, Cell(0)) = self.var(var, Cell(1)) - self.dvar_limited(var, Cell(1));
                 }
                 BoundaryCondition::Dirichlet(dirichlet_value) => {
                     let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(1), dirichlet_value);
@@ -612,8 +644,12 @@ impl<F> Problem1D<F>
 
             match self.functions.right_bc(self, var) {
                 BoundaryCondition::Flux(_) => {
+                    // TODO: the above also applies here
                     *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
                         self.var(var, Cell(self.domain.n_cell));
+
+                    // TODO: see above
+                    //*self.var_mut(var, Cell(self.domain.n_cell + 1)) = self.var(var, Cell(self.domain.n_cell)) + self.dvar_limited(var, Cell(self.domain.n_cell));
                 }
                 BoundaryCondition::Dirichlet(dirichlet_value) => {
                     let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(self.domain.n_cell), dirichlet_value);
