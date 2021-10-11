@@ -44,17 +44,10 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
-        let d_phi_i = problem.functions.p.d_phi_i;
-        let j_phi_i_bar = problem.functions.p.j_phi_i_bar;
-        let m = problem.functions.p.m;
-
-        let p = (m * d_phi_i).sqrt();
-        let r = (m / d_phi_i).sqrt();
-
         *problem.var_mut(C_U, cell) = cos_ramp(x, 10.0);
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
-        *problem.var_mut(PHI_I, cell) = (j_phi_i_bar / p) * f64::cosh(r * x) / f64::sinh(r);
+        *problem.var_mut(PHI_I, cell) = problem.functions.p.phi_i_init;
         *problem.var_mut(PHI_M, cell) = problem.functions.p.phi_m_init;
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
