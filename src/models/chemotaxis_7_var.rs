@@ -78,6 +78,8 @@ pub struct ChemotaxisParameters {
     pub j_phi_i_bar: f64,
     pub phi_i_init: f64,
     pub phi_m_init: f64,
+    pub phi_i_total_max: f64,
+    //pub phi_total_max: f64,
     pub t_1: f64,
     pub t_2: f64,
 }
@@ -225,12 +227,20 @@ impl ProblemFunctions for Chemotaxis {
         }
     }
 
-    fn right_bc(&self, _problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
+    fn right_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
         match var.into() {
             C_U => BoundaryCondition::Dirichlet(0.0),
             C_B => BoundaryCondition::Flux(0.0),
             C_S => BoundaryCondition::Dirichlet(0.0),
-            PHI_I => BoundaryCondition::Flux(-self.p.j_phi_i_bar),
+            PHI_I => {
+                let phi_i_total = problem.integrate_solution(PHI_I);
+                //let phi_m_total = problem.integrate_solution(PHI_M);
+                //let phi_c_u_total = problem.integrate_solution(PHI_C_U);
+                //let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+                //let phi_total = phi_i_total + phi_m_total + phi_c_u_total + phi_c_b_total;
+
+                BoundaryCondition::Flux(-(self.p.phi_i_total_max - phi_i_total) * self.p.j_phi_i_bar)
+            }
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Flux(0.0),
