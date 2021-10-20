@@ -33,8 +33,8 @@ chemokine_scale = 1.0e-8
 #chemokine_scale = 1.0e-8 * n_a
 
 # number of (mol/litre) per unit concentration for cells
-cell_scale = 1.66054e-15
-#cell_scale = 1.66054e-15 * n_a
+cell_scale = 6.40825486e-14
+#cell_scale = 6.40825486e-14 * n_a
 
 # numbers of (mol/litre) per unit concentration for each variable
 array var_scales[7]

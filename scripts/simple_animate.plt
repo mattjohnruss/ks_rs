@@ -6,7 +6,7 @@ if(exist("gif_output")) {
     delay = 0.0
 }
 else {
-    set term qt noraise
+    set term qt noraise font "Sans,12"
 }
 
 set clip two
@@ -19,13 +19,22 @@ fn_exact(i) = sprintf("output_exact_%05i.csv", i)
 
 n_var = words(vars)
 
+set xlabel "x"
+set ylabel "Concentration"
+
 if(exists("n_inc")) {
 }
 else {
     n_inc = 1
 }
 
-do for [i = 0:n:n_inc] {
+if(exists("n_start")) {
+}
+else {
+    n_start = 0
+}
+
+do for [i = n_start:n:n_inc] {
     stats [*:*] [*:*] fn(i) u 1 skip 1 nooutput
     set label 1 sprintf("t = %.3f", STATS_min) at graph 0.05,0.95
 
