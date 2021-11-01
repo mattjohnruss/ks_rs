@@ -557,7 +557,6 @@ impl<F> Problem1D<F>
                 _ => panic!("Should only be called on the first or last cell")
             })
         } else {
-            // TODO: Some of the `left()`s here should surely be `right()`s?
             match cell {
                 cell if cell == Cell(1) => {
                     let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
@@ -568,7 +567,6 @@ impl<F> Problem1D<F>
                         // if both are positive, use the smallest
                         Some(if dvar_central < 2.0 * dvar_backward {
                             // use dvar_central
-                            // TODO: Changed cell.left() to cell.right() and ...
                             4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
@@ -578,9 +576,6 @@ impl<F> Problem1D<F>
                         // if both are negative, use the largest (smallest in magnitude)
                         Some(if dvar_central > 2.0 * dvar_backward {
                             // use dvar_central
-                            // TODO: ... here. It seems to fix the crazy oscillations near the
-                            // boundary but I haven't rederived any of these expressions properly
-                            // to check it's actually correct
                             4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
