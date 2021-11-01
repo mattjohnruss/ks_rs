@@ -430,14 +430,23 @@ impl<F> Problem1D<F>
             Face::West => -1.0,
         };
 
+        #[cfg(feature = "experimental_fixes")]
         if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
             || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
             value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
         } else if (cell == Cell(1) && !self.functions.left_bc(self, var).is_dirichlet())
             || (cell == Cell(self.domain.n_cell) && !self.functions.right_bc(self, var).is_dirichlet()) {
-            // TODO if we're at a boundary that doesn't have dirichlet BCs, use double the computed
+            // If we're at a boundary that doesn't have dirichlet BCs, use double the computed
             // gradient as described in the comment in `update_ghost_cells()`
             value + sign * 1.0 * self.dvar_limited(var, cell)
+        } else {
+            value + sign * 0.5 * self.dvar_limited(var, cell)
+        }
+
+        #[cfg(not(feature = "experimental_fixes"))]
+        if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
+            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
+            value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
         }
