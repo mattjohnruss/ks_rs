@@ -265,6 +265,8 @@ impl<F> Problem1D<F>
     pub fn var(&self, var: impl Into<Variable>, cell: Cell) -> f64 {
         let idx = self.index(cell);
         let var = var.into();
+
+        #[cfg(feature = "experimental_optimisations")]
         match idx {
             idx if idx == 0 => {
                 unsafe { *self.ghost_data.uget((var.0, 0)) }
@@ -276,6 +278,19 @@ impl<F> Problem1D<F>
                 unsafe { *self.data.uget((var.0, idx - 1)) }
             },
         }
+
+        #[cfg(not(feature = "experimental_optimisations"))]
+        match idx {
+            idx if idx == 0 => {
+                self.ghost_data[(var.0, 0)]
+            },
+            idx if idx == self.domain.n_cell + 1 => {
+                self.ghost_data[(var.0, 1)]
+            },
+            _ => {
+                self.data[(var.0, idx - 1)]
+            },
+        }
     }
 
     /// Get a mutable reference to the value of the given variable at the centre of the
@@ -284,10 +299,19 @@ impl<F> Problem1D<F>
     pub fn var_mut(&mut self, var: impl Into<Variable>, cell: Cell) -> &mut f64 {
         let idx = self.index(cell);
         let var = var.into();
+
+        #[cfg(feature = "experimental_optimisations")]
         match idx {
             idx if idx == 0 => unsafe { self.ghost_data.uget_mut((var.0, 0)) },
             idx if idx == self.domain.n_cell + 1 => unsafe { self.ghost_data.uget_mut((var.0, 1)) },
             _ => unsafe { self.data.uget_mut((var.0, idx - 1)) },
+        }
+
+        #[cfg(not(feature = "experimental_optimisations"))]
+        match idx {
+            idx if idx == 0 => &mut self.ghost_data[(var.0, 0)],
+            idx if idx == self.domain.n_cell + 1 => &mut self.ghost_data[(var.0, 1)],
+            _ => &mut self.data[(var.0, idx - 1)],
         }
     }
 
@@ -298,7 +322,7 @@ impl<F> Problem1D<F>
 
     /// Calculate all terms on the right-hand side of the equation for the given variable
     /// in the given cell
-    #[inline(always)]
+    #[cfg_attr(feature = "experimental_optimisations", inline(always))]
     fn rhs(&self, var: Variable, cell: Cell) -> f64 {
         let mut result = 0.0;
 

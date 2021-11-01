@@ -20,3 +20,7 @@ debug = 1
 
 [dev-dependencies]
 approx = "0.5"
+
+[features]
+default = ["experimental_optimisations"]
+experimental_optimisations = []
