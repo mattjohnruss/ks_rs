@@ -38,6 +38,7 @@ impl Chemotaxis {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChemotaxisParameters {
     pub phi_bar_over_c_bar: f64,
+    pub c_bar_over_e: f64,
     pub pe: f64,
     pub alpha_plus: f64,
     pub alpha_minus: f64,
@@ -157,9 +158,11 @@ impl ProblemFunctions for Chemotaxis {
         //let inhib = self.p.k_inhib.powf(self.p.n_inhib) / (self.p.k_inhib.powf(self.p.n_inhib) / problem.var(C_S, cell).powf(self.p.n_inhib));
         let inhib = 1.0;
 
+        let ecm_occupancy = self.p.c_bar_over_e * (problem.var(C_B, cell) + self.p.n_ccr7 * self.p.phi_bar_over_c_bar * problem.var(PHI_C_B, cell));
+
         match var.into() {
             C_U => {
-                - self.p.alpha_plus * problem.var(C_U, cell)
+                - self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(C_U, cell)
                     + self.p.alpha_minus * problem.var(C_B, cell)
                     - self.p.n_ccr7 * self.p.beta_plus * problem.var(C_U, cell) * problem.var(PHI_M, cell)
                     + self.p.n_ccr7 * self.p.phi_bar_over_c_bar * self.p.beta_minus * problem.var(PHI_C_U, cell)
@@ -168,7 +171,7 @@ impl ProblemFunctions for Chemotaxis {
                     - self.p.q_u * problem.var(PHI_I, cell) * problem.var(C_U, cell)
             }
             C_B => {
-                self.p.alpha_plus * problem.var(C_U, cell)
+                self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(C_U, cell)
                     - self.p.alpha_minus * problem.var(C_B, cell)
                     - self.p.n_ccr7 * self.p.beta_plus * problem.var(C_B, cell) * problem.var(PHI_M, cell)
                     + self.p.n_ccr7 * self.p.phi_bar_over_c_bar * self.p.beta_minus * problem.var(PHI_C_B, cell)
@@ -195,13 +198,13 @@ impl ProblemFunctions for Chemotaxis {
                     + self.p.beta_minus * problem.var(PHI_C_B, cell)
             },
             PHI_C_U => {
-                - self.p.alpha_plus * problem.var(PHI_C_U, cell)
+                - self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(PHI_C_U, cell)
                     + self.p.alpha_minus * problem.var(PHI_C_B, cell)
                     + c_bar_over_phi_bar * self.p.beta_plus * problem.var(C_U, cell) * problem.var(PHI_M, cell)
                     - self.p.beta_minus * problem.var(PHI_C_U, cell)
             }
             PHI_C_B => {
-                self.p.alpha_plus * problem.var(PHI_C_U, cell)
+                self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(PHI_C_U, cell)
                     - self.p.alpha_minus * problem.var(PHI_C_B, cell)
                     + c_bar_over_phi_bar * self.p.beta_plus * problem.var(C_B, cell) * problem.var(PHI_M, cell)
                     - self.p.beta_minus * problem.var(PHI_C_B, cell)
