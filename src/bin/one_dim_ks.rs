@@ -1,7 +1,4 @@
-use ks_rs::keller_segel::one_dim::{
-    ExactSolution, Forces, ICs, Parameters,
-    Problem1D,
-};
+use ks_rs::keller_segel::one_dim::{ExactSolution, Forces, ICs, Parameters, Problem1D};
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
     //EulerForward,
@@ -216,7 +213,12 @@ fn main() -> Result<()> {
         //runge_kutta_4.step(&mut problem, dt);
 
         if i % output_interval == 0 {
-            println!("Output {} at timestep {}, t = {}", i / output_interval, i, problem.time);
+            println!(
+                "Output {} at timestep {}, t = {}",
+                i / output_interval,
+                i,
+                problem.time
+            );
             let file =
                 fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let buf_writer = BufWriter::new(file);

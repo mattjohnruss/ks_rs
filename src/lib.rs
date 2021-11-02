@@ -1,10 +1,10 @@
-pub mod keller_segel;
-mod stencil;
-pub mod utilities;
-pub mod timestepping;
 pub mod adr;
 pub mod kde;
+pub mod keller_segel;
 pub mod models;
+mod stencil;
+pub mod timestepping;
+pub mod utilities;
 
 use libc::c_double;
 

@@ -1,6 +1,6 @@
-use crate::stencil::{Stencil, first_order, second_order};
-use crate::utilities::minmod;
+use crate::stencil::{first_order, second_order, Stencil};
 use crate::timestepping::ExplicitTimeSteppable;
+use crate::utilities::minmod;
 use ndarray::prelude::*;
 use std::fmt;
 use std::io::prelude::*;
@@ -52,10 +52,7 @@ impl ExactSolution {
 /// Cannot derive Debug on Fn
 impl fmt::Debug for ExactSolution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "ExactSolution {{ rho_bar_solution, c_solution }}"
-        )
+        write!(f, "ExactSolution {{ rho_bar_solution, c_solution }}")
     }
 }
 
@@ -147,7 +144,9 @@ impl Problem1D {
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
         match &self.p.exact_solution {
             Some(exact_solution) => {
-                buffer.write_all("t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?;
+                buffer.write_all(
+                    "t x rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes(),
+                )?;
 
                 for cell in 1..=self.p.n_interior_cell_1d {
                     let x = self.x(cell);
@@ -176,7 +175,9 @@ impl Problem1D {
                     let c = self.u(Variable::C, cell);
                     let time = self.time;
 
-                    buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, rho_bar, c).as_bytes())?;
+                    buffer.write_all(
+                        format!("{:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, rho_bar, c).as_bytes(),
+                    )?;
                 }
             }
         }
@@ -185,7 +186,10 @@ impl Problem1D {
 
     pub fn trace_header<W: Write>(&self, buffer: &mut W) -> std::io::Result<()> {
         match &self.p.exact_solution {
-            Some(_) => buffer.write_all("t rho\\\\_bar\\\\_total c\\\\_total rho\\\\_bar\\\\_error c_\\\\error\n".as_bytes())?,
+            Some(_) => buffer.write_all(
+                "t rho\\\\_bar\\\\_total c\\\\_total rho\\\\_bar\\\\_error c_\\\\error\n"
+                    .as_bytes(),
+            )?,
             None => buffer.write_all("t rho\\\\_bar\\\\_total c\\\\_total\n".as_bytes())?,
         }
         Ok(())
@@ -201,12 +205,21 @@ impl Problem1D {
                 buffer.write_all(
                     format!(
                         "{:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
-                        self.time, rho_bar_total, c_total, rho_bar_l_2_error, c_l_2_error, rho_bar_l_inf_error, c_l_inf_error
-                    ).as_bytes()
+                        self.time,
+                        rho_bar_total,
+                        c_total,
+                        rho_bar_l_2_error,
+                        c_l_2_error,
+                        rho_bar_l_inf_error,
+                        c_l_inf_error
+                    )
+                    .as_bytes(),
                 )?;
             }
             None => {
-                buffer.write_all(format!("{:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total).as_bytes())?;
+                buffer.write_all(
+                    format!("{:.6e} {:.6e} {:.6e}\n", self.time, rho_bar_total, c_total).as_bytes(),
+                )?;
             }
         }
         Ok(())
@@ -233,7 +246,7 @@ impl Problem1D {
 
                 Some((rho_bar_l_2_error_sq.sqrt(), c_l_2_error_sq.sqrt()))
             }
-            None => None
+            None => None,
         }
     }
 
@@ -241,11 +254,15 @@ impl Problem1D {
         match &self.p.exact_solution {
             Some(exact_solution) => {
                 let rho_bar_abs_error = |cell| {
-                    (self.u(Variable::RhoBar, cell) - (exact_solution.rho_bar_solution)(self.time, self.x(cell), &self.p)).abs()
+                    (self.u(Variable::RhoBar, cell)
+                        - (exact_solution.rho_bar_solution)(self.time, self.x(cell), &self.p))
+                    .abs()
                 };
 
                 let c_abs_error = |cell| {
-                    (self.u(Variable::C, cell) - (exact_solution.c_solution)(self.time, self.x(cell), &self.p)).abs()
+                    (self.u(Variable::C, cell)
+                        - (exact_solution.c_solution)(self.time, self.x(cell), &self.p))
+                    .abs()
                 };
 
                 // TODO replace this with something like (1..=n_interior_cell_1d).fold(...)
@@ -267,7 +284,7 @@ impl Problem1D {
 
                 Some((rho_bar_l_inf_error, c_l_inf_error))
             }
-            None => None
+            None => None,
         }
     }
 
@@ -379,8 +396,16 @@ impl Problem1D {
                         // both are inside the loop, then (presumably due to NLL?) the compiler
                         // knows the immutable borrow isn't used again and allows the mutable
                         // borrow.
-                        let rho_bar = (self.p.exact_solution.as_ref().unwrap().rho_bar_solution)(self.time, self.x(cell), &self.p);
-                        let c = (self.p.exact_solution.as_ref().unwrap().c_solution)(self.time, self.x(cell), &self.p);
+                        let rho_bar = (self.p.exact_solution.as_ref().unwrap().rho_bar_solution)(
+                            self.time,
+                            self.x(cell),
+                            &self.p,
+                        );
+                        let c = (self.p.exact_solution.as_ref().unwrap().c_solution)(
+                            self.time,
+                            self.x(cell),
+                            &self.p,
+                        );
                         *self.u_mut(Variable::RhoBar, cell) = rho_bar;
                         *self.u_mut(Variable::C, cell) = c;
                     }
@@ -415,9 +440,7 @@ impl Problem1D {
 
     /// Equation (2.4)(a)
     fn drho_dx_p_at_midpoint(&self, cell: usize) -> f64 {
-        first_order::Forward1::apply(cell, |i| {
-            self.u(Variable::RhoBar, i) / self.p.dx
-        })
+        first_order::Forward1::apply(cell, |i| self.u(Variable::RhoBar, i) / self.p.dx)
     }
 
     fn drho_dx_m_at_midpoint(&self, cell: usize) -> f64 {
@@ -426,9 +449,7 @@ impl Problem1D {
 
     /// Equation (2.4)(c)
     fn u_p_at_midpoint(&self, cell: usize) -> f64 {
-        first_order::Forward1::apply(cell, |i| {
-            self.u(Variable::C, i) / self.p.dx
-        })
+        first_order::Forward1::apply(cell, |i| self.u(Variable::C, i) / self.p.dx)
     }
 
     fn u_m_at_midpoint(&self, cell: usize) -> f64 {
@@ -462,9 +483,7 @@ impl Problem1D {
 
     /// Equation (2.8)(a)
     fn drho_dx(&self, cell: usize) -> f64 {
-        let drho_bar_central = second_order::Central1::apply(cell, |i| {
-            self.u(Variable::RhoBar, i)
-        });
+        let drho_bar_central = second_order::Central1::apply(cell, |i| self.u(Variable::RhoBar, i));
 
         let test_p = self.u(Variable::RhoBar, cell) + 0.5 * drho_bar_central;
         let test_m = self.u(Variable::RhoBar, cell) - 0.5 * drho_bar_central;
@@ -472,13 +491,11 @@ impl Problem1D {
         if test_p >= 0.0 && test_m >= 0.0 {
             drho_bar_central / self.p.dx
         } else {
-            let drho_bar_forward = first_order::Forward1::apply(cell, |i| {
-                self.u(Variable::RhoBar, i)
-            });
+            let drho_bar_forward =
+                first_order::Forward1::apply(cell, |i| self.u(Variable::RhoBar, i));
 
-            let drho_bar_backward = first_order::Backward1::apply(cell, |i| {
-                self.u(Variable::RhoBar, i)
-            });
+            let drho_bar_backward =
+                first_order::Backward1::apply(cell, |i| self.u(Variable::RhoBar, i));
 
             minmod(&[
                 2.0 * drho_bar_forward / self.p.dx,
@@ -493,7 +510,11 @@ impl Problem1D {
 
         // flux
         result += {
-            let flux_rho_m = if cell == 1 { 0.0 } else { self.flux_rho_m(cell) };
+            let flux_rho_m = if cell == 1 {
+                0.0
+            } else {
+                self.flux_rho_m(cell)
+            };
             let flux_rho_p = if cell == self.p.n_interior_cell_1d {
                 0.0
             } else {

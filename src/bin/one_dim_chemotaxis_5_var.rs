@@ -1,17 +1,9 @@
 use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-    Variable,
-    Cell,
-    BoundaryCondition,
+    BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable,
 };
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
-};
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 use std::fs;
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -134,8 +126,7 @@ impl ProblemFunctions for Chemotaxis {
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var.into() {
             C_U => {
-                - self.alpha * problem.var(C_U, cell)
-                    + self.beta * problem.var(C_B, cell)
+                -self.alpha * problem.var(C_U, cell) + self.beta * problem.var(C_B, cell)
                     - self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
                     - self.gamma_um * problem.var(PHI_M, cell) * problem.var(C_U, cell)
                     - self.q_u * problem.var(PHI_I, cell) * problem.var(C_U, cell)
@@ -157,10 +148,8 @@ impl ProblemFunctions for Chemotaxis {
             PHI_I => {
                 self.r * problem.var(PHI_I, cell) * (1.0 - problem.var(PHI_I, cell))
                     - self.m * problem.var(PHI_I, cell)
-            },
-            PHI_M => {
-                self.m * problem.var(PHI_I, cell)
-            },
+            }
+            PHI_M => self.m * problem.var(PHI_I, cell),
         }
     }
 
@@ -187,8 +176,7 @@ impl ProblemFunctions for Chemotaxis {
     }
 }
 
-fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
-{
+fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     for cell in problem.interior_cells() {
         //let x = problem.x(cell);
 
@@ -204,7 +192,10 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
 }
 
 fn main() -> Result<()> {
-    let domain = DomainParams { n_cell: 101, width: 1.0 };
+    let domain = DomainParams {
+        n_cell: 101,
+        width: 1.0,
+    };
 
     let chemotaxis = Chemotaxis::default();
 
@@ -233,7 +224,8 @@ fn main() -> Result<()> {
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+            let file =
+                fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let mut buf_writer = BufWriter::new(file);
             problem.output(&mut buf_writer)?;
         }

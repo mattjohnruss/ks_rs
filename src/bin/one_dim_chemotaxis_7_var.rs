@@ -1,16 +1,9 @@
-use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-};
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
-};
+use ks_rs::adr::one_dim::{DomainParams, Problem1D, ProblemFunctions};
 use ks_rs::models::chemotaxis_7_var::*;
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -86,7 +79,18 @@ fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Writ
     let phi_m_total = problem.integrate_solution(PHI_M);
     let phi_c_u_total = problem.integrate_solution(PHI_C_U);
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
-    writeln!(&mut trace_writer, "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e}", problem.time, c_u_total, c_b_total, c_s_total, phi_i_total, phi_m_total, phi_c_u_total, phi_c_b_total)?;
+    writeln!(
+        &mut trace_writer,
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e}",
+        problem.time,
+        c_u_total,
+        c_b_total,
+        c_s_total,
+        phi_i_total,
+        phi_m_total,
+        phi_c_u_total,
+        phi_c_b_total
+    )?;
     Ok(())
 }
 
@@ -112,7 +116,15 @@ fn main() -> Result<()> {
     let domain = DomainParams { n_cell, width: 1.0 };
 
     let mut problem = Problem1D::new(ChemotaxisVariable::N_VARIABLE, domain, chemotaxis);
-    problem.set_variable_names(&["$C_u$", "$C_b$", "$C_s$", "$\\\\phi_i$", "$\\\\phi_m$", "$\\\\phi_{C_u}$", "$\\\\phi_{C_b}$"])?;
+    problem.set_variable_names(&[
+        "$C_u$",
+        "$C_b$",
+        "$C_s$",
+        "$\\\\phi_i$",
+        "$\\\\phi_m$",
+        "$\\\\phi_{C_u}$",
+        "$\\\\phi_{C_b}$",
+    ])?;
 
     set_initial_conditions(&mut problem);
 
@@ -128,7 +140,10 @@ fn main() -> Result<()> {
 
     let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
     let mut trace_writer = BufWriter::new(trace_file);
-    writeln!(&mut trace_writer, "t c_u_total c_b_total c_s_total phi_i_total phi_m_total phi_c_u_total phi_c_b_total")?;
+    writeln!(
+        &mut trace_writer,
+        "t c_u_total c_b_total c_s_total phi_i_total phi_m_total phi_c_u_total phi_c_b_total"
+    )?;
 
     trace(&problem, &mut trace_writer)?;
 

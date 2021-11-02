@@ -1,21 +1,12 @@
 use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-    Variable,
-    Cell,
-    Face,
-    BoundaryCondition,
+    BoundaryCondition, Cell, DomainParams, Face, Problem1D, ProblemFunctions, Variable,
 };
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
-};
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -177,8 +168,7 @@ impl ProblemFunctions for Chemotaxis {
 
         match var.into() {
             C_U => {
-                - self.alpha_1 * problem.var(C_U, cell)
-                    + self.beta_1 * problem.var(C_B, cell)
+                -self.alpha_1 * problem.var(C_U, cell) + self.beta_1 * problem.var(C_B, cell)
                     - self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
                     + self.phi_i_max_over_c_0 * self.beta_2 * problem.var(PHI_C_U, cell)
                     - self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
@@ -197,24 +187,35 @@ impl ProblemFunctions for Chemotaxis {
             PHI_I => {
                 self.r * problem.var(PHI_I, cell) * (1.0 - problem.var(PHI_I, cell))
                     - self.m * problem.var(PHI_I, cell)
-            },
+            }
             PHI_M => {
                 self.m * problem.var(PHI_I, cell)
-                    - c_0_over_phi_i_max * self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
+                    - c_0_over_phi_i_max
+                        * self.alpha_2
+                        * problem.var(C_U, cell)
+                        * problem.var(PHI_M, cell)
                     + self.beta_2 * problem.var(PHI_C_U, cell)
-                    - c_0_over_phi_i_max * self.alpha_4 * problem.var(C_B, cell) * problem.var(PHI_M, cell)
+                    - c_0_over_phi_i_max
+                        * self.alpha_4
+                        * problem.var(C_B, cell)
+                        * problem.var(PHI_M, cell)
                     + self.beta_4 * problem.var(PHI_C_B, cell)
-            },
+            }
             PHI_C_U => {
-                c_0_over_phi_i_max * self.alpha_2 * problem.var(C_U, cell) * problem.var(PHI_M, cell)
+                c_0_over_phi_i_max
+                    * self.alpha_2
+                    * problem.var(C_U, cell)
+                    * problem.var(PHI_M, cell)
                     - self.beta_2 * problem.var(PHI_C_U, cell)
                     - self.alpha_3 * problem.var(PHI_C_U, cell)
                     + self.beta_3 * problem.var(PHI_C_B, cell)
             }
             PHI_C_B => {
-                self.alpha_3 * problem.var(PHI_C_U, cell)
-                    - self.beta_3 * problem.var(PHI_C_B, cell)
-                    + c_0_over_phi_i_max * self.alpha_4 * problem.var(C_B, cell) * problem.var(PHI_M, cell)
+                self.alpha_3 * problem.var(PHI_C_U, cell) - self.beta_3 * problem.var(PHI_C_B, cell)
+                    + c_0_over_phi_i_max
+                        * self.alpha_4
+                        * problem.var(C_B, cell)
+                        * problem.var(PHI_M, cell)
                     - self.beta_4 * problem.var(PHI_C_B, cell)
             }
         }
@@ -228,7 +229,12 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => {
-                let flux = -self.j_phi_c_b_left * problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), Cell(1), Face::West);
+                let flux = -self.j_phi_c_b_left
+                    * problem.var_point_value_at_face_for_dirichlet_bcs(
+                        PHI_C_B.into(),
+                        Cell(1),
+                        Face::West,
+                    );
                 BoundaryCondition::Flux(flux)
             }
         }
@@ -246,8 +252,7 @@ impl ProblemFunctions for Chemotaxis {
     }
 }
 
-fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
-{
+fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
@@ -264,11 +269,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>)
 
 #[allow(dead_code)]
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
-    problem.functions.m = if problem.time < 3.5 {
-        2.0
-    } else {
-        7.0
-    };
+    problem.functions.m = if problem.time < 3.5 { 2.0 } else { 7.0 };
 }
 
 fn main() -> Result<()> {
@@ -310,7 +311,8 @@ fn main() -> Result<()> {
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+            let file =
+                fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;

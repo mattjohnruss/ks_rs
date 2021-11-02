@@ -98,8 +98,9 @@ impl<K: Kernel> DensityEsimator<K> {
         for &d in &self.data {
             // A factor of `h` appears from changing integration variables and this
             // cancels with the factor of `1/h`.
-            sum += dx_recip * n_recip *
-                (self.k.integral(h_recip * (x_max - d)) - self.k.integral(h_recip * (x_min - d)));
+            sum += dx_recip
+                * n_recip
+                * (self.k.integral(h_recip * (x_max - d)) - self.k.integral(h_recip * (x_min - d)));
         }
         sum
     }

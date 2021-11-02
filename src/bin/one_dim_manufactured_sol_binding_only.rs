@@ -1,14 +1,13 @@
-use ks_rs::adr::one_dim::{BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable};
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
+use ks_rs::adr::one_dim::{
+    BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable,
 };
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -57,7 +56,12 @@ impl ProblemFunctions for BindingOnly {
         }
     }
 
-    fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
+    fn velocity_p_at_midpoint(
+        &self,
+        _problem: &Problem1D<Self>,
+        var: Variable,
+        _cell: Cell,
+    ) -> f64 {
         match var.into() {
             C_U => self.pe,
             C_B => 0.0,
@@ -67,12 +71,11 @@ impl ProblemFunctions for BindingOnly {
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var.into() {
             C_U => {
-                - self.alpha_plus * problem.var(C_U, cell)
+                -self.alpha_plus * problem.var(C_U, cell)
                     + self.alpha_minus * problem.var(C_B, cell)
             }
             C_B => {
-                self.alpha_plus * problem.var(C_U, cell)
-                    - self.alpha_minus * problem.var(C_B, cell)
+                self.alpha_plus * problem.var(C_U, cell) - self.alpha_minus * problem.var(C_B, cell)
             }
         }
     }
@@ -80,11 +83,9 @@ impl ProblemFunctions for BindingOnly {
     fn forcing(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var.into() {
             C_U => {
-                - self.pe + self.alpha_plus - (self.alpha_plus + self.alpha_minus) * problem.x(cell)
+                -self.pe + self.alpha_plus - (self.alpha_plus + self.alpha_minus) * problem.x(cell)
             }
-            C_B => {
-                - self.alpha_plus + (self.alpha_plus + self.alpha_minus) * problem.x(cell)
-            }
+            C_B => -self.alpha_plus + (self.alpha_plus + self.alpha_minus) * problem.x(cell),
         }
     }
 
@@ -102,7 +103,6 @@ impl ProblemFunctions for BindingOnly {
         }
     }
 }
-
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "chemotaxis", rename_all = "verbatim")]

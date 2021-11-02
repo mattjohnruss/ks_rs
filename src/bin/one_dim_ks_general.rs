@@ -1,16 +1,7 @@
-use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-    Variable,
-    Cell,
-};
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
-};
+use ks_rs::adr::one_dim::{Cell, DomainParams, Problem1D, ProblemFunctions, Variable};
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 use std::fs;
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -49,15 +40,21 @@ impl ProblemFunctions for KellerSegel {
 
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var {
-            Self::RHO => self.r * problem.var(Self::RHO, cell) * (1.0 - problem.var(Self::RHO, cell)),
-            Self::C => self.gamma_rho * problem.var(Self::RHO, cell) - self.gamma_c * problem.var(Self::C, cell),
+            Self::RHO => {
+                self.r * problem.var(Self::RHO, cell) * (1.0 - problem.var(Self::RHO, cell))
+            }
+            Self::C => {
+                self.gamma_rho * problem.var(Self::RHO, cell)
+                    - self.gamma_c * problem.var(Self::C, cell)
+            }
             _ => panic!("Invalid variable number"),
         }
     }
 }
 
 fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
-    where F: ProblemFunctions
+where
+    F: ProblemFunctions,
 {
     // ICs: uniform for rho, perturbed for c
     use rand::distributions::Uniform;
@@ -75,7 +72,10 @@ fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
 }
 
 fn main() -> Result<()> {
-    let domain = DomainParams { n_cell: 501, width: 25.0 };
+    let domain = DomainParams {
+        n_cell: 501,
+        width: 25.0,
+    };
 
     // Use the parameters from the Painter and Hillen paper
     let ks = KellerSegel {

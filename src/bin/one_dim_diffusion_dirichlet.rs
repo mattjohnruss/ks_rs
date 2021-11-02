@@ -1,11 +1,5 @@
 use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-    Variable,
-    Cell,
-    BoundaryCondition,
-    Face,
+    BoundaryCondition, Cell, DomainParams, Face, Problem1D, ProblemFunctions, Variable,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
@@ -13,7 +7,7 @@ use ks_rs::timestepping::{
     SspRungeKutta33,
 };
 use std::fs;
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -26,7 +20,12 @@ impl DiffusionDirichlet {
 }
 
 impl ProblemFunctions for DiffusionDirichlet {
-    fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+    fn velocity_p_at_midpoint(
+        &self,
+        _problem: &Problem1D<Self>,
+        _var: Variable,
+        _cell: Cell,
+    ) -> f64 {
         1.0
     }
 
@@ -48,7 +47,8 @@ impl ProblemFunctions for DiffusionDirichlet {
 }
 
 fn set_initial_conditions<F>(problem: &mut Problem1D<F>)
-    where F: ProblemFunctions
+where
+    F: ProblemFunctions,
 {
     //*problem.var_mut(DiffusionDirichlet::C, Cell(1)) = 1.0;
 
@@ -64,16 +64,24 @@ fn trace_header<W: Write>(buffer: &mut W) -> std::io::Result<()> {
 }
 
 fn trace<F, W>(problem: &Problem1D<F>, buffer: &mut W) -> std::io::Result<()>
-    where F: ProblemFunctions,
-          W: Write
+where
+    F: ProblemFunctions,
+    W: Write,
 {
     let left_val = problem.var_point_value_at_face(DiffusionDirichlet::C, Cell(1), Face::West);
-    let right_val = problem.var_point_value_at_face(DiffusionDirichlet::C, Cell(problem.domain.n_cell), Face::East);
+    let right_val = problem.var_point_value_at_face(
+        DiffusionDirichlet::C,
+        Cell(problem.domain.n_cell),
+        Face::East,
+    );
     buffer.write_all(format!("{} {} {}\n", problem.time, left_val, right_val).as_bytes())
 }
 
 fn main() -> Result<()> {
-    let domain = DomainParams { n_cell: 101, width: 1.0 };
+    let domain = DomainParams {
+        n_cell: 101,
+        width: 1.0,
+    };
 
     let diffusion_dirichlet = DiffusionDirichlet {};
 
@@ -90,7 +98,8 @@ fn main() -> Result<()> {
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
-    let cell_averages_file = fs::File::create(dir_path.join(format!("output_averages_{:05}.csv", 0)))?;
+    let cell_averages_file =
+        fs::File::create(dir_path.join(format!("output_averages_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     let mut cell_averages_buf_writer = BufWriter::new(cell_averages_file);
     problem.output(&mut buf_writer)?;
@@ -113,8 +122,11 @@ fn main() -> Result<()> {
         ssp_rk33.step(&mut problem, dt);
 
         if i % output_interval == 0 {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
-            let cell_averages_file = fs::File::create(dir_path.join(format!("output_averages_{:05}.csv", i / output_interval)))?;
+            let file =
+                fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+            let cell_averages_file = fs::File::create(
+                dir_path.join(format!("output_averages_{:05}.csv", i / output_interval)),
+            )?;
             let mut buf_writer = BufWriter::new(file);
             let mut cell_averages_buf_writer = BufWriter::new(cell_averages_file);
             println!("Outputting at time = {}, i = {}", problem.time, i);

@@ -1,21 +1,16 @@
 use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    ProblemFunctions,
-    Variable,
-    Cell,
-    BoundaryCondition,
+    BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable,
 };
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
     SspRungeKutta33,
     //RungeKutta44,
 };
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -100,7 +95,12 @@ impl ProblemFunctions for BindingFluctuatingBCs {
         }
     }
 
-    fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
+    fn velocity_p_at_midpoint(
+        &self,
+        _problem: &Problem1D<Self>,
+        var: Variable,
+        _cell: Cell,
+    ) -> f64 {
         match var.into() {
             C_U => self.pe,
             C_B => 0.0,
@@ -110,7 +110,7 @@ impl ProblemFunctions for BindingFluctuatingBCs {
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         let beta = self.alpha / self.k;
         match var.into() {
-            C_U => - self.alpha * problem.var(C_U, cell) + beta * problem.var(C_B, cell),
+            C_U => -self.alpha * problem.var(C_U, cell) + beta * problem.var(C_B, cell),
             C_B => self.alpha * problem.var(C_U, cell) - beta * problem.var(C_B, cell),
         }
     }
@@ -153,9 +153,13 @@ fn trace(problem: &Problem1D<BindingFluctuatingBCs>, mut trace_writer: impl Writ
     let c_b_total = problem.integrate_solution(C_B);
 
     if let BoundaryCondition::Dirichlet(c_u_0) = problem.functions.left_bc(problem, C_U.into()) {
-        writeln!(&mut trace_writer, "{:.6e} {:.8e} {:.8e} {:.6e}", problem.time, c_u_total, c_b_total, c_u_0)?;
+        writeln!(
+            &mut trace_writer,
+            "{:.6e} {:.8e} {:.8e} {:.6e}",
+            problem.time, c_u_total, c_b_total, c_u_0
+        )?;
     } else {
-        return Err("No Dirichlet condition for C_U - shouldn't happen.".into())
+        return Err("No Dirichlet condition for C_U - shouldn't happen.".into());
     }
 
     Ok(())
@@ -182,7 +186,11 @@ fn main() -> Result<()> {
 
     let domain = DomainParams { n_cell, width: 1.0 };
 
-    let mut problem = Problem1D::new(BindingFluctuatingBCsVariable::N_VARIABLE, domain, binding_pulsating_bcs);
+    let mut problem = Problem1D::new(
+        BindingFluctuatingBCsVariable::N_VARIABLE,
+        domain,
+        binding_pulsating_bcs,
+    );
     problem.set_variable_names(&["$C_u$", "$C_b$"])?;
 
     set_initial_conditions(&mut problem);
@@ -209,8 +217,7 @@ fn main() -> Result<()> {
     let mut i = 1;
     let mut outputs = 1;
 
-    let t_max_cycles_plus_five =
-        problem.functions.t_p * (problem.functions.n_p + 5) as f64;
+    let t_max_cycles_plus_five = problem.functions.t_p * (problem.functions.n_p + 5) as f64;
 
     let output_time_interval = problem.functions.t_p / outputs_per_cycle as f64;
 

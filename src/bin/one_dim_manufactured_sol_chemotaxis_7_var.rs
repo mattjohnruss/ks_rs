@@ -1,16 +1,9 @@
-use ks_rs::adr::one_dim::{
-    DomainParams,
-    Problem1D,
-    Variable,
-};
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
-};
+use ks_rs::adr::one_dim::{DomainParams, Problem1D, Variable};
 use ks_rs::models::chemotaxis_7_var::*;
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -76,13 +69,50 @@ fn update_params(problem: &mut Problem1D<Chemotaxis>) {
 
 fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
     match var.into() {
-        C_U => - p.pe + p.alpha_plus + p.n_ccr7 * p.beta_plus - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * (x - 1.0) * (p.q_u + p.gamma_ui) + p.gamma_um - x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_um) - p.phi_bar_over_c_bar * p.n_ccr7 * p.beta_minus,
-        C_B => - p.alpha_plus + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x.powi(3) * (p.q_b + p.gamma_bi) + x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_bm) + p.phi_bar_over_c_bar * p.n_ccr7 * p.beta_plus * (- p.d_phi_c_b / p.j_phi_c_b_bar + 0.5 * x * x - x),
-        C_S => 2.0 * p.d_c_s + p.pe * (1.0 - 2.0 * x) - x * p.gamma_bm + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * (p.q_s * x * (x - 1.0) - p.gamma_bi * x + p.gamma_ui * (x - 1.0)) + p.gamma_um * (x - 1.0),
-        PHI_I => - p.j_phi_i_bar + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * p.m,
-        PHI_M => p.beta_minus * (- 1.0 - (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0)) - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * p.m * x * x + p.phi_bar_over_c_bar.recip() * p.beta_plus,
-        PHI_C_U => p.alpha_minus * (- (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0)) + p.alpha_plus + p.beta_minus + p.phi_bar_over_c_bar.recip() * p.beta_plus * (x - 1.0),
-        PHI_C_B => - p.alpha_plus - (p.alpha_minus + p.beta_minus) * x * (0.5 * x - 1.0) + p.d_phi_c_b + (p.d_phi_c_b / p.j_phi_c_b_bar) * (p.alpha_minus + p.beta_minus) - p.phi_bar_over_c_bar.recip() * p.beta_plus * x + p.chi_b * (1.0 - x),
+        C_U => {
+            -p.pe + p.alpha_plus + p.n_ccr7 * p.beta_plus
+                - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * (x - 1.0) * (p.q_u + p.gamma_ui)
+                + p.gamma_um
+                - x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_um)
+                - p.phi_bar_over_c_bar * p.n_ccr7 * p.beta_minus
+        }
+        C_B => {
+            -p.alpha_plus
+                + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x.powi(3) * (p.q_b + p.gamma_bi)
+                + x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_bm)
+                + p.phi_bar_over_c_bar
+                    * p.n_ccr7
+                    * p.beta_plus
+                    * (-p.d_phi_c_b / p.j_phi_c_b_bar + 0.5 * x * x - x)
+        }
+        C_S => {
+            2.0 * p.d_c_s + p.pe * (1.0 - 2.0 * x) - x * p.gamma_bm
+                + 0.5
+                    * (p.j_phi_i_bar / p.d_phi_i)
+                    * x
+                    * x
+                    * (p.q_s * x * (x - 1.0) - p.gamma_bi * x + p.gamma_ui * (x - 1.0))
+                + p.gamma_um * (x - 1.0)
+        }
+        PHI_I => -p.j_phi_i_bar + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * p.m,
+        PHI_M => {
+            p.beta_minus * (-1.0 - (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0))
+                - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * p.m * x * x
+                + p.phi_bar_over_c_bar.recip() * p.beta_plus
+        }
+        PHI_C_U => {
+            p.alpha_minus * (-(p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0))
+                + p.alpha_plus
+                + p.beta_minus
+                + p.phi_bar_over_c_bar.recip() * p.beta_plus * (x - 1.0)
+        }
+        PHI_C_B => {
+            -p.alpha_plus - (p.alpha_minus + p.beta_minus) * x * (0.5 * x - 1.0)
+                + p.d_phi_c_b
+                + (p.d_phi_c_b / p.j_phi_c_b_bar) * (p.alpha_minus + p.beta_minus)
+                - p.phi_bar_over_c_bar.recip() * p.beta_plus * x
+                + p.chi_b * (1.0 - x)
+        }
     }
 }
 
@@ -120,7 +150,15 @@ fn main() -> Result<()> {
     let domain = DomainParams { n_cell, width: 1.0 };
 
     let mut problem = Problem1D::new(ChemotaxisVariable::N_VARIABLE, domain, chemotaxis);
-    problem.set_variable_names(&["$C_u$", "$C_b$", "$C_s$", "$\\\\phi_i$", "$\\\\phi_m$", "$\\\\phi_{C_u}$", "$\\\\phi_{C_b}$"])?;
+    problem.set_variable_names(&[
+        "$C_u$",
+        "$C_b$",
+        "$C_s$",
+        "$\\\\phi_i$",
+        "$\\\\phi_m$",
+        "$\\\\phi_{C_u}$",
+        "$\\\\phi_{C_b}$",
+    ])?;
 
     update_params(&mut problem);
     set_initial_conditions(&mut problem);
@@ -139,7 +177,9 @@ fn main() -> Result<()> {
     // output exact ICs
     let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
-    problem.output_fn(&mut buf_writer, |var, x, time| exact_solution(var, x, time, &problem.functions.p) )?;
+    problem.output_fn(&mut buf_writer, |var, x, time| {
+        exact_solution(var, x, time, &problem.functions.p)
+    })?;
     buf_writer.flush()?;
 
     let mut i = 1;
@@ -161,7 +201,9 @@ fn main() -> Result<()> {
             // output exact solution
             let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", outputs)))?;
             let mut buf_writer = BufWriter::new(file);
-            problem.output_fn(&mut buf_writer, |var, x, time| exact_solution(var, x, time, &problem.functions.p) )?;
+            problem.output_fn(&mut buf_writer, |var, x, time| {
+                exact_solution(var, x, time, &problem.functions.p)
+            })?;
             buf_writer.flush()?;
 
             outputs += 1;

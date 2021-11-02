@@ -84,7 +84,7 @@ fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     problem.functions.p.m = (1.0 - i_s) * problem.functions.p.m_h + i_s * problem.functions.p.m_i;
     //problem.functions.p.j_phi_c_b_bar =
-        //(1.0 - i_s) * problem.functions.p.j_phi_c_b_bar_h + i_s * problem.functions.p.j_phi_c_b_bar_i;
+    //(1.0 - i_s) * problem.functions.p.j_phi_c_b_bar_h + i_s * problem.functions.p.j_phi_c_b_bar_i;
     problem.functions.p.j_phi_i_bar =
         (1.0 - i_s) * problem.functions.p.j_phi_i_bar_h + i_s * problem.functions.p.j_phi_i_bar_i;
 }

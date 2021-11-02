@@ -1,9 +1,9 @@
-use crate::stencil::{Stencil, first_order, second_order};
-use crate::utilities::minmod;
+use crate::stencil::{first_order, second_order, Stencil};
 use crate::timestepping::ExplicitTimeSteppable;
+use crate::utilities::minmod;
+use crate::utilities::IterMinMax;
 use ndarray::prelude::*;
 use std::io::prelude::*;
-use crate::utilities::IterMinMax;
 
 /// Wrapper type for variable numbers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,7 +65,12 @@ pub trait ProblemFunctions: Sized {
     }
 
     /// Advection velocity at the `East` face of the given cell. Defaults to zero.
-    fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, _var: Variable, _cell: Cell) -> f64 {
+    fn velocity_p_at_midpoint(
+        &self,
+        _problem: &Problem1D<Self>,
+        _var: Variable,
+        _cell: Cell,
+    ) -> f64 {
         0.0
     }
 
@@ -102,7 +107,7 @@ pub trait ProblemFunctions: Sized {
 #[derive(Copy, Clone)]
 pub struct DiffusionZeroFluxBcs;
 
-impl ProblemFunctions for DiffusionZeroFluxBcs { }
+impl ProblemFunctions for DiffusionZeroFluxBcs {}
 
 /// The main problem type
 #[derive(Clone)]
@@ -119,13 +124,12 @@ pub struct Problem1D<F> {
 }
 
 impl<F> Problem1D<F>
-    where F: ProblemFunctions 
+where
+    F: ProblemFunctions,
 {
     /// Create a new `Problem1D` with the given number of variables and cells
     pub fn new(n_variable: usize, domain: DomainParams, functions: F) -> Self {
-        let variable_names = (0..n_variable)
-            .map(|i| format!("var_{}", i))
-            .collect();
+        let variable_names = (0..n_variable).map(|i| format!("var_{}", i)).collect();
 
         let n_dof = n_variable * domain.n_cell;
 
@@ -154,7 +158,11 @@ impl<F> Problem1D<F>
     }
 
     /// Generic function that outputs the data produced by the closure `f` to the given writer
-    fn output_data(&self, buffer: &mut impl Write, f: impl Fn(Variable, f64, Cell, Face) -> f64) -> std::io::Result<()> {
+    fn output_data(
+        &self,
+        buffer: &mut impl Write,
+        f: impl Fn(Variable, f64, Cell, Face) -> f64,
+    ) -> std::io::Result<()> {
         let time = self.time;
 
         for cell in self.interior_cells() {
@@ -187,7 +195,9 @@ impl<F> Problem1D<F>
 
     /// Output the values at face boundaries to the given writer
     fn output_face_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        self.output_data(buffer, |var, _x, cell, face| self.var_point_value_at_face(var, cell, face))
+        self.output_data(buffer, |var, _x, cell, face| {
+            self.var_point_value_at_face(var, cell, face)
+        })
     }
 
     /// Output the cell averages to the given writer
@@ -196,7 +206,11 @@ impl<F> Problem1D<F>
     }
 
     /// Output the result of a function to the given writer
-    fn output_fn_data(&self, buffer: &mut impl Write, f: impl Fn(Variable, f64, f64) -> f64) -> std::io::Result<()> {
+    fn output_fn_data(
+        &self,
+        buffer: &mut impl Write,
+        f: impl Fn(Variable, f64, f64) -> f64,
+    ) -> std::io::Result<()> {
         self.output_data(buffer, |var, x, _cell, _face| f(var, x, self.time))
     }
 
@@ -215,7 +229,11 @@ impl<F> Problem1D<F>
     }
 
     /// Output the result of a function to the given writer
-    pub fn output_fn(&self, buffer: &mut impl Write, f: impl Fn(Variable, f64, f64) -> f64) -> std::io::Result<()> {
+    pub fn output_fn(
+        &self,
+        buffer: &mut impl Write,
+        f: impl Fn(Variable, f64, f64) -> f64,
+    ) -> std::io::Result<()> {
         self.output_header(buffer)?;
         self.output_fn_data(buffer, f)?;
         Ok(())
@@ -245,10 +263,13 @@ impl<F> Problem1D<F>
             self.variable_names = names.iter().map(|&s| String::from(s)).collect();
             Ok(())
         } else {
-            Err(format!("{} variable names given, but there are {} variables", n, self.n_variable))
+            Err(format!(
+                "{} variable names given, but there are {} variables",
+                n, self.n_variable
+            ))
         }
     }
-    
+
     /// Get the x-coordinate of the centre of the given cell
     pub fn x(&self, cell: Cell) -> f64 {
         (cell.0 as f64 - 0.5) * self.dx
@@ -268,28 +289,16 @@ impl<F> Problem1D<F>
 
         #[cfg(feature = "experimental_optimisations")]
         match idx {
-            idx if idx == 0 => {
-                unsafe { *self.ghost_data.uget((var.0, 0)) }
-            },
-            idx if idx == self.domain.n_cell + 1 => {
-                unsafe { *self.ghost_data.uget((var.0, 1)) }
-            },
-            _ => {
-                unsafe { *self.data.uget((var.0, idx - 1)) }
-            },
+            idx if idx == 0 => unsafe { *self.ghost_data.uget((var.0, 0)) },
+            idx if idx == self.domain.n_cell + 1 => unsafe { *self.ghost_data.uget((var.0, 1)) },
+            _ => unsafe { *self.data.uget((var.0, idx - 1)) },
         }
 
         #[cfg(not(feature = "experimental_optimisations"))]
         match idx {
-            idx if idx == 0 => {
-                self.ghost_data[(var.0, 0)]
-            },
-            idx if idx == self.domain.n_cell + 1 => {
-                self.ghost_data[(var.0, 1)]
-            },
-            _ => {
-                self.data[(var.0, idx - 1)]
-            },
+            idx if idx == 0 => self.ghost_data[(var.0, 0)],
+            idx if idx == self.domain.n_cell + 1 => self.ghost_data[(var.0, 1)],
+            _ => self.data[(var.0, idx - 1)],
         }
     }
 
@@ -366,13 +375,15 @@ impl<F> Problem1D<F>
     fn flux_p(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
-        self.var_point_value_x_p(var, cell) * velocity_p - self.functions.diffusivity(self, var, cell) * dvar_dx_p
+        self.var_point_value_x_p(var, cell) * velocity_p
+            - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
     fn flux_m(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        self.var_point_value_x_m(var, cell) * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
+        self.var_point_value_x_m(var, cell) * velocity_m
+            - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
 
     // Flux functions for Dirichlet boundary conditions. These don't upwind the point values,
@@ -382,21 +393,21 @@ impl<F> Problem1D<F>
         let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::East);
-        var_point_value_at_face * velocity_p - self.functions.diffusivity(self, var, cell) * dvar_dx_p
+        var_point_value_at_face * velocity_p
+            - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
     fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
-        var_point_value_at_face * velocity_m - self.functions.diffusivity(self, var, cell) * dvar_dx_m
+        var_point_value_at_face * velocity_m
+            - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
 
     #[inline]
     pub fn dvar_dx_p_at_midpoint(&self, var: Variable, cell: Cell) -> f64 {
-        first_order::Forward1::apply(cell.0, |i| {
-            self.var(var, Cell(i)) / self.dx
-        })
+        first_order::Forward1::apply(cell.0, |i| self.var(var, Cell(i)) / self.dx)
     }
 
     #[inline]
@@ -432,10 +443,14 @@ impl<F> Problem1D<F>
 
         #[cfg(feature = "experimental_fixes")]
         if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
+            || (cell == Cell(self.domain.n_cell)
+                && self.functions.right_bc(self, var).is_dirichlet())
+        {
             value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
         } else if (cell == Cell(1) && !self.functions.left_bc(self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell) && !self.functions.right_bc(self, var).is_dirichlet()) {
+            || (cell == Cell(self.domain.n_cell)
+                && !self.functions.right_bc(self, var).is_dirichlet())
+        {
             // If we're at a boundary that doesn't have dirichlet BCs, use double the computed
             // gradient as described in the comment in `update_ghost_cells()`
             value + sign * 1.0 * self.dvar_limited(var, cell)
@@ -445,7 +460,9 @@ impl<F> Problem1D<F>
 
         #[cfg(not(feature = "experimental_fixes"))]
         if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell) && self.functions.right_bc(self, var).is_dirichlet()) {
+            || (cell == Cell(self.domain.n_cell)
+                && self.functions.right_bc(self, var).is_dirichlet())
+        {
             value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
@@ -457,8 +474,16 @@ impl<F> Problem1D<F>
     // are applied at that boundary. This separate function is needed so that Dirichlet BCs
     // themselves can depend on values at the boundary without causing infinite function recursion.
     #[inline]
-    pub fn var_point_value_at_face_for_dirichlet_bcs(&self, var: Variable, cell: Cell, face: Face) -> f64 {
-        debug_assert!(cell == Cell(1) || cell == Cell(self.domain.n_cell), "Should only be called on the first or last cell");
+    pub fn var_point_value_at_face_for_dirichlet_bcs(
+        &self,
+        var: Variable,
+        cell: Cell,
+        face: Face,
+    ) -> f64 {
+        debug_assert!(
+            cell == Cell(1) || cell == Cell(self.domain.n_cell),
+            "Should only be called on the first or last cell"
+        );
 
         let value = self.var(var, cell);
         let sign = match face {
@@ -471,9 +496,7 @@ impl<F> Problem1D<F>
     // We omit the 1/dx factor on the returned value here since it cancels the dx in
     // var_point_value_at_face (also omitted there, the only place this function is called from).
     fn dvar_limited(&self, var: Variable, cell: Cell) -> f64 {
-        let dvar_central = second_order::Central1::apply(cell.0, |i| {
-            self.var(var, Cell(i))
-        });
+        let dvar_central = second_order::Central1::apply(cell.0, |i| self.var(var, Cell(i)));
 
         let test_p = self.var(var, cell) + 0.5 * dvar_central;
         let test_m = self.var(var, cell) - 0.5 * dvar_central;
@@ -481,28 +504,18 @@ impl<F> Problem1D<F>
         if test_p >= 0.0 && test_m >= 0.0 {
             dvar_central
         } else {
-            let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
-                self.var(var, Cell(i))
-            });
+            let dvar_forward = first_order::Forward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
-            let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
-                self.var(var, Cell(i))
-            });
+            let dvar_backward = first_order::Backward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
-            minmod(&[
-                   2.0 * dvar_forward,
-                   dvar_central,
-                   2.0 * dvar_backward,
-            ])
+            minmod(&[2.0 * dvar_forward, dvar_central, 2.0 * dvar_backward])
         }
     }
 
     // We omit the 1/dx factor on the returned value here since it cancels the dx in
     // var_point_value_at_face* (also omitted there, the only places this function is called from).
     fn dvar_limited_for_dirichlet_bcs(&self, var: Variable, cell: Cell) -> f64 {
-        let dvar_central = second_order::Central1::apply(cell.0, |i| {
-            self.var(var, Cell(i))
-        });
+        let dvar_central = second_order::Central1::apply(cell.0, |i| self.var(var, Cell(i)));
 
         let test_p = self.var(var, cell) + 0.5 * dvar_central;
         let test_m = self.var(var, cell) - 0.5 * dvar_central;
@@ -512,9 +525,8 @@ impl<F> Problem1D<F>
         } else {
             match cell {
                 cell if cell == Cell(1) => {
-                    let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
-                        self.var(var, Cell(i))
-                    });
+                    let dvar_backward =
+                        first_order::Backward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
                     if dvar_central > 0.0 && 2.0 * dvar_backward > 0.0 {
                         (dvar_central).min(2.0 * dvar_backward)
@@ -525,9 +537,8 @@ impl<F> Problem1D<F>
                     }
                 }
                 cell if cell == Cell(self.domain.n_cell) => {
-                    let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
-                        self.var(var, Cell(i))
-                    });
+                    let dvar_forward =
+                        first_order::Forward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
                     if 2.0 * dvar_forward > 0.0 && dvar_central > 0.0 {
                         (2.0 * dvar_forward).min(dvar_central)
@@ -537,7 +548,7 @@ impl<F> Problem1D<F>
                         0.0
                     }
                 }
-                _ => panic!("Should only be called on the first or last cell")
+                _ => panic!("Should only be called on the first or last cell"),
             }
         }
     }
@@ -548,7 +559,7 @@ impl<F> Problem1D<F>
         &self,
         var: Variable,
         cell: Cell,
-        dirichlet_value: f64
+        dirichlet_value: f64,
     ) -> Option<f64> {
         let dvar_central = 0.5 * (self.var(var, cell.right()) - self.var(var, cell.left()));
 
@@ -563,20 +574,20 @@ impl<F> Problem1D<F>
                 cell if cell == Cell(self.domain.n_cell) => {
                     4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
                 }
-                _ => panic!("Should only be called on the first or last cell")
+                _ => panic!("Should only be called on the first or last cell"),
             })
         } else {
             match cell {
                 cell if cell == Cell(1) => {
-                    let dvar_backward = first_order::Backward1::apply(cell.0, |i| {
-                        self.var(var, Cell(i))
-                    });
+                    let dvar_backward =
+                        first_order::Backward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
                     if dvar_central > 0.0 && 2.0 * dvar_backward > 0.0 {
                         // if both are positive, use the smallest
                         Some(if dvar_central < 2.0 * dvar_backward {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
+                            4.0 * (dirichlet_value - self.var(var, cell))
+                                + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
                             dirichlet_value
@@ -585,7 +596,8 @@ impl<F> Problem1D<F>
                         // if both are negative, use the largest (smallest in magnitude)
                         Some(if dvar_central > 2.0 * dvar_backward {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.right())
+                            4.0 * (dirichlet_value - self.var(var, cell))
+                                + self.var(var, cell.right())
                         } else {
                             // use 2.0 * dvar_backward
                             dirichlet_value
@@ -596,9 +608,8 @@ impl<F> Problem1D<F>
                     }
                 }
                 cell if cell == Cell(self.domain.n_cell) => {
-                    let dvar_forward = first_order::Forward1::apply(cell.0, |i| {
-                        self.var(var, Cell(i))
-                    });
+                    let dvar_forward =
+                        first_order::Forward1::apply(cell.0, |i| self.var(var, Cell(i)));
 
                     if 2.0 * dvar_forward > 0.0 && dvar_central > 0.0 {
                         // if both are positive, use the smallest
@@ -607,7 +618,8 @@ impl<F> Problem1D<F>
                             dirichlet_value
                         } else {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                            4.0 * (dirichlet_value - self.var(var, cell))
+                                + self.var(var, cell.left())
                         })
                     } else if 2.0 * dvar_forward < 0.0 && dvar_central < 0.0 {
                         // else if both are negative, use the largest (smallest in magnitude)
@@ -616,14 +628,15 @@ impl<F> Problem1D<F>
                             dirichlet_value
                         } else {
                             // use dvar_central
-                            4.0 * (dirichlet_value - self.var(var, cell)) + self.var(var, cell.left())
+                            4.0 * (dirichlet_value - self.var(var, cell))
+                                + self.var(var, cell.left())
                         })
                     } else {
                         // else they have different signs so use gradient 0.0
                         None
                     }
                 }
-                _ => panic!("Should only be called on the first or last cell")
+                _ => panic!("Should only be called on the first or last cell"),
             }
         }
     }
@@ -662,7 +675,8 @@ impl<F> Problem1D<F>
                     //*self.var_mut(var, Cell(0)) = self.var(var, Cell(1)) - self.dvar_limited(var, Cell(1));
                 }
                 BoundaryCondition::Dirichlet(dirichlet_value) => {
-                    let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(1), dirichlet_value);
+                    let ghost_cell_value =
+                        self.ghost_cell_value_for_dirichlet_bc(var, Cell(1), dirichlet_value);
                     match ghost_cell_value {
                         Some(ghost_cell_value) => *self.var_mut(var, Cell(0)) = ghost_cell_value,
                         None => *self.var_mut(var, Cell(1)) = dirichlet_value,
@@ -680,9 +694,15 @@ impl<F> Problem1D<F>
                     //*self.var_mut(var, Cell(self.domain.n_cell + 1)) = self.var(var, Cell(self.domain.n_cell)) + self.dvar_limited(var, Cell(self.domain.n_cell));
                 }
                 BoundaryCondition::Dirichlet(dirichlet_value) => {
-                    let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(var, Cell(self.domain.n_cell), dirichlet_value);
+                    let ghost_cell_value = self.ghost_cell_value_for_dirichlet_bc(
+                        var,
+                        Cell(self.domain.n_cell),
+                        dirichlet_value,
+                    );
                     match ghost_cell_value {
-                        Some(ghost_cell_value) => *self.var_mut(var, Cell(self.domain.n_cell + 1)) = ghost_cell_value,
+                        Some(ghost_cell_value) => {
+                            *self.var_mut(var, Cell(self.domain.n_cell + 1)) = ghost_cell_value
+                        }
                         None => *self.var_mut(var, Cell(self.domain.n_cell)) = dirichlet_value,
                     }
                 }
@@ -690,7 +710,7 @@ impl<F> Problem1D<F>
         }
     }
 
-    pub fn interior_cells(&self) -> impl Iterator<Item=Cell> {
+    pub fn interior_cells(&self) -> impl Iterator<Item = Cell> {
         (0..self.domain.n_cell).map(|i| Cell(i + 1))
     }
 
@@ -760,7 +780,8 @@ impl<F> Problem1D<F>
 }
 
 impl<F> ExplicitTimeSteppable for Problem1D<F>
-    where F: ProblemFunctions
+where
+    F: ProblemFunctions,
 {
     fn time(&self) -> f64 {
         self.time
@@ -780,7 +801,9 @@ impl<F> ExplicitTimeSteppable for Problem1D<F>
     }
 
     fn rhs(&self, buffer: ArrayViewMut1<f64>) {
-        let mut buffer = buffer.into_shape((self.n_variable, self.domain.n_cell)).unwrap();
+        let mut buffer = buffer
+            .into_shape((self.n_variable, self.domain.n_cell))
+            .unwrap();
 
         (0..self.n_variable).for_each(|var| {
             self.interior_cells().for_each(|cell| {
@@ -808,8 +831,11 @@ mod tests {
     fn headers() {
         use std::io::BufWriter;
 
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionZeroFluxBcs { };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
+        let functions = DiffusionZeroFluxBcs {};
 
         // Zero variable edge case
         let problem = Problem1D::new(0, domain, functions);
@@ -836,15 +862,21 @@ mod tests {
             let mut header_writer = BufWriter::new(&mut header);
             problem.output_header(&mut header_writer).unwrap();
         }
-        assert_eq!(std::str::from_utf8(&header).unwrap(), "t x var_0 var_1 var_2\n");
+        assert_eq!(
+            std::str::from_utf8(&header).unwrap(),
+            "t x var_0 var_1 var_2\n"
+        );
     }
 
     #[test]
     fn variable_names() {
         use std::io::BufWriter;
 
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionZeroFluxBcs { };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
+        let functions = DiffusionZeroFluxBcs {};
 
         // Zero variable edge case
         let mut problem = Problem1D::new(0, domain, functions);
@@ -873,26 +905,38 @@ mod tests {
 
     #[test]
     fn variable_names_fail() {
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionZeroFluxBcs { };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
+        let functions = DiffusionZeroFluxBcs {};
 
         // 3 variables, 2 names
         let mut problem = Problem1D::new(3, domain, functions);
         let result = problem.set_variable_names(&["a", "b"]);
-        assert_eq!(result, Err("2 variable names given, but there are 3 variables".to_string()));
+        assert_eq!(
+            result,
+            Err("2 variable names given, but there are 3 variables".to_string())
+        );
 
         // 3 variables, 4 names
         let mut problem = Problem1D::new(3, domain, functions);
         let result = problem.set_variable_names(&["a", "b", "c", "d"]);
-        assert_eq!(result, Err("4 variable names given, but there are 3 variables".to_string()));
+        assert_eq!(
+            result,
+            Err("4 variable names given, but there are 3 variables".to_string())
+        );
     }
 
     #[test]
     fn output() {
         use std::io::BufWriter;
 
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionZeroFluxBcs { };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
+        let functions = DiffusionZeroFluxBcs {};
 
         let problem = Problem1D::new(3, domain, functions);
         let mut output = Vec::new();
@@ -907,27 +951,38 @@ mod tests {
     fn output_cell_averages() {
         use std::io::BufWriter;
 
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
-        let functions = DiffusionZeroFluxBcs { };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
+        let functions = DiffusionZeroFluxBcs {};
 
         let problem = Problem1D::new(3, domain, functions);
         let mut output = Vec::new();
         {
             let mut output_writer = BufWriter::new(&mut output);
-            problem.output_cell_average_data(&mut output_writer).unwrap();
+            problem
+                .output_cell_average_data(&mut output_writer)
+                .unwrap();
         }
         assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 0.000000e0 0.000000e0 0.000000e0 0.000000e0\n0.000000e0 1.000000e0 0.000000e0 0.000000e0 0.000000e0\n\n");
     }
 
     #[test]
     fn x_coords() {
-        let functions = DiffusionZeroFluxBcs { };
+        let functions = DiffusionZeroFluxBcs {};
 
-        let domain = DomainParams { n_cell: 1, width: 1.0 };
+        let domain = DomainParams {
+            n_cell: 1,
+            width: 1.0,
+        };
         let problem = Problem1D::new(1, domain, functions);
         assert_abs_diff_eq!(problem.x(Cell(1)), 0.5);
 
-        let domain = DomainParams { n_cell: 100, width: 8.5 };
+        let domain = DomainParams {
+            n_cell: 100,
+            width: 8.5,
+        };
         let problem = Problem1D::new(1, domain, functions);
         assert_abs_diff_eq!(problem.x(Cell(12)), 0.9775);
     }
@@ -941,8 +996,11 @@ mod tests {
 
     #[test]
     fn cells_iter() {
-        let functions = DiffusionZeroFluxBcs { };
-        let domain = DomainParams { n_cell: 10, width: 1.0 };
+        let functions = DiffusionZeroFluxBcs {};
+        let domain = DomainParams {
+            n_cell: 10,
+            width: 1.0,
+        };
         let problem = Problem1D::new(1, domain, functions);
         for (idx, cell) in (1..=10).zip(problem.interior_cells()) {
             assert_eq!(cell.0, idx);

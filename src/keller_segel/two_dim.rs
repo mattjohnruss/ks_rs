@@ -1,4 +1,4 @@
-use crate::stencil::{Stencil, first_order, second_order};
+use crate::stencil::{first_order, second_order, Stencil};
 use crate::utilities::minmod;
 use ndarray::prelude::*;
 use std::fmt;
@@ -53,10 +53,7 @@ impl ExactSolution {
 /// Cannot derive Debug on Fn
 impl fmt::Debug for ExactSolution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "ExactSolution {{ rho_bar_solution, c_solution }}"
-        )
+        write!(f, "ExactSolution {{ rho_bar_solution, c_solution }}")
     }
 }
 
@@ -149,7 +146,9 @@ impl Problem2D {
     pub fn output<W: Write>(&self, mut buffer: W) -> std::io::Result<()> {
         match &self.p.exact_solution {
             Some(exact_solution) => {
-                buffer.write_all("t x y rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes())?;
+                buffer.write_all(
+                    "t x y rho\\\\_bar c rho\\\\_bar\\\\_exact c\\\\_exact\n".as_bytes(),
+                )?;
 
                 for cell_x in 1..=self.p.n_interior_cell_1d {
                     for cell_y in 1..=self.p.n_interior_cell_1d {
@@ -185,7 +184,13 @@ impl Problem2D {
                         let c = self.u(Variable::C, cell_x, cell_y);
                         let time = self.time;
 
-                        buffer.write_all(format!("{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n", time, x, y, rho_bar, c).as_bytes())?
+                        buffer.write_all(
+                            format!(
+                                "{:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
+                                time, x, y, rho_bar, c
+                            )
+                            .as_bytes(),
+                        )?
                     }
                     buffer.write_all(b"\n")?;
                 }
@@ -245,7 +250,8 @@ impl Problem2D {
                     for cell_y in 1..=self.p.n_interior_cell_1d {
                         // Only the chemoattractant density is perturbed
                         *self.u_mut(Variable::RhoBar, cell_x, cell_y) = rho_bar_init;
-                        *self.u_mut(Variable::C, cell_x, cell_y) = c_init + thread_rng().sample(uniform);
+                        *self.u_mut(Variable::C, cell_x, cell_y) =
+                            c_init + thread_rng().sample(uniform);
                     }
                 }
             }
@@ -255,8 +261,10 @@ impl Problem2D {
                         let x = self.x(cell_x) - 0.5 * self.p.length;
                         let y = self.y(cell_y) - 0.5 * self.p.length;
 
-                        *self.u_mut(Variable::RhoBar, cell_x, cell_y) = height * (-width * (x * x + y * y)).exp();
-                        *self.u_mut(Variable::C, cell_x, cell_y) = 0.5 * height * (-0.5 * width * (x * x + y * y)).exp();
+                        *self.u_mut(Variable::RhoBar, cell_x, cell_y) =
+                            height * (-width * (x * x + y * y)).exp();
+                        *self.u_mut(Variable::C, cell_x, cell_y) =
+                            0.5 * height * (-0.5 * width * (x * x + y * y)).exp();
                     }
                 }
             }
@@ -272,8 +280,13 @@ impl Problem2D {
                             let x = self.x(cell_x);
                             let y = self.y(cell_y);
 
-                            let rho_bar = (self.p.exact_solution.as_ref().unwrap().rho_bar_solution)(self.time, x, y, &self.p);
-                            let c = (self.p.exact_solution.as_ref().unwrap().c_solution)(self.time, x, y, &self.p);
+                            let rho_bar =
+                                (self.p.exact_solution.as_ref().unwrap().rho_bar_solution)(
+                                    self.time, x, y, &self.p,
+                                );
+                            let c = (self.p.exact_solution.as_ref().unwrap().c_solution)(
+                                self.time, x, y, &self.p,
+                            );
 
                             *self.u_mut(Variable::RhoBar, cell_x, cell_y) = rho_bar;
                             *self.u_mut(Variable::C, cell_x, cell_y) = c;
@@ -332,9 +345,7 @@ impl Problem2D {
 
     /// Equation (2.4)(a)
     fn drho_dx_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
-        first_order::Forward1::apply(cell_x, |i| {
-            self.u(Variable::RhoBar, i, cell_y) / self.p.dx
-        })
+        first_order::Forward1::apply(cell_x, |i| self.u(Variable::RhoBar, i, cell_y) / self.p.dx)
     }
 
     /// Equation (2.4)(a)
@@ -344,9 +355,7 @@ impl Problem2D {
 
     /// Equation (2.4)(b)
     fn drho_dy_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
-        first_order::Forward1::apply(cell_y, |i| {
-            self.u(Variable::RhoBar, cell_x, i) / self.p.dy
-        })
+        first_order::Forward1::apply(cell_y, |i| self.u(Variable::RhoBar, cell_x, i) / self.p.dy)
     }
 
     /// Equation (2.4)(b)
@@ -356,9 +365,7 @@ impl Problem2D {
 
     /// Equation (2.4)(c)
     fn u_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
-        first_order::Forward1::apply(cell_x, |i| {
-            self.u(Variable::C, i, cell_y) / self.p.dx
-        })
+        first_order::Forward1::apply(cell_x, |i| self.u(Variable::C, i, cell_y) / self.p.dx)
     }
 
     /// Equation (2.4)(c)
@@ -368,9 +375,7 @@ impl Problem2D {
 
     /// Equation (2.4)(d)
     fn v_p_at_midpoint(&self, cell_x: usize, cell_y: usize) -> f64 {
-        first_order::Forward1::apply(cell_y, |i| {
-            self.u(Variable::C, cell_x, i) / self.p.dy
-        })
+        first_order::Forward1::apply(cell_y, |i| self.u(Variable::C, cell_x, i) / self.p.dy)
     }
 
     /// Equation (2.4)(d)
@@ -424,9 +429,8 @@ impl Problem2D {
 
     /// Equation (2.8)(a)
     fn drho_dx(&self, cell_x: usize, cell_y: usize) -> f64 {
-        let drho_bar_central = second_order::Central1::apply(cell_x, |i| {
-            self.u(Variable::RhoBar, i, cell_y)
-        });
+        let drho_bar_central =
+            second_order::Central1::apply(cell_x, |i| self.u(Variable::RhoBar, i, cell_y));
 
         let test_p = self.u(Variable::RhoBar, cell_x, cell_y) + 0.5 * drho_bar_central;
         let test_m = self.u(Variable::RhoBar, cell_x, cell_y) - 0.5 * drho_bar_central;
@@ -434,13 +438,11 @@ impl Problem2D {
         if test_p >= 0.0 && test_m >= 0.0 {
             drho_bar_central / self.p.dx
         } else {
-            let drho_bar_forward = first_order::Forward1::apply(cell_x, |i| {
-                self.u(Variable::RhoBar, i, cell_y)
-            });
+            let drho_bar_forward =
+                first_order::Forward1::apply(cell_x, |i| self.u(Variable::RhoBar, i, cell_y));
 
-            let drho_bar_backward = first_order::Backward1::apply(cell_x, |i| {
-                self.u(Variable::RhoBar, i, cell_y)
-            });
+            let drho_bar_backward =
+                first_order::Backward1::apply(cell_x, |i| self.u(Variable::RhoBar, i, cell_y));
 
             minmod(&[
                 2.0 * drho_bar_forward / self.p.dx,
@@ -452,9 +454,8 @@ impl Problem2D {
 
     /// Equation (2.8)(b)
     fn drho_dy(&self, cell_x: usize, cell_y: usize) -> f64 {
-        let drho_bar_central = second_order::Central1::apply(cell_y, |i| {
-            self.u(Variable::RhoBar, cell_x, i)
-        });
+        let drho_bar_central =
+            second_order::Central1::apply(cell_y, |i| self.u(Variable::RhoBar, cell_x, i));
 
         let test_p = self.u(Variable::RhoBar, cell_x, cell_y) + 0.5 * drho_bar_central;
         let test_m = self.u(Variable::RhoBar, cell_x, cell_y) - 0.5 * drho_bar_central;
@@ -462,13 +463,11 @@ impl Problem2D {
         if test_p >= 0.0 && test_m >= 0.0 {
             drho_bar_central / self.p.dy
         } else {
-            let drho_bar_forward = first_order::Forward1::apply(cell_y, |i| {
-                self.u(Variable::RhoBar, cell_x, i)
-            });
+            let drho_bar_forward =
+                first_order::Forward1::apply(cell_y, |i| self.u(Variable::RhoBar, cell_x, i));
 
-            let drho_bar_backward = first_order::Backward1::apply(cell_y, |i| {
-                self.u(Variable::RhoBar, cell_x, i)
-            });
+            let drho_bar_backward =
+                first_order::Backward1::apply(cell_y, |i| self.u(Variable::RhoBar, cell_x, i));
 
             minmod(&[
                 2.0 * drho_bar_forward / self.p.dy,
@@ -611,7 +610,8 @@ impl Problem2D {
                 // Subtract one because self.index() currently returns 1..=self.p.n_interior_cell_1d
                 let (idx_x, idx_y) = self.index(cell_x, cell_y);
                 let (idx_x, idx_y) = (idx_x - 1, idx_y - 1);
-                self.rhs_buffer[(Variable::RhoBar as usize, idx_x, idx_y)] = self.rhs_rho_bar(cell_x, cell_y);
+                self.rhs_buffer[(Variable::RhoBar as usize, idx_x, idx_y)] =
+                    self.rhs_rho_bar(cell_x, cell_y);
                 self.rhs_buffer[(Variable::C as usize, idx_x, idx_y)] = self.rhs_c(cell_x, cell_y);
             }
         }
@@ -636,10 +636,7 @@ impl Problem2D {
         let n = self.p.n_interior_cell_1d;
 
         // save current solution
-        let u_old = self
-            .data
-            .slice(s![.., 1..=n, 1..=n])
-            .to_owned();
+        let u_old = self.data.slice(s![.., 1..=n, 1..=n]).to_owned();
 
         // an Euler step gives w_1
         self.step_euler_forward_helper(dt);

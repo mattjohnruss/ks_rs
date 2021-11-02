@@ -1,19 +1,18 @@
 use serde::Serialize;
+use std::borrow::Borrow;
 use std::fs;
 use std::io::BufWriter;
-use std::borrow::Borrow;
 
 use ndarray::prelude::*;
-use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::rand::{seq::SliceRandom, thread_rng};
+use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::RandomExt;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Extension trait providing functions to find the minimum and maximum values from an iterator
 /// over f64
-pub(crate) trait IterMinMax
-{
+pub(crate) trait IterMinMax {
     fn min_all(self) -> f64;
     fn max_all(self) -> f64;
 }
@@ -22,7 +21,7 @@ pub(crate) trait IterMinMax
 impl<F, T> IterMinMax for T
 where
     F: Borrow<f64>,
-    T: Iterator<Item=F>
+    T: Iterator<Item = F>,
 {
     /// The minimum of the items in the iterator. Base case is `INFINITY` and this is returned if
     /// no item is less than this.
@@ -65,7 +64,8 @@ pub fn minmod(v: &[f64]) -> f64 {
 }
 
 pub fn dump_default_to_json_file<T>(filename: &str) -> Result<()>
-    where T: Default + Serialize
+where
+    T: Default + Serialize,
 {
     let file = fs::File::create(filename)?;
     let writer = BufWriter::new(file);

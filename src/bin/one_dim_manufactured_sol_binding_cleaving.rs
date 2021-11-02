@@ -1,14 +1,13 @@
-use ks_rs::adr::one_dim::{BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable};
-use ks_rs::timestepping::{
-    ExplicitTimeStepper,
-    SspRungeKutta33,
+use ks_rs::adr::one_dim::{
+    BoundaryCondition, Cell, DomainParams, Problem1D, ProblemFunctions, Variable,
 };
+use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 use structopt::StructOpt;
-use serde::{Serialize, Deserialize};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -67,7 +66,12 @@ impl ProblemFunctions for BindingCleaving {
         }
     }
 
-    fn velocity_p_at_midpoint(&self, _problem: &Problem1D<Self>, var: Variable, _cell: Cell) -> f64 {
+    fn velocity_p_at_midpoint(
+        &self,
+        _problem: &Problem1D<Self>,
+        var: Variable,
+        _cell: Cell,
+    ) -> f64 {
         match var.into() {
             C_U => self.pe,
             C_B => 0.0,
@@ -79,7 +83,7 @@ impl ProblemFunctions for BindingCleaving {
     fn reactions(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var.into() {
             C_U => {
-                - self.alpha_plus * problem.var(C_U, cell)
+                -self.alpha_plus * problem.var(C_U, cell)
                     + self.alpha_minus * problem.var(C_B, cell)
                     - self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
             }
@@ -89,30 +93,29 @@ impl ProblemFunctions for BindingCleaving {
                     - self.gamma_bi * problem.var(PHI_I, cell) * problem.var(C_B, cell)
             }
             C_S => {
-                    self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
+                self.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
                     + self.gamma_bi * problem.var(PHI_I, cell) * problem.var(C_B, cell)
             }
-            PHI_I => {
-                0.0
-            }
+            PHI_I => 0.0,
         }
     }
 
     fn forcing(&self, problem: &Problem1D<Self>, var: Variable, cell: Cell) -> f64 {
         match var.into() {
             C_U => {
-                - self.pe + self.alpha_plus + self.gamma_ui - (self.alpha_plus + self.alpha_minus + self.gamma_ui) * problem.x(cell)
+                -self.pe + self.alpha_plus + self.gamma_ui
+                    - (self.alpha_plus + self.alpha_minus + self.gamma_ui) * problem.x(cell)
             }
             C_B => {
-                - self.alpha_plus + (self.alpha_plus + self.alpha_minus + self.gamma_bi) * problem.x(cell)
+                -self.alpha_plus
+                    + (self.alpha_plus + self.alpha_minus + self.gamma_bi) * problem.x(cell)
             }
             C_S => {
                 let x = problem.x(cell);
-                2.0 * self.d_c_s + self.pe * (1.0 - 2.0 * x) - self.gamma_bi * x + (x - 1.0) * self.gamma_ui
+                2.0 * self.d_c_s + self.pe * (1.0 - 2.0 * x) - self.gamma_bi * x
+                    + (x - 1.0) * self.gamma_ui
             }
-            PHI_I => {
-                0.0
-            }
+            PHI_I => 0.0,
         }
     }
 
@@ -134,7 +137,6 @@ impl ProblemFunctions for BindingCleaving {
         }
     }
 }
-
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "chemotaxis", rename_all = "verbatim")]

@@ -33,16 +33,16 @@ pub trait ExplicitTimeSteppable {
     fn rhs(&self, buffer: ArrayViewMut1<f64>);
 
     /// Actions performed before each explicit timestep
-    fn actions_before_explicit_timestep(&mut self) { }
+    fn actions_before_explicit_timestep(&mut self) {}
 
     /// Actions performed before each stage of the scheme
-    fn actions_before_explicit_stage(&mut self) { }
+    fn actions_before_explicit_stage(&mut self) {}
 
     /// Actions performed after each stage of the scheme
-    fn actions_after_explicit_stage(&mut self) { }
+    fn actions_after_explicit_stage(&mut self) {}
 
     /// Actions performed after each explicit timestep
-    fn actions_after_explicit_timestep(&mut self) { }
+    fn actions_after_explicit_timestep(&mut self) {}
 }
 
 /// Trait for explicit timesteppers
@@ -292,11 +292,25 @@ mod test {
         let mut timestepper = EulerForward::new(1);
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+        writeln!(
+            buf_writer,
+            "{} {} {}",
+            problem.time,
+            problem.data[0],
+            problem.exact_solution()
+        )
+        .unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+            writeln!(
+                buf_writer,
+                "{} {} {}",
+                problem.time,
+                problem.data[0],
+                problem.exact_solution()
+            )
+            .unwrap();
         }
     }
 
@@ -310,11 +324,25 @@ mod test {
         let mut timestepper = RungeKutta44::new(1);
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+        writeln!(
+            buf_writer,
+            "{} {} {}",
+            problem.time,
+            problem.data[0],
+            problem.exact_solution()
+        )
+        .unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+            writeln!(
+                buf_writer,
+                "{} {} {}",
+                problem.time,
+                problem.data[0],
+                problem.exact_solution()
+            )
+            .unwrap();
         }
     }
 
@@ -328,11 +356,25 @@ mod test {
         let mut timestepper = SspRungeKutta33::new(1);
 
         problem.data[0] = 1.0;
-        writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+        writeln!(
+            buf_writer,
+            "{} {} {}",
+            problem.time,
+            problem.data[0],
+            problem.exact_solution()
+        )
+        .unwrap();
 
         for _ in 0..N_STEP {
             timestepper.step(&mut problem, DT);
-            writeln!(buf_writer, "{} {} {}", problem.time, problem.data[0], problem.exact_solution()).unwrap();
+            writeln!(
+                buf_writer,
+                "{} {} {}",
+                problem.time,
+                problem.data[0],
+                problem.exact_solution()
+            )
+            .unwrap();
         }
     }
 }

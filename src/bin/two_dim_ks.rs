@@ -1,8 +1,4 @@
-use ks_rs::keller_segel::two_dim::{
-    ExactSolution, Forces,
-    ICs, Parameters,
-    Problem2D,
-};
+use ks_rs::keller_segel::two_dim::{ExactSolution, Forces, ICs, Parameters, Problem2D};
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fs;
@@ -159,8 +155,12 @@ fn main() -> Result<()> {
 
         // Exact solution
         problem.p.exact_solution = Some(ExactSolution::new(
-            |t, x, y, _p| (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2),
-            |t, x, y, _p| (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2),
+            |t, x, y, _p| {
+                (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2)
+            },
+            |t, x, y, _p| {
+                (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2)
+            },
             //|t, _x, _y, _p| (PI * t).sin().powi(2),
             //|t, _x, _y, _p| (PI * t).sin().powi(2),
         ));
@@ -168,9 +168,16 @@ fn main() -> Result<()> {
         // The forces that are required to find the above solution
         problem.p.forces = Some(Forces::new(
             |t, x, y, p| {
-                let rho_t = PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
-                let rho_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
-                let rho_yy = 2.0 * (1.0 + 6.0 * y * (y - 1.0)) * (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+                let rho_t =
+                    PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
+                let rho_xx = 2.0
+                    * (1.0 + 6.0 * x * (x - 1.0))
+                    * (y * (1.0 - y)).powi(2)
+                    * (PI * t).sin().powi(2);
+                let rho_yy = 2.0
+                    * (1.0 + 6.0 * y * (y - 1.0))
+                    * (x * (1.0 - x)).powi(2)
+                    * (PI * t).sin().powi(2);
                 let chemotaxis_x = 2.0
                     * p.chi
                     * (x * (1.0 - x)).powi(2)
@@ -187,21 +194,29 @@ fn main() -> Result<()> {
                 rho_t + chemotaxis_x + chemotaxis_y - rho_xx - rho_yy
             },
             |t, x, y, p| {
-                let rho = (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
+                let rho =
+                    (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
                 let c = (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
-                let c_t = PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
-                let c_xx = 2.0 * (1.0 + 6.0 * x * (x - 1.0)) * (y * (1.0 - y)).powi(2) * (PI * t).sin().powi(2);
-                let c_yy = 2.0 * (1.0 + 6.0 * y * (y - 1.0)) * (x * (1.0 - x)).powi(2) * (PI * t).sin().powi(2);
+                let c_t =
+                    PI * (x * (1.0 - x)).powi(2) * (y * (1.0 - y)).powi(2) * (2.0 * PI * t).sin();
+                let c_xx = 2.0
+                    * (1.0 + 6.0 * x * (x - 1.0))
+                    * (y * (1.0 - y)).powi(2)
+                    * (PI * t).sin().powi(2);
+                let c_yy = 2.0
+                    * (1.0 + 6.0 * y * (y - 1.0))
+                    * (x * (1.0 - x)).powi(2)
+                    * (PI * t).sin().powi(2);
 
                 c_t - c_xx - c_yy + p.gamma_c * c - p.gamma_rho * rho
             },
             //|t, _x, _y, _p| {
-                //let rho_t = PI * (2.0 * PI * t).sin();
-                //rho_t
+            //let rho_t = PI * (2.0 * PI * t).sin();
+            //rho_t
             //},
             //|t, _x, _y, _p| {
-                //let c_t = PI * (2.0 * PI * t).sin();
-                //c_t
+            //let c_t = PI * (2.0 * PI * t).sin();
+            //c_t
             //},
         ));
     }
@@ -222,7 +237,12 @@ fn main() -> Result<()> {
         problem.step_ssp_rk3(dt);
 
         if i % output_interval == 0 {
-            println!("Output {} at timestep {}, t = {}", i / output_interval, i, problem.time);
+            println!(
+                "Output {} at timestep {}, t = {}",
+                i / output_interval,
+                i,
+                problem.time
+            );
             let file =
                 fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
             let buf_writer = BufWriter::new(file);
@@ -234,4 +254,3 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
