@@ -1,4 +1,4 @@
-use crate::adr::one_dim::{BoundaryCondition, Cell, Problem1D, ProblemFunctions, Variable};
+use crate::adr::one_dim::{BoundaryCondition, Cell, Face, Problem1D, ProblemFunctions, Variable};
 use serde::{Deserialize, Serialize};
 
 type ForcingFn = fn(Variable, f64, f64, &ChemotaxisParameters) -> f64;
@@ -248,13 +248,20 @@ impl ProblemFunctions for Chemotaxis {
             C_B => BoundaryCondition::Flux(0.0),
             C_S => BoundaryCondition::Dirichlet(0.0),
             PHI_I => {
-                let phi_total = problem.integrate_solution(PHI_I)
-                    + problem.integrate_solution(PHI_M)
-                    + problem.integrate_solution(PHI_C_U)
-                    + problem.integrate_solution(PHI_C_B);
+                let cell = Cell(problem.domain.n_cell);
 
-                // factor representing the occupancy of the interstitium
-                let f = 1.0 - phi_total;
+                let phi_total = problem.var_point_value_at_face_for_dirichlet_bcs(PHI_I.into(), cell, Face::East) +
+                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_M.into(), cell, Face::East) +
+                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_U.into(), cell, Face::East) +
+                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), cell, Face::East);
+
+                // TODO replace with proper parameter
+                // for now assume that phi_max^* = 2 phi_bar (what's actually reasonable for this
+                // ratio?)
+                let phi_max_over_phi_bar = 2.0;
+
+                // factor representing the occupancy at the boundary
+                let f = 1.0 - phi_max_over_phi_bar * phi_total;
                 BoundaryCondition::Flux(-f * self.p.j_phi_i_bar)
             }
             PHI_M => BoundaryCondition::Flux(0.0),
