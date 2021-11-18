@@ -67,8 +67,8 @@ fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     let p = &mut problem.functions.p;
     p.m = (1.0 - i_s) * p.m_h + i_s * p.m_i;
-    p.j_phi_c_b_bar = (1.0 - i_s) * p.j_phi_c_b_bar_h + i_s * p.j_phi_c_b_bar_i;
-    p.j_phi_i_bar = (1.0 - i_s) * p.j_phi_i_bar_h + i_s * p.j_phi_i_bar_i;
+    p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * p.j_phi_c_b_i;
+    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * p.j_phi_i_i;
 }
 
 fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Write) -> Result<()> {
