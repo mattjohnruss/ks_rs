@@ -152,7 +152,7 @@ fn main() -> Result<()> {
     let mut trace_writer = BufWriter::new(trace_file);
     writeln!(
         &mut trace_writer,
-        "t c_u_total c_b_total c_s_total phi_i_total phi_m_total phi_c_u_total phi_c_b_total"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}}"
     )?;
 
     trace(&problem, &mut trace_writer)?;
