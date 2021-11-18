@@ -26,6 +26,7 @@ impl Chemotaxis {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChemotaxisParameters {
     pub phi_bar_over_c_bar: f64,
+    pub phi_bar_over_phi_max: f64,
     pub c_bar_over_e: f64,
     pub pe: f64,
     pub alpha_plus: f64,
@@ -255,14 +256,9 @@ impl ProblemFunctions for Chemotaxis {
                     problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_U.into(), cell, Face::East) +
                     problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), cell, Face::East);
 
-                // TODO replace with proper parameter
-                // for now assume that phi_max^* = 2 phi_bar (what's actually reasonable for this
-                // ratio?)
-                let phi_max_over_phi_bar = 2.0;
-
                 // factor representing the occupancy at the boundary
-                let f = 1.0 - phi_max_over_phi_bar * phi_total;
-                BoundaryCondition::Flux(-f * self.p.j_phi_i_bar)
+                let f = 1.0 - self.p.phi_bar_over_phi_max * phi_total;
+                BoundaryCondition::Flux(-f * self.p.j_phi_i)
             }
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
