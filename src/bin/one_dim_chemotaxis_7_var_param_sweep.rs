@@ -26,17 +26,17 @@ struct Opt {
     #[structopt(long = "config")]
     config_path: String,
     #[structopt(long)]
-    j_phi_i_i_min: f64,
+    j_phi_i_i_factor_min: f64,
     #[structopt(long)]
-    j_phi_i_i_max: f64,
+    j_phi_i_i_factor_max: f64,
     //#[structopt(long)]
-    //j_phi_c_b_i_min: f64,
+    //j_phi_c_b_i_factor_min: f64,
     //#[structopt(long)]
-    //j_phi_c_b_i_max: f64,
+    //j_phi_c_b_i_factor_max: f64,
     #[structopt(long)]
-    m_i_min: f64,
+    m_i_factor_min: f64,
     #[structopt(long)]
-    m_i_max: f64,
+    m_i_factor_max: f64,
     #[structopt(long)]
     n_parameter_sample: usize,
 }
@@ -82,11 +82,13 @@ fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
 
 fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
-    problem.functions.p.m = (1.0 - i_s) * problem.functions.p.m_h + i_s * problem.functions.p.m_i;
-    //problem.functions.p.j_phi_c_b =
-    //(1.0 - i_s) * problem.functions.p.j_phi_c_b_h + i_s * problem.functions.p.j_phi_c_b_i;
-    problem.functions.p.j_phi_i =
-        (1.0 - i_s) * problem.functions.p.j_phi_i_h + i_s * problem.functions.p.j_phi_i_i;
+    let p = &mut problem.functions.p;
+    let m_i = p.m_i_factor * p.m_h;
+    let j_phi_i_i = p.j_phi_i_i_factor * p.j_phi_i_h;
+    //let j_phi_c_b_i = p.j_phi_c_b_i_factor * p.j_phi_c_b_h;
+    p.m = (1.0 - i_s) * p.m_h + i_s * m_i;
+    //p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * j_phi_c_b_i;
+    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * j_phi_i_i;
 }
 
 fn main() -> Result<()> {
@@ -156,14 +158,14 @@ fn main() -> Result<()> {
 
     // get a latin hypercube sample of the parameter space for the unknown inflammation parameters
     let param_min = &[
-        opt.j_phi_i_i_min,
-        //opt.j_phi_c_b_i_min,
-        opt.m_i_min,
+        opt.j_phi_i_i_factor_min,
+        //opt.j_phi_c_b_i_factor_min,
+        opt.m_i_factor_min,
     ];
     let param_max = &[
-        opt.j_phi_i_i_max,
-        //opt.j_phi_c_b_i_max,
-        opt.m_i_max,
+        opt.j_phi_i_i_factor_max,
+        //opt.j_phi_c_b_i_factor_max,
+        opt.m_i_factor_max,
     ];
 
     let samples = lhsu(param_min, param_max, opt.n_parameter_sample);
@@ -185,9 +187,9 @@ fn main() -> Result<()> {
             let mut outputs = outputs;
 
             // set the relevant parameter values from the current sample
-            problem.functions.p.j_phi_i_i = sample[0];
-            //problem.functions.p.j_phi_c_b_i = sample[1];
-            problem.functions.p.m_i = sample[1];
+            problem.functions.p.j_phi_i_i_factor = sample[0];
+            //problem.functions.p.j_phi_c_b_i_factor = sample[1];
+            problem.functions.p.m_i_factor = sample[1];
 
             let inflammation_path: PathBuf = [&dir, &sample_idx.to_string()].iter().collect();
             fs::create_dir_all(&inflammation_path)?;

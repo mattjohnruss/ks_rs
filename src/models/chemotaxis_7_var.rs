@@ -53,17 +53,17 @@ pub struct ChemotaxisParameters {
     pub chi_s: f64,
     pub r: f64,
     pub m_h: f64,
-    pub m_i: f64,
+    pub m_i_factor: f64,
     #[serde(skip)]
     pub m: f64,
     //pub p: f64,
     //pub s: f64,
     //pub j_phi_c_b_h: f64,
-    //pub j_phi_c_b_i: f64,
+    //pub j_phi_c_b_i_factor: f64,
     //#[serde(skip)]
     //pub j_phi_c_b: f64,
     pub j_phi_i_h: f64,
-    pub j_phi_i_i: f64,
+    pub j_phi_i_i_factor: f64,
     #[serde(skip)]
     pub j_phi_i: f64,
     pub phi_i_init: f64,
