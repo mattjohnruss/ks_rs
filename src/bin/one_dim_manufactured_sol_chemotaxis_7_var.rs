@@ -36,10 +36,10 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
         *problem.var_mut(C_U, cell) = 1.0 - x;
         *problem.var_mut(C_B, cell) = x;
         *problem.var_mut(C_S, cell) = x * (1.0 - x);
-        *problem.var_mut(PHI_I, cell) = 0.5 * x * x * (p.j_phi_i_bar / p.d_phi_i);
+        *problem.var_mut(PHI_I, cell) = 0.5 * x * x * (p.j_phi_i / p.d_phi_i);
         *problem.var_mut(PHI_M, cell) = 1.0;
         *problem.var_mut(PHI_C_U, cell) = 1.0;
-        *problem.var_mut(PHI_C_B, cell) = (p.d_phi_c_b / p.j_phi_c_b_bar) + x - 0.5 * x * x;
+        *problem.var_mut(PHI_C_B, cell) = (p.d_phi_c_b / p.j_phi_c_b) + x - 0.5 * x * x;
     }
 
     problem.update_ghost_cells();
@@ -63,45 +63,45 @@ fn update_params(problem: &mut Problem1D<Chemotaxis>) {
     let i_s = inflammation_status(problem);
     let p = &mut problem.functions.p;
     p.m = (1.0 - i_s) * p.m_h + i_s * p.m_i;
-    p.j_phi_c_b_bar = (1.0 - i_s) * p.j_phi_c_b_bar_h + i_s * p.j_phi_c_b_bar_i;
-    p.j_phi_i_bar = (1.0 - i_s) * p.j_phi_i_bar_h + i_s * p.j_phi_i_bar_i;
+    p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * p.j_phi_c_b_i;
+    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * p.j_phi_i_i;
 }
 
 fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
     match var.into() {
         C_U => {
             -p.pe + p.alpha_plus + p.n_ccr7 * p.beta_plus
-                - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * (x - 1.0) * (p.q_u + p.gamma_ui)
+                - 0.5 * (p.j_phi_i / p.d_phi_i) * x * x * (x - 1.0) * (p.q_u + p.gamma_ui)
                 + p.gamma_um
                 - x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_um)
                 - p.phi_bar_over_c_bar * p.n_ccr7 * p.beta_minus
         }
         C_B => {
             -p.alpha_plus
-                + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x.powi(3) * (p.q_b + p.gamma_bi)
+                + 0.5 * (p.j_phi_i / p.d_phi_i) * x.powi(3) * (p.q_b + p.gamma_bi)
                 + x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_bm)
                 + p.phi_bar_over_c_bar
                     * p.n_ccr7
                     * p.beta_plus
-                    * (-p.d_phi_c_b / p.j_phi_c_b_bar + 0.5 * x * x - x)
+                    * (-p.d_phi_c_b / p.j_phi_c_b + 0.5 * x * x - x)
         }
         C_S => {
             2.0 * p.d_c_s + p.pe * (1.0 - 2.0 * x) - x * p.gamma_bm
                 + 0.5
-                    * (p.j_phi_i_bar / p.d_phi_i)
+                    * (p.j_phi_i / p.d_phi_i)
                     * x
                     * x
                     * (p.q_s * x * (x - 1.0) - p.gamma_bi * x + p.gamma_ui * (x - 1.0))
                 + p.gamma_um * (x - 1.0)
         }
-        PHI_I => -p.j_phi_i_bar + 0.5 * (p.j_phi_i_bar / p.d_phi_i) * x * x * p.m,
+        PHI_I => -p.j_phi_i + 0.5 * (p.j_phi_i / p.d_phi_i) * x * x * p.m,
         PHI_M => {
-            p.beta_minus * (-1.0 - (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0))
-                - 0.5 * (p.j_phi_i_bar / p.d_phi_i) * p.m * x * x
+            p.beta_minus * (-1.0 - (p.d_phi_c_b / p.j_phi_c_b) + x * (0.5 * x - 1.0))
+                - 0.5 * (p.j_phi_i / p.d_phi_i) * p.m * x * x
                 + p.phi_bar_over_c_bar.recip() * p.beta_plus
         }
         PHI_C_U => {
-            p.alpha_minus * (-(p.d_phi_c_b / p.j_phi_c_b_bar) + x * (0.5 * x - 1.0))
+            p.alpha_minus * (-(p.d_phi_c_b / p.j_phi_c_b) + x * (0.5 * x - 1.0))
                 + p.alpha_plus
                 + p.beta_minus
                 + p.phi_bar_over_c_bar.recip() * p.beta_plus * (x - 1.0)
@@ -109,7 +109,7 @@ fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
         PHI_C_B => {
             -p.alpha_plus - (p.alpha_minus + p.beta_minus) * x * (0.5 * x - 1.0)
                 + p.d_phi_c_b
-                + (p.d_phi_c_b / p.j_phi_c_b_bar) * (p.alpha_minus + p.beta_minus)
+                + (p.d_phi_c_b / p.j_phi_c_b) * (p.alpha_minus + p.beta_minus)
                 - p.phi_bar_over_c_bar.recip() * p.beta_plus * x
                 + p.chi_b * (1.0 - x)
         }
@@ -121,10 +121,10 @@ fn exact_solution(var: Variable, x: f64, _time: f64, p: &ChemotaxisParameters) -
         C_U => 1.0 - x,
         C_B => x,
         C_S => x * (1.0 - x),
-        PHI_I => 0.5 * x.powi(2) * (p.j_phi_i_bar / p.d_phi_i),
+        PHI_I => 0.5 * x.powi(2) * (p.j_phi_i / p.d_phi_i),
         PHI_M => 1.0,
         PHI_C_U => 1.0,
-        PHI_C_B => (p.d_phi_c_b / p.j_phi_c_b_bar) + x * (1.0 - 0.5 * x),
+        PHI_C_B => (p.d_phi_c_b / p.j_phi_c_b) + x * (1.0 - 0.5 * x),
     }
 }
 
