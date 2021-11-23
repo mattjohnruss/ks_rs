@@ -37,10 +37,14 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
+        let p = &problem.functions.p;
+
+        let phi_i_steady = p.j_phi_i * ((p.m_h / p.d_phi_i).sqrt() * x).cosh() / ((p.m_h / p.d_phi_i).sqrt().sinh() * (p.d_phi_i * p.m_h).sqrt());
+
         *problem.var_mut(C_U, cell) = cos_ramp(x, 10.0);
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
-        *problem.var_mut(PHI_I, cell) = problem.functions.p.phi_i_init;
+        *problem.var_mut(PHI_I, cell) = phi_i_steady;
         *problem.var_mut(PHI_M, cell) = problem.functions.p.phi_m_init;
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
@@ -129,6 +133,9 @@ fn main() -> Result<()> {
         "$\\\\phi_{C_b}$",
     ])?;
 
+    // Make sure any parameters that are set dynamically have been updated before setting the
+    // initial conditions
+    update_params(&mut problem);
     set_initial_conditions(&mut problem);
 
     let dir_path = Path::new(&dir);
