@@ -2,6 +2,7 @@ pub mod adr;
 pub mod kde;
 pub mod keller_segel;
 pub mod models;
+pub mod steady_state;
 mod stencil;
 pub mod timestepping;
 pub mod utilities;

@@ -1,6 +1,7 @@
 use ks_rs::adr::one_dim::{
     BoundaryCondition, Cell, DomainParams, Face, Problem1D, ProblemFunctions, Variable,
 };
+use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{
     ExplicitTimeStepper,
     //EulerForward,
@@ -90,12 +91,14 @@ fn main() -> Result<()> {
 
     set_initial_conditions(&mut problem);
 
-    let dir = String::from("res_test");
+    let dir = ".";
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
     //let mut euler_forward = EulerForward::new(problem.n_dof);
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
+
+    let mut ssd = SteadyStateDetector::new(problem.n_dof);
 
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let cell_averages_file =
@@ -110,14 +113,22 @@ fn main() -> Result<()> {
     let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
     let mut trace_writer = BufWriter::new(trace_file);
     trace_header(&mut trace_writer)?;
+    trace(&problem, &mut trace_writer)?;
     trace_writer.flush()?;
 
     let output_interval = 1000;
     let mut i = 1;
-    let dt = 1e-6;
+    let dt = 1.0e-6;
     let t_max = 1.0;
+    let ssd_threshold = 1.0e-6;
+    let mut reached_steady_state = false;
 
     while problem.time < t_max {
+        if !reached_steady_state && ssd.is_steady_state(&problem, ssd_threshold) {
+            println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+            reached_steady_state = true;
+        }
+
         //euler_forward.step(&mut problem, dt);
         ssp_rk33.step(&mut problem, dt);
 
