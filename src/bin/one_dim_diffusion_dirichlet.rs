@@ -116,10 +116,12 @@ fn main() -> Result<()> {
     trace(&problem, &mut trace_writer)?;
     trace_writer.flush()?;
 
-    let output_interval = 1000;
     let mut i = 1;
-    let dt = 1.0e-6;
+    let mut outputs = 1;
+
     let t_max = 1.0;
+    let output_time_interval = 1.0e-3;
+
     let ssd_threshold = 1.0e-6;
     let mut reached_steady_state = false;
 
@@ -129,14 +131,16 @@ fn main() -> Result<()> {
             reached_steady_state = true;
         }
 
+        let dt = problem.calculate_dt();
+
         //euler_forward.step(&mut problem, dt);
         ssp_rk33.step(&mut problem, dt);
 
-        if i % output_interval == 0 {
+        if problem.time >= outputs as f64 * output_time_interval {
             let file =
-                fs::File::create(dir_path.join(format!("output_{:05}.csv", i / output_interval)))?;
+                fs::File::create(dir_path.join(format!("output_{:05}.csv", outputs)))?;
             let cell_averages_file = fs::File::create(
-                dir_path.join(format!("output_averages_{:05}.csv", i / output_interval)),
+                dir_path.join(format!("output_averages_{:05}.csv", outputs)),
             )?;
             let mut buf_writer = BufWriter::new(file);
             let mut cell_averages_buf_writer = BufWriter::new(cell_averages_file);
@@ -144,6 +148,7 @@ fn main() -> Result<()> {
             problem.output(&mut buf_writer)?;
             problem.output_cell_averages(&mut cell_averages_buf_writer)?;
             trace(&problem, &mut trace_writer)?;
+            outputs += 1;
         }
         i += 1;
     }
