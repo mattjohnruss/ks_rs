@@ -1,5 +1,6 @@
 use ks_rs::adr::one_dim::{DomainParams, Problem1D, ProblemFunctions};
 use ks_rs::models::chemotaxis_7_var::*;
+use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
 use std::fs;
@@ -143,6 +144,8 @@ fn main() -> Result<()> {
 
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
+    let mut ssd = SteadyStateDetector::new(problem.n_dof);
+
     let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     problem.output(&mut buf_writer)?;
@@ -157,10 +160,18 @@ fn main() -> Result<()> {
 
     trace(&problem, &mut trace_writer)?;
 
+    let ssd_threshold = 1.0e-6;
+    let mut reached_steady_state = false;
+
     let mut i = 1;
     let mut outputs = 1;
 
     while problem.time < t_max {
+        if !reached_steady_state && ssd.is_steady_state(&problem, ssd_threshold) {
+            println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+            reached_steady_state = true;
+        }
+
         update_params(&mut problem);
 
         let dt = problem.calculate_dt();
