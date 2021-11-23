@@ -1,4 +1,5 @@
 use ndarray::prelude::*;
+use std::ops::MulAssign;
 
 /// Represent an object whose data can be timestepped with an explicit scheme
 pub trait ExplicitTimeSteppable {
@@ -20,13 +21,13 @@ pub trait ExplicitTimeSteppable {
     }
 
     /// Perform `dofs += factor * increment`
-    fn increment_and_multiply_dofs(&mut self, increment: ArrayView1<f64>, factor: f64) {
-        *&mut self.dofs_mut() += &(factor * &increment);
+    fn scaled_add_dofs(&mut self, factor: f64, increment: ArrayView1<f64>) {
+        self.dofs_mut().scaled_add(factor, &increment);
     }
 
     /// Perform `dofs *= factor`
     fn scale_dofs(&mut self, factor: f64) {
-        *&mut self.dofs_mut() *= factor;
+        self.dofs_mut().mul_assign(factor);
     }
 
     /// Fills the given buffer with the current right-hand side values
@@ -72,7 +73,7 @@ impl ExplicitTimeStepper for EulerForward {
         obj.actions_before_explicit_stage();
 
         obj.rhs(self.rhs_buffer.view_mut());
-        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
+        obj.scaled_add_dofs(dt, self.rhs_buffer.view());
         *obj.time_mut() += dt;
 
         obj.actions_after_explicit_stage();
@@ -106,7 +107,7 @@ impl ExplicitTimeStepper for RungeKutta44 {
         // Stage 1
         obj.rhs(self.rhs_buffer.view_mut());
         let k_1 = self.rhs_buffer.to_owned();
-        obj.increment_and_multiply_dofs(k_1.view(), 0.5 * dt);
+        obj.scaled_add_dofs(0.5 * dt, k_1.view());
         *obj.time_mut() += 0.5 * dt;
         obj.actions_after_explicit_stage();
 
@@ -116,7 +117,7 @@ impl ExplicitTimeStepper for RungeKutta44 {
         obj.rhs(self.rhs_buffer.view_mut());
         let k_2 = self.rhs_buffer.to_owned();
         obj.set_dofs(dofs.view());
-        obj.increment_and_multiply_dofs(k_2.view(), 0.5 * dt);
+        obj.scaled_add_dofs(0.5 * dt, k_2.view());
         obj.actions_after_explicit_stage();
 
         obj.actions_before_explicit_stage();
@@ -125,7 +126,7 @@ impl ExplicitTimeStepper for RungeKutta44 {
         obj.rhs(self.rhs_buffer.view_mut());
         let k_3 = self.rhs_buffer.to_owned();
         obj.set_dofs(dofs.view());
-        obj.increment_and_multiply_dofs(k_3.view(), dt);
+        obj.scaled_add_dofs(dt, k_3.view());
         *obj.time_mut() += 0.5 * dt;
         obj.actions_after_explicit_stage();
 
@@ -136,10 +137,10 @@ impl ExplicitTimeStepper for RungeKutta44 {
         let k_4 = self.rhs_buffer.to_owned();
         obj.set_dofs(dofs.view());
 
-        obj.increment_and_multiply_dofs(k_1.view(), dt / 6.0);
-        obj.increment_and_multiply_dofs(k_2.view(), dt / 3.0);
-        obj.increment_and_multiply_dofs(k_3.view(), dt / 3.0);
-        obj.increment_and_multiply_dofs(k_4.view(), dt / 6.0);
+        obj.scaled_add_dofs(dt / 6.0, k_1.view());
+        obj.scaled_add_dofs(dt / 3.0, k_2.view());
+        obj.scaled_add_dofs(dt / 3.0, k_3.view());
+        obj.scaled_add_dofs(dt / 6.0, k_4.view());
 
         obj.actions_after_explicit_stage();
 
@@ -179,7 +180,7 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
         // multiply by dt and add to current dofs (an Euler step)
-        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
+        obj.scaled_add_dofs(dt, self.rhs_buffer.view());
         // don't actually need to save a copy of v_1
         //let v_1 = obj.dofs().to_vec();
 
@@ -191,9 +192,9 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
         // pre: dofs == v_1; post: dofs == v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), dt);
+        obj.scaled_add_dofs(dt, self.rhs_buffer.view());
         // pre: dofs == v_1 + dt*rhs_2; post: dofs == 3.0*v_0 + v_1 + dt*rhs_2
-        obj.increment_and_multiply_dofs(self.v_0.view(), 3.0);
+        obj.scaled_add_dofs(3.0, self.v_0.view());
         // pre: dofs == 3.0*v_0 + v_1 + dt*rhs_2; post: dofs == 0.25*(3.0*v_0 + v_1 + dt*rhs_2)
         obj.scale_dofs(0.25);
         self.v_2.assign(&obj.dofs());
@@ -206,11 +207,11 @@ impl ExplicitTimeStepper for SspRungeKutta33 {
         obj.actions_before_explicit_stage();
         obj.rhs(self.rhs_buffer.view_mut());
         // pre: dofs == v_2; post: dofs == 2.0*v_2
-        obj.increment_and_multiply_dofs(self.v_2.view(), 1.0);
+        obj.scaled_add_dofs(1.0, self.v_2.view());
         // pre: dofs == 2.0*v_2; post: dofs == v_0 + 2.0*v_2
-        obj.increment_and_multiply_dofs(self.v_0.view(), 1.0);
+        obj.scaled_add_dofs(1.0, self.v_0.view());
         // pre: dofs == v_0 + 2.0*v_2; post: dofs == v_0 + 2.0*v_2 + 2.0*dt*rhs_3
-        obj.increment_and_multiply_dofs(self.rhs_buffer.view(), 2.0 * dt);
+        obj.scaled_add_dofs(2.0 * dt, self.rhs_buffer.view());
         // pre: dofs == v_0 + 2.0*v_2 2.0*dt*rhs_3; post: dofs == 1/3(v_0 + 2.0*v_2 + 2.0*dt*rhs_3)
         obj.scale_dofs(1.0 / 3.0);
 
