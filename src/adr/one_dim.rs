@@ -775,7 +775,11 @@ where
         let k_min = k.iter().min_all();
         let d_min = d.iter().min_all();
 
-        [a_min, k_min, d_min].iter().min_all()
+        let dt = [a_min, k_min, d_min].iter().min_all();
+
+        assert_ne!(dt, 0.0, "Timestep is exactly zero! This suggests there is problem in the equations/BCs/ICs.");
+
+        dt
     }
 }
 
