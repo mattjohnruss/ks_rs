@@ -1,7 +1,7 @@
 use ks_rs::adr::one_dim::{DomainParams, Problem1D};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
-use ks_rs::utilities::lhsu;
+use ks_rs::utilities::{cos_ramp, lhsu};
 
 use ndarray::parallel::prelude::*;
 use ndarray::Axis;
@@ -42,14 +42,6 @@ struct Opt {
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
-    fn cos_ramp(x: f64, n: f64) -> f64 {
-        use std::f64::consts::PI;
-        if x < 1.0 / n {
-            0.5 * (1.0 + (n * PI * x).cos())
-        } else {
-            0.0
-        }
-    }
 
     for cell in problem.interior_cells() {
         let x = problem.x(cell);

@@ -97,6 +97,15 @@ pub fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
     samples
 }
 
+pub fn cos_ramp(x: f64, n: f64) -> f64 {
+    use std::f64::consts::PI;
+    if x < 1.0 / n {
+        0.5 * (1.0 + (n * PI * x).cos())
+    } else {
+        0.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

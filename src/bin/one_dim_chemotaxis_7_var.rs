@@ -2,6 +2,7 @@ use ks_rs::adr::one_dim::{DomainParams, Problem1D};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
+use ks_rs::utilities::cos_ramp;
 
 use std::fs;
 use std::io::{BufReader, BufWriter, Write};
@@ -26,15 +27,6 @@ struct Opt {
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
-    fn cos_ramp(x: f64, n: f64) -> f64 {
-        use std::f64::consts::PI;
-        if x < 1.0 / n {
-            0.5 * (1.0 + (n * PI * x).cos())
-        } else {
-            0.0
-        }
-    }
-
     // Set relevant parameters to their homestatic values
     problem.functions.p.m = problem.functions.p.m_h;
     problem.functions.p.j_phi_i = problem.functions.p.j_phi_i_h;
