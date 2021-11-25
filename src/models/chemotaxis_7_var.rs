@@ -269,6 +269,7 @@ impl ProblemFunctions for Chemotaxis {
 
 /// Indicates whether the system is currently in homeostasis or inflammation. The `f64` value in
 /// each variant is the time that state was entered.
+#[derive(Clone, Debug)]
 pub enum State {
     HomeostasisInitial,
     Inflammation(f64),

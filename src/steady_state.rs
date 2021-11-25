@@ -1,6 +1,7 @@
 use crate::timestepping::ExplicitTimeSteppable;
 use ndarray::prelude::*;
 
+#[derive(Clone)]
 pub struct SteadyStateDetector {
     buffer: Array1<f64>,
 }

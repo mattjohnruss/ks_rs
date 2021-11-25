@@ -1,5 +1,6 @@
 use ks_rs::adr::one_dim::{DomainParams, Problem1D};
 use ks_rs::models::chemotaxis_7_var::*;
+use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 use ks_rs::utilities::{cos_ramp, lhsu};
 
@@ -29,27 +30,34 @@ struct Opt {
     j_phi_i_i_factor_min: f64,
     #[structopt(long)]
     j_phi_i_i_factor_max: f64,
-    //#[structopt(long)]
-    //j_phi_c_b_i_factor_min: f64,
-    //#[structopt(long)]
-    //j_phi_c_b_i_factor_max: f64,
     #[structopt(long)]
     m_i_factor_min: f64,
     #[structopt(long)]
     m_i_factor_max: f64,
     #[structopt(long)]
+    t_j_phi_i_lag_min: f64,
+    #[structopt(long)]
+    t_j_phi_i_lag_max: f64,
+    #[structopt(long)]
     n_parameter_sample: usize,
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
+    // Set relevant parameters to their homestatic values
+    problem.functions.p.m = problem.functions.p.m_h;
+    problem.functions.p.j_phi_i = problem.functions.p.j_phi_i_h;
 
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
+        let p = &problem.functions.p;
+
+        let phi_i_steady = p.j_phi_i * ((p.m_h / p.d_phi_i).sqrt() * x).cosh() / ((p.m_h / p.d_phi_i).sqrt().sinh() * (p.d_phi_i * p.m_h).sqrt());
+
         *problem.var_mut(C_U, cell) = cos_ramp(x, 10.0);
         *problem.var_mut(C_B, cell) = 0.0;
         *problem.var_mut(C_S, cell) = 0.0;
-        *problem.var_mut(PHI_I, cell) = problem.functions.p.phi_i_init;
+        *problem.var_mut(PHI_I, cell) = phi_i_steady;
         *problem.var_mut(PHI_M, cell) = problem.functions.p.phi_m_init;
         *problem.var_mut(PHI_C_U, cell) = 0.0;
         *problem.var_mut(PHI_C_B, cell) = 0.0;
@@ -58,29 +66,38 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     problem.update_ghost_cells();
 }
 
-fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
-    let t_1 = problem.functions.p.t_1;
-    let t_2 = problem.functions.p.t_2;
-    let time = problem.time;
-
-    // Simplest piecewise constant inflammation status
-    // TODO make this flexible/generic to allow different ramp functions?
-    if time < t_1 || time > t_2 {
-        0.0
-    } else {
-        1.0
-    }
+fn trace_header(mut trace_writer: impl Write) -> Result<()> {
+    writeln!(
+        &mut trace_writer,
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} m j_{{phi_i}} state"
+    )?;
+    Ok(())
 }
 
-fn update_params(problem: &mut Problem1D<Chemotaxis>) {
-    let i_s = inflammation_status(problem);
-    let p = &mut problem.functions.p;
-    let m_i = p.m_i_factor * p.m_h;
-    let j_phi_i_i = p.j_phi_i_i_factor * p.j_phi_i_h;
-    //let j_phi_c_b_i = p.j_phi_c_b_i_factor * p.j_phi_c_b_h;
-    p.m = (1.0 - i_s) * p.m_h + i_s * m_i;
-    //p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * j_phi_c_b_i;
-    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * j_phi_i_i;
+fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl Write) -> Result<()> {
+    let c_u_total = problem.integrate_solution(C_U);
+    let c_b_total = problem.integrate_solution(C_B);
+    let c_s_total = problem.integrate_solution(C_S);
+    let phi_i_total = problem.integrate_solution(PHI_I);
+    let phi_m_total = problem.integrate_solution(PHI_M);
+    let phi_c_u_total = problem.integrate_solution(PHI_C_U);
+    let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+    writeln!(
+        &mut trace_writer,
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {}",
+        problem.time,
+        c_u_total,
+        c_b_total,
+        c_s_total,
+        phi_i_total,
+        phi_m_total,
+        phi_c_u_total,
+        phi_c_b_total,
+        problem.functions.p.m,
+        problem.functions.p.j_phi_i,
+        state.to_f64()
+    )?;
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -115,6 +132,8 @@ fn main() -> Result<()> {
         "$\\\\phi_{C_b}$",
     ])?;
 
+    let mut state = State::HomeostasisInitial;
+
     set_initial_conditions(&mut problem);
 
     let homeostasis_path: PathBuf = [&dir, "homeostasis"].iter().collect();
@@ -122,17 +141,33 @@ fn main() -> Result<()> {
 
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
+    let mut ssd = SteadyStateDetector::new(problem.n_dof);
+
     let file = fs::File::create(&homeostasis_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
 
+    let trace_file = fs::File::create(&homeostasis_path.join("trace.csv"))?;
+    let mut trace_writer = BufWriter::new(trace_file);
+
+    trace_header(&mut trace_writer)?;
+    trace(&problem, &state, &mut trace_writer)?;
+
+    let ssd_threshold = 1.0e-3;
+
     let mut i = 1;
     let mut outputs = 1;
 
     // timestep until just before the the parameters are switched to their inflammation values
-    while problem.time < t_max && problem.time < problem.functions.p.t_1 {
-        update_params(&mut problem);
+    while problem.time < t_max {
+        assert!(matches!(state, State::HomeostasisInitial), "Should only be in HomeostasisInitial here!");
+
+        if ssd.is_steady_state(&problem, ssd_threshold) {
+            println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+            state = State::Inflammation(problem.time);
+            break;
+        }
 
         let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
@@ -143,21 +178,25 @@ fn main() -> Result<()> {
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
+            trace(&problem, &state, &mut trace_writer)?;
             outputs += 1;
         }
         i += 1;
     }
 
+    // flush the trace file before we copy it
+    trace_writer.flush()?;
+
     // get a latin hypercube sample of the parameter space for the unknown inflammation parameters
     let param_min = &[
         opt.j_phi_i_i_factor_min,
-        //opt.j_phi_c_b_i_factor_min,
         opt.m_i_factor_min,
+        opt.t_j_phi_i_lag_min,
     ];
     let param_max = &[
         opt.j_phi_i_i_factor_max,
-        //opt.j_phi_c_b_i_factor_max,
         opt.m_i_factor_max,
+        opt.t_j_phi_i_lag_max,
     ];
 
     let samples = lhsu(param_min, param_max, opt.n_parameter_sample);
@@ -174,21 +213,68 @@ fn main() -> Result<()> {
 
             // clone the problem state - it will be independent of the inflammation parameter values
             let mut problem = problem.clone();
+            let mut state = state.clone();
             let mut ssp_rk33 = ssp_rk33.clone();
+            let mut ssd = ssd.clone();
             let mut i = i;
             let mut outputs = outputs;
 
             // set the relevant parameter values from the current sample
             problem.functions.p.j_phi_i_i_factor = sample[0];
-            //problem.functions.p.j_phi_c_b_i_factor = sample[1];
             problem.functions.p.m_i_factor = sample[1];
+            problem.functions.p.t_j_phi_i_lag = sample[2];
 
             let inflammation_path: PathBuf = [&dir, &sample_idx.to_string()].iter().collect();
             fs::create_dir_all(&inflammation_path)?;
 
+            fs::copy(homeostasis_path.join("trace.csv"), inflammation_path.join("trace.csv"))?;
+            let trace_file = fs::OpenOptions::new().append(true).open(inflammation_path.join("trace.csv"))?;
+            let mut trace_writer = BufWriter::new(trace_file);
+
             // continue timestepping until t_max is reached
             while problem.time < t_max {
-                update_params(&mut problem);
+                match state {
+                    State::HomeostasisInitial => {
+                        unreachable!("Shouldn't be in HomeostasisInitial here!");
+                    }
+                    State::Inflammation(t) => {
+                        // NOTE: updating parameters has to be done slightly
+                        // differently here compared with the single-run driver
+                        // because we can't set e.g. m = m_i until we have the
+                        // parameter samples. It does mean we are repeatedly
+                        // setting the parameters each timestep, but this is fine
+                        // (we were doing this at some point before anyway)
+
+                        // update params that are changed immediately to inflammation values - just m
+                        let p = &mut problem.functions.p;
+                        p.m = p.m_i_factor * p.m_h;
+
+                        // update params that involve time lag to inflammation values - just j_phi_i
+                        if problem.time >= t + problem.functions.p.t_j_phi_i_lag {
+                            let p = &mut problem.functions.p;
+                            p.j_phi_i = p.j_phi_i_i_factor * p.j_phi_i_h;
+                        }
+
+                        if problem.time >= t + problem.functions.p.t_inflammation {
+                            state = State::HomeostasisReturn(problem.time);
+                            // update params that are changed immediately back to homeostasis values - just m
+                            let p = &mut problem.functions.p;
+                            p.m = p.m_h;
+                        }
+                    }
+                    State::HomeostasisReturn(t) => {
+                        // update params that involve time lag back to homeostasis values - just j_phi_i
+                        if problem.time >= t + problem.functions.p.t_j_phi_i_lag {
+                            let p = &mut problem.functions.p;
+                            p.j_phi_i = p.j_phi_i_h;
+                        }
+
+                        if ssd.is_steady_state(&problem, ssd_threshold) {
+                            println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+                            break;
+                        }
+                    }
+                }
 
                 let dt = problem.calculate_dt();
                 ssp_rk33.step(&mut problem, dt);
@@ -200,6 +286,7 @@ fn main() -> Result<()> {
                     let mut buf_writer = BufWriter::new(file);
                     println!("Outputting at time = {}, i = {}", problem.time, i);
                     problem.output(&mut buf_writer)?;
+                    trace(&problem, &state, &mut trace_writer)?;
                     outputs += 1;
                 }
                 i += 1;
