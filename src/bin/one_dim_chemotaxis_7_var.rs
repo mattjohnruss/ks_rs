@@ -50,6 +50,14 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     problem.update_ghost_cells();
 }
 
+fn trace_header(mut trace_writer: impl Write) -> Result<()> {
+    writeln!(
+        &mut trace_writer,
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} m j_{{phi_i}} state"
+    )?;
+    Ok(())
+}
+
 fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl Write) -> Result<()> {
     let c_u_total = problem.integrate_solution(C_U);
     let c_b_total = problem.integrate_solution(C_B);
@@ -126,11 +134,8 @@ fn main() -> Result<()> {
 
     let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
     let mut trace_writer = BufWriter::new(trace_file);
-    writeln!(
-        &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} m j_{{phi_i}} state"
-    )?;
 
+    trace_header(&mut trace_writer)?;
     trace(&problem, &state, &mut trace_writer)?;
 
     let ssd_threshold = 1.0e-3;
