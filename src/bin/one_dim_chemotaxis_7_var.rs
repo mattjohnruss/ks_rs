@@ -1,4 +1,4 @@
-use ks_rs::adr::one_dim::{DomainParams, Problem1D, ProblemFunctions};
+use ks_rs::adr::one_dim::{DomainParams, Problem1D};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
@@ -25,6 +25,23 @@ struct Opt {
     config_path: String,
 }
 
+/// Indicates whether the system is currently in homeostasis or inflammation. The `f64` value in
+/// each variant is the time that state was entered.
+enum State {
+    HomeostasisInitial,
+    Inflammation(f64),
+    HomeostasisReturn(f64),
+}
+
+impl State {
+    fn to_f64(&self) -> f64 {
+        match self {
+            State::HomeostasisInitial | State::HomeostasisReturn(_) => 0.0,
+            State::Inflammation(_) => 1.0,
+        }
+    }
+}
+
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     fn cos_ramp(x: f64, n: f64) -> f64 {
         use std::f64::consts::PI;
@@ -34,6 +51,10 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
             0.0
         }
     }
+
+    // Set relevant parameters to their homestatic values
+    problem.functions.p.m = problem.functions.p.m_h;
+    problem.functions.p.j_phi_i = problem.functions.p.j_phi_i_h;
 
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
@@ -54,32 +75,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     problem.update_ghost_cells();
 }
 
-fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
-    let t_1 = problem.functions.p.t_1;
-    let t_2 = problem.functions.p.t_2;
-    let time = problem.time;
-
-    // Simplest piecewise constant inflammation status
-    // TODO make this flexible/generic to allow different ramp functions?
-    if time < t_1 || time > t_2 {
-        0.0
-    } else {
-        1.0
-    }
-}
-
-fn update_params(problem: &mut Problem1D<Chemotaxis>) {
-    let i_s = inflammation_status(problem);
-    let p = &mut problem.functions.p;
-    let m_i = p.m_i_factor * p.m_h;
-    let j_phi_i_i = p.j_phi_i_i_factor * p.j_phi_i_h;
-    //let j_phi_c_b_i = p.j_phi_c_b_i_factor * p.j_phi_c_b_h;
-    p.m = (1.0 - i_s) * p.m_h + i_s * m_i;
-    //p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * j_phi_c_b_i;
-    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * j_phi_i_i;
-}
-
-fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Write) -> Result<()> {
+fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl Write) -> Result<()> {
     let c_u_total = problem.integrate_solution(C_U);
     let c_b_total = problem.integrate_solution(C_B);
     let c_s_total = problem.integrate_solution(C_S);
@@ -89,7 +85,7 @@ fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Writ
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
     writeln!(
         &mut trace_writer,
-        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e}",
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {}",
         problem.time,
         c_u_total,
         c_b_total,
@@ -97,7 +93,10 @@ fn trace(problem: &Problem1D<impl ProblemFunctions>, mut trace_writer: impl Writ
         phi_i_total,
         phi_m_total,
         phi_c_u_total,
-        phi_c_b_total
+        phi_c_b_total,
+        problem.functions.p.m,
+        problem.functions.p.j_phi_i,
+        state.to_f64()
     )?;
     Ok(())
 }
@@ -134,9 +133,8 @@ fn main() -> Result<()> {
         "$\\\\phi_{C_b}$",
     ])?;
 
-    // Make sure any parameters that are set dynamically have been updated before setting the
-    // initial conditions
-    update_params(&mut problem);
+    let mut state = State::HomeostasisInitial;
+
     set_initial_conditions(&mut problem);
 
     let dir_path = Path::new(&dir);
@@ -155,24 +153,54 @@ fn main() -> Result<()> {
     let mut trace_writer = BufWriter::new(trace_file);
     writeln!(
         &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}}"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} m j_{{phi_i}} state"
     )?;
 
-    trace(&problem, &mut trace_writer)?;
+    trace(&problem, &state, &mut trace_writer)?;
 
-    let ssd_threshold = 1.0e-6;
-    let mut reached_steady_state = false;
+    let ssd_threshold = 1.0e-3;
 
     let mut i = 1;
     let mut outputs = 1;
 
     while problem.time < t_max {
-        if !reached_steady_state && ssd.is_steady_state(&problem, ssd_threshold) {
-            println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
-            reached_steady_state = true;
-        }
+        match state {
+            State::HomeostasisInitial => {
+                if ssd.is_steady_state(&problem, ssd_threshold) {
+                    println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+                    state = State::Inflammation(problem.time);
+                    // update params that are changed immediately to inflammation values - just m
+                    let p = &mut problem.functions.p;
+                    p.m = p.m_i_factor * p.m_h;
+                }
+            }
+            State::Inflammation(t) => {
+                // update params that involve time lag to inflammation values - just j_phi_i
+                if problem.time >= t + problem.functions.p.t_j_phi_i_lag {
+                    let p = &mut problem.functions.p;
+                    p.j_phi_i = p.j_phi_i_i_factor * p.j_phi_i_h;
+                }
 
-        update_params(&mut problem);
+                if problem.time >= t + problem.functions.p.t_inflammation {
+                    state = State::HomeostasisReturn(problem.time);
+                    // update params that are changed immediately back to homeostasis values - just m
+                    let p = &mut problem.functions.p;
+                    p.m = p.m_h;
+                }
+            }
+            State::HomeostasisReturn(t) => {
+                // update params that involve time lag back to homeostasis values - just j_phi_i
+                if problem.time >= t + problem.functions.p.t_j_phi_i_lag {
+                    let p = &mut problem.functions.p;
+                    p.j_phi_i = p.j_phi_i_h;
+                }
+
+                if ssd.is_steady_state(&problem, ssd_threshold) {
+                    println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+                    break;
+                }
+            }
+        }
 
         let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
@@ -182,7 +210,7 @@ fn main() -> Result<()> {
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
-            trace(&problem, &mut trace_writer)?;
+            trace(&problem, &state, &mut trace_writer)?;
             outputs += 1;
         }
         i += 1;

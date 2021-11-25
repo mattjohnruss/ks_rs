@@ -68,8 +68,8 @@ pub struct ChemotaxisParameters {
     pub j_phi_i: f64,
     pub phi_i_init: f64,
     pub phi_m_init: f64,
-    pub t_1: f64,
-    pub t_2: f64,
+    pub t_inflammation: f64,
+    pub t_j_phi_i_lag: f64,
 }
 
 #[allow(non_camel_case_types)]
