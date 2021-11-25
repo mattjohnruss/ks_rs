@@ -25,23 +25,6 @@ struct Opt {
     config_path: String,
 }
 
-/// Indicates whether the system is currently in homeostasis or inflammation. The `f64` value in
-/// each variant is the time that state was entered.
-enum State {
-    HomeostasisInitial,
-    Inflammation(f64),
-    HomeostasisReturn(f64),
-}
-
-impl State {
-    fn to_f64(&self) -> f64 {
-        match self {
-            State::HomeostasisInitial | State::HomeostasisReturn(_) => 0.0,
-            State::Inflammation(_) => 1.0,
-        }
-    }
-}
-
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
     fn cos_ramp(x: f64, n: f64) -> f64 {
         use std::f64::consts::PI;
