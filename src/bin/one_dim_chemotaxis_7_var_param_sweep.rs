@@ -229,6 +229,9 @@ fn main() -> Result<()> {
             let inflammation_path: PathBuf = [&dir, &sample_idx.to_string()].iter().collect();
             fs::create_dir_all(&inflammation_path)?;
 
+            let config_file = BufWriter::new(fs::File::create(inflammation_path.join("config.json"))?);
+            serde_json::to_writer_pretty(config_file, &problem.functions.p)?;
+
             fs::copy(homeostasis_path.join("trace.csv"), inflammation_path.join("trace.csv"))?;
             let trace_file = fs::OpenOptions::new().append(true).open(inflammation_path.join("trace.csv"))?;
             let mut trace_writer = BufWriter::new(trace_file);
