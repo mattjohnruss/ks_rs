@@ -76,7 +76,7 @@ where
 // Translation of the Python https://gist.github.com/jgomezdans/4739643, which itself is from the
 // MATLAB https://viewer.mathworks.com/?viewer=plain_code&url=https%3A%2F%2Fuk.mathworks.com%2Fmatlabcentral%2Fmlc-downloads%2Fdownloads%2Fsubmissions%2F4352%2Fversions%2F1%2Fcontents%2Flhsu.m
 pub fn lhsu(x_min: &[f64], x_max: &[f64], n_sample: usize) -> Array2<f64> {
-    assert_eq!(x_min.len(), x_max.len());
+    assert_eq!(x_min.len(), x_max.len(), "arrays of minimums and maximums must be equal lengths");
     let n_var = x_min.len();
 
     let uniform_samples = Array::random((n_sample, n_var), Uniform::new(0.0_f64, 1.0));
