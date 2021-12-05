@@ -24,6 +24,8 @@ struct Opt {
     dir: String,
     #[structopt(long = "config")]
     config_path: String,
+    #[structopt(long)]
+    ssd_threshold: f64,
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
@@ -138,7 +140,7 @@ fn main() -> Result<()> {
     trace_header(&mut trace_writer)?;
     trace(&problem, &state, &mut trace_writer)?;
 
-    let ssd_threshold = 1.0e-3;
+    let ssd_threshold = opt.ssd_threshold;
 
     let mut i = 1;
     let mut outputs = 1;
