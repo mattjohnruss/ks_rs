@@ -1,4 +1,4 @@
-use ks_rs::adr::one_dim::{DomainParams, Problem1D, Cell};
+use ks_rs::adr::one_dim::{DomainParams, Problem1D};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
