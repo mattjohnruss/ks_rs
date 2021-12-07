@@ -342,20 +342,14 @@ where
             // flux BCs are set to zero
             let flux_m = if cell == Cell(1) {
                 // At the left-hand boundary
-                match self.functions.left_bc(self, var) {
-                    BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_m_no_upwind(var, cell),
-                }
+                self.boundary_flux_left(var)
             } else {
                 self.flux_m(var, cell)
             };
 
             let flux_p = if cell == Cell(self.domain.n_cell) {
                 // At the right-hand boundary
-                match self.functions.right_bc(self, var) {
-                    BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_p_no_upwind(var, cell),
-                }
+                self.boundary_flux_right(var)
             } else {
                 self.flux_p(var, cell)
             };
@@ -370,6 +364,26 @@ where
         result += self.functions.forcing(self, var, cell);
 
         result
+    }
+
+    /// Flux at the left boundary. Handles both flux and Dirichlet boundary conditions.
+    #[inline]
+    pub fn boundary_flux_left(&self, var: Variable) -> f64 {
+        let cell = Cell(1);
+        match self.functions.left_bc(self, var) {
+            BoundaryCondition::Flux(flux) => flux,
+            BoundaryCondition::Dirichlet(_) => self.flux_m_no_upwind(var, cell),
+        }
+    }
+
+    /// Flux at the right boundary. Handles both flux and Dirichlet boundary conditions.
+    #[inline]
+    pub fn boundary_flux_right(&self, var: Variable) -> f64 {
+        let cell = Cell(self.domain.n_cell);
+        match self.functions.right_bc(self, var) {
+            BoundaryCondition::Flux(flux) => flux,
+            BoundaryCondition::Dirichlet(_) => self.flux_p_no_upwind(var, cell),
+        }
     }
 
     fn flux_p(&self, var: Variable, cell: Cell) -> f64 {
@@ -390,7 +404,7 @@ where
     // boundary fluxes when Dirichlet conditions are imposed. These don't upwind the point values,
     // instead getting the appropriate point value directly, since upwinding could cause an
     // out-of-bounds array access when used at a boundary.
-    pub fn flux_p_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
+    fn flux_p_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::East);
@@ -398,7 +412,7 @@ where
             - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
-    pub fn flux_m_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
+    fn flux_m_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
