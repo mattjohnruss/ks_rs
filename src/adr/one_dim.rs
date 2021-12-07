@@ -344,7 +344,7 @@ where
                 // At the left-hand boundary
                 match self.functions.left_bc(self, var) {
                     BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_m_for_dirichlet_bc(var, cell),
+                    BoundaryCondition::Dirichlet(_) => self.flux_m_no_upwind(var, cell),
                 }
             } else {
                 self.flux_m(var, cell)
@@ -354,7 +354,7 @@ where
                 // At the right-hand boundary
                 match self.functions.right_bc(self, var) {
                     BoundaryCondition::Flux(flux) => flux,
-                    BoundaryCondition::Dirichlet(_) => self.flux_p_for_dirichlet_bc(var, cell),
+                    BoundaryCondition::Dirichlet(_) => self.flux_p_no_upwind(var, cell),
                 }
             } else {
                 self.flux_p(var, cell)
@@ -386,10 +386,11 @@ where
             - self.functions.diffusivity(self, var, cell) * dvar_dx_m
     }
 
-    // Flux functions for Dirichlet boundary conditions. These don't upwind the point values,
+    // Flux functions for imposing Dirichlet boundary conditions and for calculating effective
+    // boundary fluxes when Dirichlet conditions are imposed. These don't upwind the point values,
     // instead getting the appropriate point value directly, since upwinding could cause an
     // out-of-bounds array access when used at a boundary.
-    fn flux_p_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
+    pub fn flux_p_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_p = self.functions.velocity_p_at_midpoint(self, var, cell);
         let dvar_dx_p = self.dvar_dx_p_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::East);
@@ -397,7 +398,7 @@ where
             - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
-    fn flux_m_for_dirichlet_bc(&self, var: Variable, cell: Cell) -> f64 {
+    pub fn flux_m_no_upwind(&self, var: Variable, cell: Cell) -> f64 {
         let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
         let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
         let var_point_value_at_face = self.var_point_value_at_face(var, cell, Face::West);
