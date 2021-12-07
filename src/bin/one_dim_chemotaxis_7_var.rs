@@ -1,4 +1,4 @@
-use ks_rs::adr::one_dim::{DomainParams, Problem1D};
+use ks_rs::adr::one_dim::{DomainParams, Problem1D, Cell};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::steady_state::SteadyStateDetector;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
@@ -55,7 +55,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 fn trace_header(mut trace_writer: impl Write) -> Result<()> {
     writeln!(
         &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} m j_{{phi_i}} state"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=0) -F_{{phi_{{C_b}}}}(x=1) m j_{{phi_i}} state"
     )?;
     Ok(())
 }
@@ -70,7 +70,7 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
     writeln!(
         &mut trace_writer,
-        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {}",
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {}",
         problem.time,
         c_u_total,
         c_b_total,
@@ -79,6 +79,8 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
         phi_m_total,
         phi_c_u_total,
         phi_c_b_total,
+        -problem.boundary_flux_right(PHI_I.into()),
+        -problem.boundary_flux_left(PHI_C_B.into()),
         problem.functions.p.m,
         problem.functions.p.j_phi_i,
         state.to_f64()
