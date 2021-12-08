@@ -55,7 +55,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 fn trace_header(mut trace_writer: impl Write) -> Result<()> {
     writeln!(
         &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=0) -F_{{phi_{{C_b}}}}(x=1) m j_{{phi_i}} state"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0) m j_{{phi_i}} state"
     )?;
     Ok(())
 }
