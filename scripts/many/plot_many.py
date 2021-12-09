@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 import json
 
-n_rep = 16
+n_rep = 100
 n_var = 7
 n_time = 1501
 # first_inflammation_time = 544

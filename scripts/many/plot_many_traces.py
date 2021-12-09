@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import json
 
-n_rep = 16
+n_rep = 100
 n_var = 10
 
 j_phi_i_i_factor_min = 1.0
