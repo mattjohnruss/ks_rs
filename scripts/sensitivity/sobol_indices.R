@@ -150,6 +150,7 @@ x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 add_constants_and_gammas_to_param_table(x$X)
 
 #write_json_params_files(x$X)
+#fwrite(x$X, "res_sensitivity/d_m.csv", sep = " ")
 
 #simulate_all(x$X)
 
