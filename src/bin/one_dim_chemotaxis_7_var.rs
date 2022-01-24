@@ -55,7 +55,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 fn trace_header(mut trace_writer: impl Write) -> Result<()> {
     writeln!(
         &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0) m j_{{phi_i}} state"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0) m j_{{phi_i}} state t_{{inf}}"
     )?;
     Ok(())
 }
@@ -68,9 +68,16 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
     let phi_m_total = problem.integrate_solution(PHI_M);
     let phi_c_u_total = problem.integrate_solution(PHI_C_U);
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+
+    let t_inf = match state {
+        State::HomeostasisInitial => -1.0,
+        State::Inflammation(t) => problem.time - t,
+        State::HomeostasisReturn(t) => problem.time - t + problem.functions.p.t_inflammation,
+    };
+
     writeln!(
         &mut trace_writer,
-        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {}",
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {} {:.6e}",
         problem.time,
         c_u_total,
         c_b_total,
@@ -83,7 +90,8 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
         -problem.boundary_flux_left(PHI_C_B.into()),
         problem.functions.p.m,
         problem.functions.p.j_phi_i,
-        state.to_f64()
+        state.to_f64(),
+        t_inf
     )?;
     Ok(())
 }
