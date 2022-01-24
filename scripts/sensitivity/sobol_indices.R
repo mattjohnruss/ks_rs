@@ -114,8 +114,9 @@ read_combined_output <- function(all_params) {
   data <- all_params
 
   results <- fread("res_sensitivity/all_outputs.csv")
+  #print(results)
 
-  print(system.time(data[, value := results]))
+  print(system.time(data[, value := results[, '-F_{phi_{C_b}}(x=0)']]))
 }
 
 gen_param_sample <- function() {
@@ -127,18 +128,30 @@ gen_param_sample <- function() {
   )
 }
 
-n_rep <- 15
+n_rep <- 100
 
 x_1 <- gen_param_sample()
 x_2 <- gen_param_sample()
 
-x <- sobol(model = NULL, X1 = x_1, X2 = x_2, order = 1, nboot = 100)
+# Calculates all indices up to `order` - i.e. if order = 2, it calculates all
+# combined 2nd order indices, which can be expensive for many parameters. Seems
+# like this can suffer from poor conditioning like `sobol2002`, `sobol2007`,
+# despite that it's not mentioned in the docs. Workaround is to centre the
+# outputs by subtracting the mean before calling `tell` below.
+#x <- sobol(model = NULL, X1 = x_1, X2 = x_2, order = 1, nboot = 100)
+
+# These estimators directly calculate the regular first-order indices and total
+# indices simulataneously without calculating the combined second-order indices
+# individually. I.e. 2p indices rather than an amount quadratic in p. We'll
+# probably want to use one of these (or similar) most of the time.
+x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
+#x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
 add_constants_and_gammas_to_param_table(x$X)
 
-write_json_params_files(x$X)
+#write_json_params_files(x$X)
 
-simulate_all(x$X)
+#simulate_all(x$X)
 
 # TODO: handle the fact that we will sometimes only want to run the simulations
 # and not do the sensitivity analysis in the same run, and vice-versa. In the
@@ -149,9 +162,19 @@ simulate_all(x$X)
 # needed from R.
 
 # TODO: reenable/make flexible - see above
-#read_combined_output(x$X)
+read_combined_output(x$X)
 
-#tell(x, y$value)
+y <- x$X$value
 
-#print(x)
-#plot(x)
+# TODO: Why on earth does subtracting the mean from y here make the Sobol
+# indices much more believable?
+# Possible answer: Some of the estimators in `sensitivity` apparently suffer
+# from a "conditioning problem", such as `sobol2002` and `sobol2007.` A
+# workaround is to centre the model outputs before running estimators or to use
+# alternative estimators like `soboljansen`, `sobolmartinez` etc. I'm assuming
+# this is also the case for `sobol` (which we initially used), but its docs
+# don't mention it.
+tell(x, y - mean(y))
+
+print(x)
+plot(x)
