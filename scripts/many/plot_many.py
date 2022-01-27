@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 import json
+import pandas as pd
 
 n_rep = 100
 n_var = 7
@@ -53,6 +54,10 @@ var_slider = Slider(ax_var_slider, 'Variable', valmin=1, valmax=n_var,
 time_slider = Slider(ax_time_slider, 'Time', valmin=0, valmax=(n_time - 1),
                      valstep=times)
 
+first_data_for_header = pd.read_csv('0/output_00000.csv', sep=' ',
+                                    usecols=range(1, n_var + 2))
+col_names = [n.replace('\\\\', '\\') for n in first_data_for_header.columns]
+
 
 def data_single(rep, var, time):
     try:
@@ -67,6 +72,9 @@ def data_single(rep, var, time):
 
 def plot_single(rep, var, time, solid=False):
     data = data_single(rep, var, time)
+
+    ax.set_title(col_names[var])
+    ax.set_xlabel(r'$x$')
 
     if data is not None:
         if solid:
