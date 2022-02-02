@@ -60,7 +60,15 @@ fn trace_header(mut trace_writer: impl Write) -> Result<()> {
     Ok(())
 }
 
-fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl Write) -> Result<()> {
+fn time_since_inflammation(problem: &Problem1D<Chemotaxis>) -> f64 {
+    match problem.functions.state {
+        State::HomeostasisInitial => -1.0,
+        State::Inflammation(t) => problem.time - t,
+        State::HomeostasisReturn(t) => problem.time - t + problem.functions.p.t_inflammation,
+    }
+}
+
+fn trace(problem: &Problem1D<Chemotaxis>, mut trace_writer: impl Write) -> Result<()> {
     let c_u_total = problem.integrate_solution(C_U);
     let c_b_total = problem.integrate_solution(C_B);
     let c_s_total = problem.integrate_solution(C_S);
@@ -68,12 +76,6 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
     let phi_m_total = problem.integrate_solution(PHI_M);
     let phi_c_u_total = problem.integrate_solution(PHI_C_U);
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
-
-    let t_inf = match state {
-        State::HomeostasisInitial => -1.0,
-        State::Inflammation(t) => problem.time - t,
-        State::HomeostasisReturn(t) => problem.time - t + problem.functions.p.t_inflammation,
-    };
 
     writeln!(
         &mut trace_writer,
@@ -90,8 +92,8 @@ fn trace(problem: &Problem1D<Chemotaxis>, state: &State, mut trace_writer: impl 
         -problem.boundary_flux_left(PHI_C_B.into()),
         problem.functions.p.m,
         problem.functions.p.j_phi_i,
-        state.to_f64(),
-        t_inf
+        problem.functions.state.to_f64(),
+        time_since_inflammation(problem),
     )?;
     Ok(())
 }
@@ -128,8 +130,6 @@ fn main() -> Result<()> {
         "$\\\\phi_{C_b}$",
     ])?;
 
-    let mut state = State::HomeostasisInitial;
-
     set_initial_conditions(&mut problem);
 
     let dir_path = Path::new(&dir);
@@ -148,7 +148,7 @@ fn main() -> Result<()> {
     let mut trace_writer = BufWriter::new(trace_file);
 
     trace_header(&mut trace_writer)?;
-    trace(&problem, &state, &mut trace_writer)?;
+    trace(&problem, &mut trace_writer)?;
 
     let ssd_threshold = opt.ssd_threshold;
 
@@ -156,11 +156,11 @@ fn main() -> Result<()> {
     let mut outputs = 1;
 
     while problem.time < t_max {
-        match state {
+        match problem.functions.state {
             State::HomeostasisInitial => {
                 if ssd.is_steady_state(&problem, ssd_threshold) {
                     println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
-                    state = State::Inflammation(problem.time);
+                    problem.functions.state = State::Inflammation(problem.time);
                     // update params that are changed immediately to inflammation values - just m
                     let p = &mut problem.functions.p;
                     p.m = p.m_i_factor * p.m_h;
@@ -174,7 +174,7 @@ fn main() -> Result<()> {
                 }
 
                 if problem.time >= t + problem.functions.p.t_inflammation {
-                    state = State::HomeostasisReturn(problem.time);
+                    problem.functions.state = State::HomeostasisReturn(problem.time);
                     // update params that are changed immediately back to homeostasis values - just m
                     let p = &mut problem.functions.p;
                     p.m = p.m_h;
@@ -202,7 +202,7 @@ fn main() -> Result<()> {
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
-            trace(&problem, &state, &mut trace_writer)?;
+            trace(&problem, &mut trace_writer)?;
             outputs += 1;
         }
         i += 1;

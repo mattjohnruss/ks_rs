@@ -7,6 +7,7 @@ type ForcingFn = fn(Variable, f64, f64, &ChemotaxisParameters) -> f64;
 pub struct Chemotaxis {
     pub p: ChemotaxisParameters,
     pub f: ForcingFn,
+    pub state: State,
 }
 
 impl Chemotaxis {
@@ -15,11 +16,11 @@ impl Chemotaxis {
             0.0
         }
 
-        Self { p, f: zero_forcing }
+        Self { p, f: zero_forcing, state: State::HomeostasisInitial }
     }
 
     pub fn with_forcing(p: ChemotaxisParameters, f: ForcingFn) -> Self {
-        Self { p, f }
+        Self { p, f, state: State::HomeostasisInitial }
     }
 }
 
