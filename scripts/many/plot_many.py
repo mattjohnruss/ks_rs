@@ -4,7 +4,7 @@ from matplotlib.widgets import Slider
 import json
 import pandas as pd
 
-n_rep = 100
+n_rep = 500
 n_var = 7
 n_time = 1501
 # first_inflammation_time = 544
@@ -83,12 +83,12 @@ def plot_single(rep, var, time, solid=False):
         else:
             j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma = \
                 params_scaled[rep]
-            r = 0.9 * j_phi_i_i_factor
-            g = 0.9 * m_i_factor
-            b = 0.9 * t_j_phi_i_lag
-            # r = 0.0
-            # g = 0.0
-            # b = gamma
+            # r = 0.9 * j_phi_i_i_factor
+            # g = 0.9 * m_i_factor
+            # b = 0.9 * t_j_phi_i_lag
+            r = 0.0
+            g = 0.0
+            b = gamma
 
             ax.plot(data[:, 0], data[:, 1], color=(r, g, b, 1.0), linewidth=1)
 

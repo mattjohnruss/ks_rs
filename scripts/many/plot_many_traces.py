@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import json
 
-n_rep = 100
+n_rep = 500
 n_var = 10
 
 j_phi_i_i_factor_min = 1.0
@@ -56,6 +56,8 @@ for var in range(1, n_var + 1):
     # they will be the same as all other series
     ax.set_title(data[0].columns[var])
 
+    ax.set_xlim(left=0, right=120)
+
     for rep in range(0, n_rep):
         j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma = params_scaled[rep]
         # r = 0.9 * j_phi_i_i_factor
@@ -63,9 +65,9 @@ for var in range(1, n_var + 1):
         # b = 0.9 * t_j_phi_i_lag
         r = 0.0
         g = 0.0
-        b = gamma
+        b = t_j_phi_i_lag
 
-        ax.plot(data[rep]['t'], data[rep].iloc[:, var],
+        ax.plot(data[rep][r't_{inf}'], data[rep].iloc[:, var],
                 color=(r, g, b, 0.8), linewidth=0.5)
 
     fig.savefig(f'plots/{var}.pdf', bbox_inches='tight')
