@@ -148,10 +148,20 @@ where
 
     /// Output the header, consisting of space-separated variable names, to the given
     /// writer
-    fn output_header(&self, buffer: &mut impl Write) -> std::io::Result<()> {
+    fn output_header(
+        &self,
+        buffer: &mut impl Write,
+        aux_names: Option<&[&str]>,
+    ) -> std::io::Result<()> {
         buffer.write_all("t x".as_bytes())?;
         for name in &self.variable_names {
             buffer.write_all(format!(" {}", name).as_bytes())?;
+        }
+
+        if let Some(aux_names) = aux_names {
+            for aux_name in aux_names {
+                buffer.write_all(format!(" {}", aux_name).as_bytes())?;
+            }
         }
         buffer.write_all("\n".as_bytes())?;
         Ok(())
@@ -162,6 +172,7 @@ where
         &self,
         buffer: &mut impl Write,
         f: impl Fn(Variable, f64, Cell, Face) -> f64,
+        aux_data: Option<&[(f64, f64)]>,
     ) -> std::io::Result<()> {
         let time = self.time;
 
@@ -173,6 +184,12 @@ where
                 for var in 0..self.n_variable {
                     let value = f(Variable(var), x_m, cell, Face::West);
                     buffer.write_all(format!(" {:.6e}", value).as_bytes())?;
+                }
+
+                if let Some(aux_data) = aux_data {
+                    for aux_data in aux_data {
+                        buffer.write_all(format!(" {:.6e}", aux_data.0).as_bytes())?;
+                    }
                 }
             }
 
@@ -186,6 +203,12 @@ where
                     let value = f(Variable(var), x_p, cell, Face::East);
                     buffer.write_all(format!(" {:.6e}", value).as_bytes())?;
                 }
+
+                if let Some(aux_data) = aux_data {
+                    for aux_data in aux_data {
+                        buffer.write_all(format!(" {:.6e}", aux_data.1).as_bytes())?;
+                    }
+                }
             }
 
             buffer.write_all(b"\n\n")?;
@@ -194,15 +217,21 @@ where
     }
 
     /// Output the values at face boundaries to the given writer
-    fn output_face_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        self.output_data(buffer, |var, _x, cell, face| {
-            self.var_point_value_at_face(var, cell, face)
-        })
+    fn output_face_data(
+        &self,
+        buffer: &mut impl Write,
+        aux_data: Option<&[(f64, f64)]>,
+    ) -> std::io::Result<()> {
+        self.output_data(
+            buffer,
+            |var, _x, cell, face| self.var_point_value_at_face(var, cell, face),
+            aux_data,
+        )
     }
 
     /// Output the cell averages to the given writer
     fn output_cell_average_data(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        self.output_data(buffer, |var, _x, cell, _face| self.var(var, cell))
+        self.output_data(buffer, |var, _x, cell, _face| self.var(var, cell), None)
     }
 
     /// Output the result of a function to the given writer
@@ -211,19 +240,32 @@ where
         buffer: &mut impl Write,
         f: impl Fn(Variable, f64, f64) -> f64,
     ) -> std::io::Result<()> {
-        self.output_data(buffer, |var, x, _cell, _face| f(var, x, self.time))
+        self.output_data(buffer, |var, x, _cell, _face| f(var, x, self.time), None)
     }
 
     /// Output the current state of the problem to the given writer
     pub fn output(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        self.output_header(buffer)?;
-        self.output_face_data(buffer)?;
+        self.output_header(buffer, None)?;
+        self.output_face_data(buffer, None)?;
+        Ok(())
+    }
+
+    /// Output the current state of the problem to the given writer with auxiliary data
+    pub fn output_with_aux_data(
+        &self,
+        buffer: &mut impl Write,
+        aux_names: &[&str],
+        aux_data: &[(f64, f64)],
+    ) -> std::io::Result<()> {
+        assert_eq!(aux_names.len(), aux_data.len());
+        self.output_header(buffer, Some(aux_names))?;
+        self.output_face_data(buffer, Some(aux_data))?;
         Ok(())
     }
 
     /// Output the current state of the problem to the given writer
     pub fn output_cell_averages(&self, buffer: &mut impl Write) -> std::io::Result<()> {
-        self.output_header(buffer)?;
+        self.output_header(buffer, None)?;
         self.output_cell_average_data(buffer)?;
         Ok(())
     }
@@ -234,7 +276,7 @@ where
         buffer: &mut impl Write,
         f: impl Fn(Variable, f64, f64) -> f64,
     ) -> std::io::Result<()> {
-        self.output_header(buffer)?;
+        self.output_header(buffer, None)?;
         self.output_fn_data(buffer, f)?;
         Ok(())
     }
@@ -861,7 +903,7 @@ mod tests {
         let mut header = Vec::new();
         {
             let mut header_writer = BufWriter::new(&mut header);
-            problem.output_header(&mut header_writer).unwrap();
+            problem.output_header(&mut header_writer, None).unwrap();
         }
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x\n");
 
@@ -870,7 +912,7 @@ mod tests {
         let mut header = Vec::new();
         {
             let mut header_writer = BufWriter::new(&mut header);
-            problem.output_header(&mut header_writer).unwrap();
+            problem.output_header(&mut header_writer, None).unwrap();
         }
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x var_0\n");
 
@@ -879,7 +921,7 @@ mod tests {
         let mut header = Vec::new();
         {
             let mut header_writer = BufWriter::new(&mut header);
-            problem.output_header(&mut header_writer).unwrap();
+            problem.output_header(&mut header_writer, None).unwrap();
         }
         assert_eq!(
             std::str::from_utf8(&header).unwrap(),
@@ -905,7 +947,7 @@ mod tests {
         let mut header = Vec::new();
         {
             let mut header_writer = BufWriter::new(&mut header);
-            problem.output_header(&mut header_writer).unwrap();
+            problem.output_header(&mut header_writer, None).unwrap();
         }
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x\n");
 
@@ -917,7 +959,7 @@ mod tests {
         let mut header = Vec::new();
         {
             let mut header_writer = BufWriter::new(&mut header);
-            problem.output_header(&mut header_writer).unwrap();
+            problem.output_header(&mut header_writer, None).unwrap();
         }
         assert_eq!(std::str::from_utf8(&header).unwrap(), "t x a b c\n");
     }
@@ -961,7 +1003,7 @@ mod tests {
         let mut output = Vec::new();
         {
             let mut output_writer = BufWriter::new(&mut output);
-            problem.output_face_data(&mut output_writer).unwrap();
+            problem.output_face_data(&mut output_writer, None).unwrap();
         }
         assert_eq!(std::str::from_utf8(&output).unwrap(), "0.000000e0 0.000000e0 0.000000e0 0.000000e0 0.000000e0\n0.000000e0 1.000000e0 0.000000e0 0.000000e0 0.000000e0\n\n");
     }
