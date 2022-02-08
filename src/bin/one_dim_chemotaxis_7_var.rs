@@ -38,7 +38,8 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 
         let p = &problem.functions.p;
 
-        let phi_i_steady = p.j_phi_i * ((p.m_h / p.d_phi_i).sqrt() * x).cosh() / ((p.m_h / p.d_phi_i).sqrt().sinh() * (p.d_phi_i * p.m_h).sqrt());
+        let phi_i_steady = p.j_phi_i * ((p.m_h / p.d_phi_i).sqrt() * x).cosh()
+            / ((p.m_h / p.d_phi_i).sqrt().sinh() * (p.d_phi_i * p.m_h).sqrt());
 
         *problem.var_mut(C_U, cell) = cos_ramp(x, 10.0);
         *problem.var_mut(C_B, cell) = 0.0;
@@ -166,7 +167,10 @@ fn main() -> Result<()> {
         match problem.functions.state {
             State::HomeostasisInitial => {
                 if ssd.is_steady_state(&problem, ssd_threshold) {
-                    println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+                    println!(
+                        "Steady state reached at t = {} (within threshold {:e})",
+                        problem.time, ssd_threshold
+                    );
                     problem.functions.state = State::Inflammation(problem.time);
                     // update params that are changed immediately to inflammation values - just m
                     let p = &mut problem.functions.p;
@@ -195,7 +199,10 @@ fn main() -> Result<()> {
                 }
 
                 if ssd.is_steady_state(&problem, ssd_threshold) {
-                    println!("Steady state reached at t = {} (within threshold {:e})", problem.time, ssd_threshold);
+                    println!(
+                        "Steady state reached at t = {} (within threshold {:e})",
+                        problem.time, ssd_threshold
+                    );
                     break;
                 }
             }
@@ -207,21 +214,29 @@ fn main() -> Result<()> {
         match problem.functions.state {
             State::HomeostasisInitial => {
                 if problem.time >= outputs as f64 * output_time_interval {
-                    let file = fs::File::create(homeostasis_path.join(format!("output_{:05}.csv", outputs)))?;
+                    let file = fs::File::create(
+                        homeostasis_path.join(format!("output_{:05}.csv", outputs)),
+                    )?;
                     let mut buf_writer = BufWriter::new(file);
                     println!("Outputting at time = {}, i = {}", problem.time, i);
                     problem.output(&mut buf_writer)?;
                     trace(&problem, &mut trace_writer)?;
                     outputs += 1;
                 }
-            },
+            }
             State::Inflammation(_) | State::HomeostasisReturn(_) => {
                 if time_since_inflammation(&problem) >= outputs_inf as f64 * output_time_interval {
-                    let file = fs::File::create(inflammation_path.join(format!("output_{:05}.csv", outputs_inf)))?;
+                    let file = fs::File::create(
+                        inflammation_path.join(format!("output_{:05}.csv", outputs_inf)),
+                    )?;
                     let mut buf_writer = BufWriter::new(file);
                     println!("Outputting at time = {}, i = {}", problem.time, i);
                     let t_inf = time_since_inflammation(&problem);
-                    problem.output_with_aux_data(&mut buf_writer, &["time_{inf}"], &[(t_inf, t_inf)])?;
+                    problem.output_with_aux_data(
+                        &mut buf_writer,
+                        &["time_{inf}"],
+                        &[(t_inf, t_inf)],
+                    )?;
                     trace(&problem, &mut trace_writer)?;
                     outputs_inf += 1;
                 }
