@@ -135,11 +135,17 @@ fn main() -> Result<()> {
     let dir_path = Path::new(&dir);
     fs::create_dir_all(dir_path)?;
 
+    let homeostasis_path = dir_path.join("homeostasis");
+    fs::create_dir_all(&homeostasis_path)?;
+
+    let inflammation_path = dir_path.join("inflammation");
+    fs::create_dir_all(&inflammation_path)?;
+
     let mut ssp_rk33 = SspRungeKutta33::new(problem.n_dof);
 
     let mut ssd = SteadyStateDetector::new(problem.n_dof);
 
-    let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", 0)))?;
+    let file = fs::File::create(&homeostasis_path.join(format!("output_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
     problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
@@ -154,6 +160,7 @@ fn main() -> Result<()> {
 
     let mut i = 1;
     let mut outputs = 1;
+    let mut outputs_inf = 0;
 
     while problem.time < t_max {
         match problem.functions.state {
@@ -197,13 +204,28 @@ fn main() -> Result<()> {
         let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
 
-        if problem.time >= outputs as f64 * output_time_interval {
-            let file = fs::File::create(dir_path.join(format!("output_{:05}.csv", outputs)))?;
-            let mut buf_writer = BufWriter::new(file);
-            println!("Outputting at time = {}, i = {}", problem.time, i);
-            problem.output(&mut buf_writer)?;
-            trace(&problem, &mut trace_writer)?;
-            outputs += 1;
+        match problem.functions.state {
+            State::HomeostasisInitial => {
+                if problem.time >= outputs as f64 * output_time_interval {
+                    let file = fs::File::create(homeostasis_path.join(format!("output_{:05}.csv", outputs)))?;
+                    let mut buf_writer = BufWriter::new(file);
+                    println!("Outputting at time = {}, i = {}", problem.time, i);
+                    problem.output(&mut buf_writer)?;
+                    trace(&problem, &mut trace_writer)?;
+                    outputs += 1;
+                }
+            },
+            State::Inflammation(_) | State::HomeostasisReturn(_) => {
+                if time_since_inflammation(&problem) >= outputs_inf as f64 * output_time_interval {
+                    let file = fs::File::create(inflammation_path.join(format!("output_{:05}.csv", outputs_inf)))?;
+                    let mut buf_writer = BufWriter::new(file);
+                    println!("Outputting at time = {}, i = {}", problem.time, i);
+                    let t_inf = time_since_inflammation(&problem);
+                    problem.output_with_aux_data(&mut buf_writer, &["time_{inf}"], &[(t_inf, t_inf)])?;
+                    trace(&problem, &mut trace_writer)?;
+                    outputs_inf += 1;
+                }
+            }
         }
         i += 1;
     }
