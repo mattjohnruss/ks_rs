@@ -12,6 +12,8 @@ library(jsonlite)
 # etc.
 set.seed(12345L)
 
+res_dir_base <- "res_sensitivity_2_neg_pe"
+
 # Constant parameter values
 phi_bar_over_c_bar <- 1.40179e-6
 phi_bar_over_phi_max <- 0.1
@@ -90,7 +92,7 @@ add_constants_and_gammas_to_param_table <- function(params) {
 write_json_params_files <- function(all_params) {
   for (i in 1:nrow(all_params)) {
     j <- toJSON(unbox(all_params[i, !"gamma"]), digits = 16)
-    res_dir <- paste0("res_sensitivity/", i - 1)
+    res_dir <- paste0(res_dir_base, "/", i - 1)
 
     if (!dir.exists(res_dir)) {
       dir.create(res_dir, recursive = TRUE)
@@ -113,7 +115,7 @@ simulate_all <- function(all_params) {
 read_combined_output <- function(all_params) {
   data <- all_params
 
-  results <- fread("res_sensitivity/all_outputs.csv")
+  results <- fread(paste0(res_dir_base, "/all_outputs.csv"))
   #print(results)
 
   print(system.time(data[, value := results[, '-F_{phi_{C_b}}(x=0)']]))
@@ -150,7 +152,7 @@ x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 add_constants_and_gammas_to_param_table(x$X)
 
 #write_json_params_files(x$X)
-#fwrite(x$X, "res_sensitivity/d_m.csv", sep = " ")
+#fwrite(x$X, paste0(res_dir_base, "/d_m.csv"), sep = " ")
 
 #simulate_all(x$X)
 
