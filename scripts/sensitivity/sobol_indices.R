@@ -4,6 +4,8 @@ library(sensitivity)
 library(ggplot2)
 library(data.table)
 library(jsonlite)
+library(cowplot)
+library(patchwork)
 
 # Set the random seed to make the parameter sample reproducible. This will be
 # useful for setting off some runs before we've fully decided what quantities
@@ -12,7 +14,7 @@ library(jsonlite)
 # etc.
 set.seed(12345L)
 
-res_dir_base <- "res_sensitivity_2_neg_pe"
+res_dir_base <- "res_sensitivity_2_pos_pe"
 
 # Constant parameter values
 phi_bar_over_c_bar <- 1.40179e-6
@@ -112,13 +114,52 @@ simulate_all <- function(all_params) {
   system(cmd)
 }
 
-read_combined_output <- function(all_params) {
-  data <- all_params
+read_trace_data <- function(all_params) {
+  n_runs <- nrow(all_params)
 
-  results <- fread(paste0(res_dir_base, "/all_outputs.csv"))
-  #print(results)
+  rep <- 0
+  trace_data <- fread(paste0(res_dir_base, "/", rep, "/trace.csv"))
+  trace_data <- trace_data[`t_{inf}` >= 0]
+  trace_data[, rep := rep]
+  trace_data[, output_inf := .I]
+  trace_data <- cbind(trace_data, all_params[rep + 1])
 
-  print(system.time(data[, value := results[, '-F_{phi_{C_b}}(x=0)']]))
+  for (rep in 1:(n_runs - 1)) {
+    filename <- paste0(res_dir_base, "/", rep, "/trace.csv")
+    print(filename)
+    trace_data_new <- fread(filename)
+    trace_data_new <- trace_data_new[`t_{inf}` >= 0]
+    trace_data_new[, rep := rep]
+    trace_data_new[, output_inf := .I]
+    trace_data_new <- cbind(trace_data_new, all_params[rep + 1])
+    trace_data <- rbind(trace_data, trace_data_new)
+  }
+
+  return(trace_data)
+}
+
+calculate_integrated_fluxes <- function(trace_data) {
+  # Time-integration of fluxes using the trapezium rule
+
+  # Find the stopping time of the simulation that finishes first - this is where
+  # we'll integrate up to
+  t_max <- trace_data %>%
+    .[, .(t_stop = max(`t_{inf}`)), by = rep] %>%
+    .[, min(t_stop)]
+
+  # Calculate quantites for trapezium rule: time intervals between outputs, and
+  # pairwise sum of fluxes between consective output times; then computes the
+  # integral by constructing the appropriate quotients and summing
+  integrated_fluxes <- trace_data[`t_{inf}` <= t_max,
+    .(
+      influx_sum = frollsum(`-F_{phi_i}(x=1)`, 2),
+      outflux_sum = frollsum(`-F_{phi_{C_b}}(x=0)`, 2),
+      dt = frollapply(`t_{inf}`, 2, function(x) { x[2] - x[1] })
+      ), by = rep] %>%
+    .[, .(q_in = influx_sum / dt, q_out = outflux_sum / dt), by = rep] %>%
+    .[, .(cells_in = sum(q_in, na.rm = TRUE), cells_out = sum(q_out, na.rm = TRUE)), by = rep]
+
+  return(integrated_fluxes)
 }
 
 gen_param_sample <- function() {
@@ -164,20 +205,110 @@ add_constants_and_gammas_to_param_table(x$X)
 # maybe we should split this into two scripts to make it easier to call them as
 # needed from R.
 
-# TODO: reenable/make flexible - see above
-read_combined_output(x$X)
+trace_data <- read_trace_data(x$X)
 
-y <- x$X$value
+trace_data_long <- melt(trace_data, measure.vars = c('C_u^{tot}', 'C_b^{tot}', 'C_s^{tot}', 'phi_i^{tot}', 'phi_m^{tot}', 'phi_{C_u}^{tot}', 'phi_{C_b}^{tot}', '-F_{phi_i}(x=1)', '-F_{phi_{C_b}}(x=0)'))
 
-# TODO: Why on earth does subtracting the mean from y here make the Sobol
-# indices much more believable?
-# Possible answer: Some of the estimators in `sensitivity` apparently suffer
-# from a "conditioning problem", such as `sobol2002` and `sobol2007.` A
-# workaround is to centre the model outputs before running estimators or to use
-# alternative estimators like `soboljansen`, `sobolmartinez` etc. I'm assuming
-# this is also the case for `sobol` (which we initially used), but its docs
-# don't mention it.
-tell(x, y - mean(y))
+integrated_fluxes <- calculate_integrated_fluxes(trace_data)
+
+cells_vs_params <- x$X[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, cells_in = integrated_fluxes[, cells_in], cells_out = integrated_fluxes[, cells_out])]
+
+cells_vs_params_long <- cells_vs_params %>%
+  melt(
+    .,
+    measure.vars = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+    variable.name = "param",
+    value.name = "param_value"
+  ) %>%
+  melt(
+    .,
+    measure.vars = c("cells_in", "cells_out"),
+    variable.name = "variable",
+    value.name = "cells"
+  )
+
+#y <- integrated_fluxes$cells_in
+y <- integrated_fluxes$cells_out
+
+# Some of the estimators in `sensitivity` apparently suffer from a
+# "conditioning problem", such as `sobol2002` and `sobol2007.` A workaround is
+# to centre the model outputs before running estimators or to use alternative
+# estimators like `soboljansen`, `sobolmartinez` etc. I'm assuming this is also
+# the case for `sobol` (which we initially used), but its docs don't mention
+# it. Generally, we'll use on the above alternatives, as they calculate
+# first-order and total indices simulataneously, not requiring a number of runs
+# quadratic in dimension of parameter space.
+#tell(x, y - mean(y))
+tell(x, y)
 
 print(x)
-plot(x)
+ggplot(x)
+
+ggsave(paste0(res_dir_base, "/plots/sobol_indices.pdf"), width = 13, height = 7)
+
+# Other plots
+# -----------
+
+# Plot the integrated cell numbers against parameter values
+ggplot(cells_vs_params_long) + geom_point(aes(x = param_value, y = cells, colour = variable, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
+
+ggsave(paste0(res_dir_base, "/plots/cells_vs_params.pdf"), width = 13, height = 7)
+
+# Individual cells in/out plots
+#ggplot(cells_vs_params_long[variable == "cells_in"]) + geom_point(aes(x = param_value, y = cells, colour = param, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
+
+#ggplot(cells_vs_params_long[variable == "cells_out"]) + geom_point(aes(x = param_value, y = cells, colour = param, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
+
+trace_data_longer <- trace_data[, .(rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_i}(x=1)`, `-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)] %>%
+  melt(
+    .,
+    measure.vars = c('C_b^{tot}', 'phi_{C_b}^{tot}', '-F_{phi_i}(x=1)', '-F_{phi_{C_b}}(x=0)')
+    ) %>%
+  melt(
+    .,
+    measure.vars = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+    variable.name = "param",
+    value.name = "param_value"
+)
+
+#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) + geom_line(aes(x = `t_{inf}`, y = value, colour = param_value, group = rep), alpha = 0.2) + theme_cowplot() + facet_wrap(vars(param, variable), nrow = 4, ncol = 3, scales = "free") + xlab("Time since start of inflammation")
+
+#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) + geom_line(aes(x = `t_{inf}`, y = value, colour = param_value, group = rep), alpha = 0.2) + theme_cowplot() + facet_grid(rows = vars(param), cols = vars(variable), scales = "free") + xlab("Time since start of inflammation")
+
+no_x_axis <- theme(axis.title.x = element_blank(), axis.line.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+no_y_axis <- theme(axis.title.y = element_blank(), axis.line.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+blue <- scale_colour_gradient(low = "black", high = "blue")
+red <- scale_colour_gradient(low = "black", high = "red")
+green <- scale_colour_gradient(low = "black", high = "green")
+orange <- scale_colour_gradient(low = "black", high = "orange")
+
+p1 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis
+
+p2 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis + no_y_axis
+
+p3 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis + no_y_axis
+
+p4 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis
+
+p5 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis + no_y_axis
+
+p6 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis + no_y_axis
+
+p7 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis
+
+p8 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis + no_y_axis
+
+p9 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis + no_y_axis
+
+p10 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange
+
+p11 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange + no_y_axis
+
+p12 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange + no_y_axis
+
+p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + plot_layout(guides = "collect", ncol = 3)
+
+# output a png - a pdf of this plot is huge (due to the enormous number of lines) and renders very slowly
+ggsave(paste0(res_dir_base, "/plots/trace_coloured_by_params.png"), width = 13, height = 7)
