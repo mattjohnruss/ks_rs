@@ -5,7 +5,8 @@ library(ggplot2)
 library(data.table)
 library(jsonlite)
 library(cowplot)
-library(patchwork)
+#library(patchwork)
+library(GGally)
 
 # Set the random seed to make the parameter sample reproducible. This will be
 # useful for setting off some runs before we've fully decided what quantities
@@ -14,7 +15,7 @@ library(patchwork)
 # etc.
 set.seed(12345L)
 
-res_dir_base <- "res_sensitivity_2_pos_pe"
+res_dir_base <- "res_sensitivity_3_neg_pe"
 
 # Constant parameter values
 phi_bar_over_c_bar <- 1.40179e-6
@@ -93,14 +94,14 @@ add_constants_and_gammas_to_param_table <- function(params) {
 # columns that are actually used in the sims.
 write_json_params_files <- function(all_params) {
   for (i in 1:nrow(all_params)) {
-    j <- toJSON(unbox(all_params[i, !"gamma"]), digits = 16)
-    res_dir <- paste0(res_dir_base, "/", i - 1)
+    j <- jsonlite::toJSON(jsonlite::unbox(all_params[i, !"gamma"]), digits = 16)
+    res_dir <- paste(res_dir_base, i - 1, sep = "/")
 
     if (!dir.exists(res_dir)) {
       dir.create(res_dir, recursive = TRUE)
     }
 
-    config_path <- paste0(res_dir, "/config.json")
+    config_path <- paste(res_dir, "config.json", sep = "/")
     writeLines(j, config_path)
   }
 }
@@ -118,16 +119,18 @@ read_trace_data <- function(all_params) {
   n_runs <- nrow(all_params)
 
   rep <- 0
-  trace_data <- fread(paste0(res_dir_base, "/", rep, "/trace.csv"))
+  trace_data <- data.table::fread(
+    paste(res_dir_base, rep, "trace.csv", sep = "/")
+  )
   trace_data <- trace_data[`t_{inf}` >= 0]
   trace_data[, rep := rep]
   trace_data[, output_inf := .I]
   trace_data <- cbind(trace_data, all_params[rep + 1])
 
   for (rep in 1:(n_runs - 1)) {
-    filename <- paste0(res_dir_base, "/", rep, "/trace.csv")
+    filename <- paste(res_dir_base, rep, "trace.csv", sep = "/")
     print(filename)
-    trace_data_new <- fread(filename)
+    trace_data_new <- data.table::fread(filename)
     trace_data_new <- trace_data_new[`t_{inf}` >= 0]
     trace_data_new[, rep := rep]
     trace_data_new[, output_inf := .I]
@@ -154,19 +157,28 @@ calculate_integrated_fluxes <- function(trace_data) {
     .(
       influx_sum = frollsum(`-F_{phi_i}(x=1)`, 2),
       outflux_sum = frollsum(`-F_{phi_{C_b}}(x=0)`, 2),
-      dt = frollapply(`t_{inf}`, 2, function(x) { x[2] - x[1] })
-      ), by = rep] %>%
+      dt = frollapply(`t_{inf}`, 2, function(x) x[2] - x[1])
+    ), by = rep] %>%
     .[, .(q_in = influx_sum / dt, q_out = outflux_sum / dt), by = rep] %>%
-    .[, .(cells_in = sum(q_in, na.rm = TRUE), cells_out = sum(q_out, na.rm = TRUE)), by = rep]
+    .[, .(
+      cells_in = sum(q_in, na.rm = TRUE),
+      cells_out = sum(q_out, na.rm = TRUE)
+      ), by = rep]
 
   return(integrated_fluxes)
 }
 
 gen_param_sample <- function() {
   data.table(
-    j_phi_i_i_factor = runif(n_rep, min = j_phi_i_i_factor_min, max = j_phi_i_i_factor_max),
+    j_phi_i_i_factor = runif(
+      n_rep,
+      min = j_phi_i_i_factor_min, max = j_phi_i_i_factor_max
+    ),
     m_i_factor = runif(n_rep, min = m_i_factor_min, max = m_i_factor_max),
-    t_j_phi_i_lag = runif(n_rep, min = t_j_phi_i_lag_min, max = t_j_phi_i_lag_max),
+    t_j_phi_i_lag = runif(
+      n_rep,
+      min = t_j_phi_i_lag_min, max = t_j_phi_i_lag_max
+    ),
     gamma = runif(n_rep, min = gamma_min, max = gamma_max)
   )
 }
@@ -193,7 +205,7 @@ x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 add_constants_and_gammas_to_param_table(x$X)
 
 #write_json_params_files(x$X)
-#fwrite(x$X, paste0(res_dir_base, "/d_m.csv"), sep = " ")
+#fwrite(x$X, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")
 
 #simulate_all(x$X)
 
@@ -207,16 +219,43 @@ add_constants_and_gammas_to_param_table(x$X)
 
 trace_data <- read_trace_data(x$X)
 
-trace_data_long <- melt(trace_data, measure.vars = c('C_u^{tot}', 'C_b^{tot}', 'C_s^{tot}', 'phi_i^{tot}', 'phi_m^{tot}', 'phi_{C_u}^{tot}', 'phi_{C_b}^{tot}', '-F_{phi_i}(x=1)', '-F_{phi_{C_b}}(x=0)'))
+trace_data_long <- melt(
+  trace_data,
+  measure.vars = c(
+    "C_u^{tot}",
+    "C_b^{tot}",
+    "C_s^{tot}",
+    "phi_i^{tot}",
+    "phi_m^{tot}",
+    "phi_{C_u}^{tot}",
+    "phi_{C_b}^{tot}",
+    "-F_{phi_i}(x=1)",
+    "-F_{phi_{C_b}}(x=0)"
+  )
+)
 
 integrated_fluxes <- calculate_integrated_fluxes(trace_data)
 
-cells_vs_params <- x$X[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, cells_in = integrated_fluxes[, cells_in], cells_out = integrated_fluxes[, cells_out])]
+cells_vs_params <- x$X[
+  ,
+  .(j_phi_i_i_factor,
+    m_i_factor,
+    t_j_phi_i_lag,
+    gamma,
+    cells_in = integrated_fluxes[, cells_in],
+    cells_out = integrated_fluxes[, cells_out]
+  )
+]
 
 cells_vs_params_long <- cells_vs_params %>%
   melt(
     .,
-    measure.vars = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+    measure.vars = c(
+      "j_phi_i_i_factor",
+      "m_i_factor",
+      "t_j_phi_i_lag",
+      "gamma"
+    ),
     variable.name = "param",
     value.name = "param_value"
   ) %>%
@@ -242,73 +281,308 @@ y <- integrated_fluxes$cells_out
 tell(x, y)
 
 print(x)
+
+# TODO: this simple plotting helper function has a typo ("effet" instead of
+# "effect") in the legend - report upstream and/or make our plots from x$S and
+# x$T
 ggplot(x)
 
-ggsave(paste0(res_dir_base, "/plots/sobol_indices.pdf"), width = 13, height = 7)
+plot_dir <- paste(res_dir_base, "plots", sep = "/")
+
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
+
+ggsave(
+  paste(plot_dir, "sobol_indices.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
 
 # Other plots
 # -----------
 
 # Plot the integrated cell numbers against parameter values
-ggplot(cells_vs_params_long) + geom_point(aes(x = param_value, y = cells, colour = variable, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
+ggplot(cells_vs_params_long) +
+  geom_point(aes(
+    x = param_value,
+    y = cells,
+    colour = variable,
+    group = variable
+  )) +
+  facet_wrap(vars(param), scales = "free") +
+  theme_cowplot() +
+  xlab("Parameter value") +
+  ylab("Cells (dimensionless)")
 
-ggsave(paste0(res_dir_base, "/plots/cells_vs_params.pdf"), width = 13, height = 7)
-
-# Individual cells in/out plots
-#ggplot(cells_vs_params_long[variable == "cells_in"]) + geom_point(aes(x = param_value, y = cells, colour = param, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
-
-#ggplot(cells_vs_params_long[variable == "cells_out"]) + geom_point(aes(x = param_value, y = cells, colour = param, group = variable)) + facet_wrap(vars(param), scales = "free") + theme_cowplot() + xlab("Parameter value") + ylab("Cells (dimensionless)")
-
-trace_data_longer <- trace_data[, .(rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_i}(x=1)`, `-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)] %>%
-  melt(
-    .,
-    measure.vars = c('C_b^{tot}', 'phi_{C_b}^{tot}', '-F_{phi_i}(x=1)', '-F_{phi_{C_b}}(x=0)')
-    ) %>%
-  melt(
-    .,
-    measure.vars = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
-    variable.name = "param",
-    value.name = "param_value"
+ggsave(
+  paste(plot_dir, "cells_vs_params.pdf", sep = "/"),
+  width = 13,
+  height = 7
 )
 
-#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) + geom_line(aes(x = `t_{inf}`, y = value, colour = param_value, group = rep), alpha = 0.2) + theme_cowplot() + facet_wrap(vars(param, variable), nrow = 4, ncol = 3, scales = "free") + xlab("Time since start of inflammation")
+# Individual cells in/out plots
+#ggplot(cells_vs_params_long[variable == "cells_in"]) +
+  #geom_point(
+    #aes(x = param_value, y = cells, colour = param, group = variable)
+  #) +
+  #facet_wrap(vars(param), scales = "free") +
+  #theme_cowplot() +
+  #xlab("Parameter value") +
+  #ylab("Cells (dimensionless)")
 
-#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) + geom_line(aes(x = `t_{inf}`, y = value, colour = param_value, group = rep), alpha = 0.2) + theme_cowplot() + facet_grid(rows = vars(param), cols = vars(variable), scales = "free") + xlab("Time since start of inflammation")
+#ggplot(cells_vs_params_long[variable == "cells_out"]) +
+  #geom_point(
+    #aes(x = param_value, y = cells, colour = param, group = variable)
+  #) +
+  #facet_wrap(vars(param), scales = "free") +
+  #theme_cowplot() +
+  #xlab("Parameter value") +
+  #ylab("Cells (dimensionless)")
 
-no_x_axis <- theme(axis.title.x = element_blank(), axis.line.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+trace_data_longer <- trace_data[
+  ,
+  .(
+    rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_i}(x=1)`,
+    `-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma
+  )
+  ] %>%
+  melt(
+    .,
+    measure.vars = c(
+      "C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_i}(x=1)", "-F_{phi_{C_b}}(x=0)"
+    )
+  ) %>%
+  melt(
+    .,
+    measure.vars = c(
+      "j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"
+    ),
+    variable.name = "param",
+    value.name = "param_value"
+  )
 
-no_y_axis <- theme(axis.title.y = element_blank(), axis.line.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) +
+  #geom_line(
+    #aes(x = `t_{inf}`, y = value, colour = param_value, group = rep),
+    #alpha = 0.2
+  #) +
+  #theme_cowplot() +
+  #facet_wrap(vars(param, variable), nrow = 4, ncol = 3, scales = "free") +
+  #xlab("Time since start of inflammation")
+
+#ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) +
+  #geom_line(
+    #aes(x = `t_{inf}`, y = value, colour = param_value, group = rep),
+    #alpha = 0.2
+  #) +
+  #theme_cowplot() +
+  #facet_grid(rows = vars(param), cols = vars(variable), scales = "free") +
+  #xlab("Time since start of inflammation")
+
+no_x_axis <- theme()
+#no_x_axis <- theme(
+  #axis.title.x = element_blank(),
+  #axis.line.x = element_blank(),
+  #axis.text.x = element_blank(),
+  #axis.ticks.x = element_blank()
+#)
+
+no_y_axis <- theme(
+  axis.title.y = element_blank(),
+  axis.line.y = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
 
 blue <- scale_colour_gradient(low = "black", high = "blue")
 red <- scale_colour_gradient(low = "black", high = "red")
 green <- scale_colour_gradient(low = "black", high = "green")
 orange <- scale_colour_gradient(low = "black", high = "orange")
 
-p1 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis
+p1 <- ggplot(
+    trace_data,
+    aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = j_phi_i_i_factor)
+  ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  blue +
+  no_x_axis
 
-p2 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis + no_y_axis
+p2 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `phi_{C_b}^{tot}`,
+      group = rep,
+      colour = j_phi_i_i_factor
+    )
+  ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  blue +
+  no_x_axis
 
-p3 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = j_phi_i_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + blue + no_x_axis + no_y_axis
+p3 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `-F_{phi_{C_b}}(x=0)`,
+      group = rep,
+      colour = j_phi_i_i_factor
+    )
+  ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  blue +
+  no_x_axis
 
-p4 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis
+p4 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `C_b^{tot}`,
+      group = rep,
+      colour = m_i_factor
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  red +
+  no_x_axis
 
-p5 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis + no_y_axis
+p5 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `phi_{C_b}^{tot}`,
+      group = rep,
+      colour = m_i_factor
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  red +
+  no_x_axis
 
-p6 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = m_i_factor)) + geom_line(alpha = 0.2) + theme_cowplot() + red + no_x_axis + no_y_axis
+p6 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `-F_{phi_{C_b}}(x=0)`,
+      group = rep,
+      colour = m_i_factor
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  red +
+  no_x_axis
 
-p7 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis
+p7 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `C_b^{tot}`,
+      group = rep,
+      colour = t_j_phi_i_lag
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  green +
+  no_x_axis
 
-p8 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis + no_y_axis
+p8 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `phi_{C_b}^{tot}`,
+      group = rep,
+      colour = t_j_phi_i_lag
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  green +
+  no_x_axis
 
-p9 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = t_j_phi_i_lag)) + geom_line(alpha = 0.2) + theme_cowplot() + green + no_x_axis + no_y_axis
+p9 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `-F_{phi_{C_b}}(x=0)`,
+      group = rep,
+      colour = t_j_phi_i_lag
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  green +
+  no_x_axis
 
-p10 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange
+p10 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `C_b^{tot}`,
+      group = rep,
+      colour = gamma
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  orange
 
-p11 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `phi_{C_b}^{tot}`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange + no_y_axis
+p11 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `phi_{C_b}^{tot}`,
+      group = rep,
+      colour = gamma
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  orange
 
-p12 <- ggplot(trace_data, aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep, colour = gamma)) + geom_line(alpha = 0.2) + theme_cowplot() + orange + no_y_axis
+p12 <- ggplot(
+    trace_data,
+    aes(
+      x = `t_{inf}`,
+      y = `-F_{phi_{C_b}}(x=0)`,
+      group = rep,
+      colour = gamma
+      )
+    ) +
+  geom_line(alpha = 0.2) +
+  theme_cowplot() +
+  orange
 
-p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + plot_layout(guides = "collect", ncol = 3)
+#p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 +
+  #plot_layout(guides = "collect", ncol = 3)
 
-# output a png - a pdf of this plot is huge (due to the enormous number of lines) and renders very slowly
-ggsave(paste0(res_dir_base, "/plots/trace_coloured_by_params.png"), width = 13, height = 7)
+plot_list <- list(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
+
+# Use the GGally package to make the plot grid - seems to be the only easy way
+# that does everything we need, including row/column labels
+
+trace_grid <- ggmatrix(
+  plot_list,
+  3, 4,
+  c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+  c("C_b^{tot}", "phi_{C_b^{tot}}", "-F_{phi_{C_b}}(x=0)"),
+  xlab = "t_{inf}",
+  byrow = FALSE
+)
+trace_grid
+
+# output a png - a pdf of this plot is huge (due to the enormous number of
+# lines) and renders very slowly
+ggsave(
+  plot = trace_grid,
+  paste(plot_dir, "trace_coloured_by_params.png", sep = "/"),
+  width = 13,
+  height = 7
+)
