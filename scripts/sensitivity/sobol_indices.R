@@ -266,8 +266,15 @@ cells_vs_params_long <- cells_vs_params %>%
     value.name = "cells"
   )
 
-#y <- integrated_fluxes$cells_in
-y <- integrated_fluxes$cells_out
+plot_dir <- paste(res_dir_base, "plots", sep = "/")
+
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
+
+# Sobol indices for cell influx
+# -----------------------------
+y <- integrated_fluxes$cells_in
 
 # Some of the estimators in `sensitivity` apparently suffer from a
 # "conditioning problem", such as `sobol2002` and `sobol2007.` A workaround is
@@ -279,7 +286,6 @@ y <- integrated_fluxes$cells_out
 # quadratic in dimension of parameter space.
 #tell(x, y - mean(y))
 tell(x, y)
-
 print(x)
 
 # TODO: this simple plotting helper function has a typo ("effet" instead of
@@ -287,14 +293,22 @@ print(x)
 # x$T
 ggplot(x)
 
-plot_dir <- paste(res_dir_base, "plots", sep = "/")
+ggsave(
+  paste(plot_dir, "sobol_indices_cells_in.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
 
-if (!dir.exists(plot_dir)) {
-  dir.create(plot_dir, recursive = TRUE)
-}
+# Sobol indices for cell outflux
+# ------------------------------
+y <- integrated_fluxes$cells_out
+
+tell(x, y)
+print(x)
+ggplot(x)
 
 ggsave(
-  paste(plot_dir, "sobol_indices.pdf", sep = "/"),
+  paste(plot_dir, "sobol_indices_cells_out.pdf", sep = "/"),
   width = 13,
   height = 7
 )
