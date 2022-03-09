@@ -3,3 +3,4 @@
 res*
 todo
 Cargo.lock
+__pycache__
