@@ -98,7 +98,7 @@ def plot_single(rep, vars, time):
                                               param_max_colours[j])
 
                 line, = axs[i, j].plot(data[:, 0], data[:, i + 1],
-                                       color=(r, g, b, 1.0), linewidth=0.5)
+                                       color=(r, g, b, 0.4), linewidth=1.0)
                 lines[i][j] = line
 
         return lines
@@ -139,7 +139,7 @@ def animate(time):
                                                   param_max_colours[j])
 
                     lines[rep][i][j].set_ydata(data[rep][:, i + 1])
-                    lines[rep][i][j].set_color((r, g, b, 1.0))
+                    lines[rep][i][j].set_color((r, g, b, 0.4))
 
     return lines
 
