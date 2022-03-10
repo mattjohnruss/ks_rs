@@ -45,27 +45,28 @@ get_max_single <- function(rep_id) {
   data[data[, .I[phi_C_b == max(phi_C_b)], by = time_inf]$V1]
 }
 
-#max_phi_c_b_all <- list()
-#for (rep_id in 1:n_rep) {
-  #max_phi_c_b_all[[rep_id]] <- get_max_single(rep_id)
-#}
+max_phi_c_b_all <- list()
+for (rep_id in 1:n_rep) {
+  max_phi_c_b_all[[rep_id]] <- get_max_single(rep_id)
+}
+
 max_phi_c_b_all <- rbindlist(max_phi_c_b_all)
 
-#fwrite(max_phi_c_b_all, "max_phi_c_b_all.csv", sep = " ")
+fwrite(max_phi_c_b_all, "max_phi_c_b_all.csv", sep = " ")
 
-max_phi_c_b_all <- fread("max_phi_c_b_all.csv")
+#max_phi_c_b_all <- fread("max_phi_c_b_all.csv")
 
-max_phi_c_b_all_and_params <- cbind(
-  max_phi_c_b_all,
-  params[
-    max_phi_c_b_all[, rep + 1],
-    .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)
-  ]
-)
+#max_phi_c_b_all_and_params <- cbind(
+  #max_phi_c_b_all,
+  #params[
+    #max_phi_c_b_all[, rep + 1],
+    #.(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)
+  #]
+#)
 
-ggplot(
-  max_phi_c_b_all_and_params,
-  aes(time_inf, x, group = rep, colour = gamma)
-) +
-  geom_path(alpha = 0.1) +
-  theme_cowplot()
+#ggplot(
+  #max_phi_c_b_all_and_params,
+  #aes(time_inf, x, group = rep, colour = gamma)
+#) +
+  #geom_path(alpha = 0.1) +
+  #theme_cowplot()
