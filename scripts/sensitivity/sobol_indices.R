@@ -159,7 +159,10 @@ calculate_integrated_fluxes <- function(trace_data) {
       outflux_sum = frollsum(`-F_{phi_{C_b}}(x=0)`, 2),
       dt = frollapply(`t_{inf}`, 2, function(x) x[2] - x[1])
     ), by = rep] %>%
-    .[, .(q_in = influx_sum / dt, q_out = outflux_sum / dt), by = rep] %>%
+    .[, .(
+      q_in = influx_sum * 0.5 * dt,
+      q_out = outflux_sum * 0.5 * dt
+      ), by = rep] %>%
     .[, .(
       cells_in = sum(q_in, na.rm = TRUE),
       cells_out = sum(q_out, na.rm = TRUE)
