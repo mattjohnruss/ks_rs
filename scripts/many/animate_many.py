@@ -74,9 +74,9 @@ def data_single(rep, vars, time):
         print("WARNING: TRYING TO READ A FILE THAT DOESN'T EXIST")
 
 
-param_max_colours = [[0.0, 1.0, 0.0],
+param_max_colours = [[0.0, 0.0, 1.0],
                      [1.0, 0.0, 0.0],
-                     [0.0, 0.0, 1.0],
+                     [0.0, 1.0, 0.0],
                      [1.0, 0.647, 0.0]]
 
 
