@@ -114,6 +114,9 @@ for j in range(n_vary_param):
 lines = [plot_single(rep, vars, 0) for rep in range(0, n_rep)]
 data = [None for rep in range(0, n_rep)]
 
+use_fixed_y_axis_limits = True
+fixed_y_axis_max = [9.0, 1.8]
+
 
 def animate(time):
     print(f"vars: {vars}, time: {time} / {n_time}")
@@ -121,15 +124,23 @@ def animate(time):
     data_max = [0.0] * n_plot_var
     for rep in range(0, n_rep):
         data[rep] = data_single(rep, vars, time)
-        data_rep_max = [data[rep][:, i + 1].max() for i in range(n_plot_var)]
 
-        for i in range(n_plot_var):
-            if data_rep_max[i] > data_max[i]:
-                data_max[i] = data_rep_max[i]
+        if not use_fixed_y_axis_limits:
+            data_rep_max = \
+                [data[rep][:, i + 1].max() for i in range(n_plot_var)]
+
+            for i in range(n_plot_var):
+                if data_rep_max[i] > data_max[i]:
+                    data_max[i] = data_rep_max[i]
+
+    if use_fixed_y_axis_limits:
+        y_axis_max = fixed_y_axis_max
+    else:
+        y_axis_max = data_max
 
     for i in range(n_plot_var):
         for j in range(n_vary_param):
-            axs[i, j].set_ylim(0.0, 1.01*data_max[i])
+            axs[i, j].set_ylim(0.0, 1.01*y_axis_max[i])
 
     for rep in range(0, n_rep):
         if data[rep] is not None:
