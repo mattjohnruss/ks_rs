@@ -111,7 +111,7 @@ write_json_params_files <- function(all_params) {
 # reads all simulation outputs from file back into R for processing later.
 simulate_all <- function(all_params) {
   n_params <- nrow(all_params)
-  cmd <- paste("bash", "scripts/sensitivity/run_all.bash", n_params)
+  cmd <- paste("bash", "scripts/sensitivity/run_all.bash", n_params, res_dir_base)
   system(cmd)
 }
 
