@@ -2,6 +2,7 @@ use ks_rs::adr::one_dim::{DomainParams, Problem1D, Variable};
 use ks_rs::models::chemotaxis_7_var::*;
 use ks_rs::timestepping::{ExplicitTimeStepper, SspRungeKutta33};
 
+use std::f64::consts::PI;
 use std::fs;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
@@ -25,55 +26,37 @@ struct Opt {
 }
 
 fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
-    // TODO: get rid of this clone() - it's a bad hack to avoid simultaneous mutable and immutable
-    // borrows here. cloning the parameters is kinda fine when setting the initial conditions,
-    // because we're not timestepping yet so all parameters will be constant anyway
-    let p = problem.functions.p.clone();
+    // Set maturation and cell influx rates to homeostasis values as in this test problem we're not
+    // simulating inflammation
+    let p = &mut problem.functions.p;
+    p.m = p.m_h;
+    p.j_phi_i = p.j_phi_i_h;
 
     for cell in problem.interior_cells() {
         let x = problem.x(cell);
 
+        let p = &problem.functions.p;
+        // Ignore phi_i_init and set phi_i to it's exact solution
+        let phi_i = 0.5 * x * x * (p.j_phi_i / p.d_phi_i);
+
         *problem.var_mut(C_U, cell) = 1.0 - x;
         *problem.var_mut(C_B, cell) = x;
         *problem.var_mut(C_S, cell) = x * (1.0 - x);
-        *problem.var_mut(PHI_I, cell) = 0.5 * x * x * (p.j_phi_i / p.d_phi_i);
+        *problem.var_mut(PHI_I, cell) = phi_i;
         *problem.var_mut(PHI_M, cell) = 1.0;
         *problem.var_mut(PHI_C_U, cell) = 1.0;
-        *problem.var_mut(PHI_C_B, cell) = (p.d_phi_c_b / p.j_phi_c_b) + x - 0.5 * x * x;
+        *problem.var_mut(PHI_C_B, cell) = 0.5 * (1.0 - (2.0 * PI * x).cos());
     }
 
     problem.update_ghost_cells();
 }
 
-fn inflammation_status(problem: &Problem1D<Chemotaxis>) -> f64 {
-    let t_1 = problem.functions.p.t_1;
-    let t_2 = problem.functions.p.t_2;
-    let time = problem.time;
-
-    // Simplest piecewise constant inflammation status
-    // TODO make this flexible/generic to allow different ramp functions?
-    if time < t_1 || time > t_2 {
-        0.0
-    } else {
-        1.0
-    }
-}
-
-fn update_params(problem: &mut Problem1D<Chemotaxis>) {
-    let i_s = inflammation_status(problem);
-    let p = &mut problem.functions.p;
-    let m_i = p.m_i_factor * p.m_h;
-    let j_phi_i_i = p.j_phi_i_i_factor * p.j_phi_i_h;
-    //let j_phi_c_b_i = p.j_phi_c_b_i_factor * p.j_phi_c_b_h;
-    p.m = (1.0 - i_s) * p.m_h + i_s * m_i;
-    //p.j_phi_c_b = (1.0 - i_s) * p.j_phi_c_b_h + i_s * j_phi_c_b_i;
-    p.j_phi_i = (1.0 - i_s) * p.j_phi_i_h + i_s * j_phi_i_i;
-}
-
 fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
     match var.into() {
         C_U => {
-            -p.pe + p.alpha_plus + p.n_ccr7 * p.beta_plus
+            -p.pe
+                + p.alpha_plus
+                + p.n_ccr7 * p.beta_plus
                 - 0.5 * (p.j_phi_i / p.d_phi_i) * x * x * (x - 1.0) * (p.q_u + p.gamma_ui)
                 + p.gamma_um
                 - x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_um)
@@ -83,13 +66,15 @@ fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
             -p.alpha_plus
                 + 0.5 * (p.j_phi_i / p.d_phi_i) * x.powi(3) * (p.q_b + p.gamma_bi)
                 + x * (p.alpha_minus + p.alpha_plus + p.n_ccr7 * p.beta_plus + p.gamma_bm)
-                + p.phi_bar_over_c_bar
+                - p.phi_bar_over_c_bar
                     * p.n_ccr7
-                    * p.beta_plus
-                    * (-p.d_phi_c_b / p.j_phi_c_b + 0.5 * x * x - x)
+                    * p.beta_minus
+                    * (PI * x).sin().powi(2)
         }
         C_S => {
-            2.0 * p.d_c_s + p.pe * (1.0 - 2.0 * x) - x * p.gamma_bm
+            2.0 * p.d_c_s
+                + p.pe * (1.0 - 2.0 * x)
+                - x * p.gamma_bm
                 + 0.5
                     * (p.j_phi_i / p.d_phi_i)
                     * x
@@ -99,22 +84,22 @@ fn forcing(var: Variable, x: f64, _t: f64, p: &ChemotaxisParameters) -> f64 {
         }
         PHI_I => -p.j_phi_i + 0.5 * (p.j_phi_i / p.d_phi_i) * x * x * p.m,
         PHI_M => {
-            p.beta_minus * (-1.0 - (p.d_phi_c_b / p.j_phi_c_b) + x * (0.5 * x - 1.0))
-                - 0.5 * (p.j_phi_i / p.d_phi_i) * p.m * x * x
+            -0.5 * (p.j_phi_i / p.d_phi_i) * p.m * x * x
+                - 1.5 * p.beta_minus
                 + p.phi_bar_over_c_bar.recip() * p.beta_plus
+                + 0.5 * p.beta_minus * (2.0 * PI * x).cos()
         }
         PHI_C_U => {
-            p.alpha_minus * (-(p.d_phi_c_b / p.j_phi_c_b) + x * (0.5 * x - 1.0))
-                + p.alpha_plus
+            p.alpha_plus
                 + p.beta_minus
                 + p.phi_bar_over_c_bar.recip() * p.beta_plus * (x - 1.0)
+                - p.alpha_minus * (PI * x).sin().powi(2)
         }
         PHI_C_B => {
-            -p.alpha_plus - (p.alpha_minus + p.beta_minus) * x * (0.5 * x - 1.0)
-                + p.d_phi_c_b
-                + (p.d_phi_c_b / p.j_phi_c_b) * (p.alpha_minus + p.beta_minus)
+            -p.alpha_plus
+                + (p.alpha_minus + p.beta_minus) * (PI * x).sin().powi(2)
                 - p.phi_bar_over_c_bar.recip() * p.beta_plus * x
-                + p.chi_b * (1.0 - x)
+                + PI * (p.chi_b * (2.0 * PI * x).sin() - 2.0 * p.d_phi_c_b * PI * (2.0 * PI * x).cos())
         }
     }
 }
@@ -127,7 +112,7 @@ fn exact_solution(var: Variable, x: f64, _time: f64, p: &ChemotaxisParameters) -
         PHI_I => 0.5 * x.powi(2) * (p.j_phi_i / p.d_phi_i),
         PHI_M => 1.0,
         PHI_C_U => 1.0,
-        PHI_C_B => (p.d_phi_c_b / p.j_phi_c_b) + x * (1.0 - 0.5 * x),
+        PHI_C_B => 0.5 * (1.0 - (2.0 * PI * x).cos()),
     }
 }
 
@@ -163,7 +148,6 @@ fn main() -> Result<()> {
         "$\\\\phi_{C_b}$",
     ])?;
 
-    update_params(&mut problem);
     set_initial_conditions(&mut problem);
 
     let dir_path = Path::new(&dir);
@@ -189,8 +173,6 @@ fn main() -> Result<()> {
     let mut outputs = 1;
 
     while problem.time < t_max {
-        update_params(&mut problem);
-
         let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
 
