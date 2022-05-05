@@ -235,7 +235,7 @@ impl ProblemFunctions for Chemotaxis {
     fn left_bc(&self, _problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
         match var.into() {
             C_U => BoundaryCondition::Dirichlet(1.0),
-            C_B => BoundaryCondition::Flux(0.0),
+            C_B => BoundaryCondition::None,
             C_S => BoundaryCondition::Dirichlet(0.0),
             PHI_I => BoundaryCondition::Flux(0.0),
             PHI_M => BoundaryCondition::Flux(0.0),
@@ -247,7 +247,7 @@ impl ProblemFunctions for Chemotaxis {
     fn right_bc(&self, problem: &Problem1D<Self>, var: Variable) -> BoundaryCondition {
         match var.into() {
             C_U => BoundaryCondition::Dirichlet(0.0),
-            C_B => BoundaryCondition::Flux(0.0),
+            C_B => BoundaryCondition::None,
             C_S => BoundaryCondition::Dirichlet(0.0),
             PHI_I => {
                 let cell = Cell(problem.domain.n_cell);

@@ -42,6 +42,7 @@ pub struct DomainParams {
 }
 
 pub enum BoundaryCondition {
+    None,
     Dirichlet(f64),
     Flux(f64),
 }
@@ -415,6 +416,7 @@ where
     pub fn boundary_flux_left(&self, var: Variable) -> f64 {
         let cell = Cell(1);
         match self.functions.left_bc(self, var) {
+            BoundaryCondition::None => 0.0,
             BoundaryCondition::Flux(flux) => flux,
             BoundaryCondition::Dirichlet(_) => self.flux_m_no_upwind(var, cell),
         }
@@ -425,6 +427,7 @@ where
     pub fn boundary_flux_right(&self, var: Variable) -> f64 {
         let cell = Cell(self.domain.n_cell);
         match self.functions.right_bc(self, var) {
+            BoundaryCondition::None => 0.0,
             BoundaryCondition::Flux(flux) => flux,
             BoundaryCondition::Dirichlet(_) => self.flux_p_no_upwind(var, cell),
         }
@@ -485,19 +488,24 @@ where
             Face::West => -1.0,
         };
 
-        #[cfg(feature = "experimental_fixes")]
-        if (cell == Cell(1) && self.functions.left_bc(self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell)
-                && self.functions.right_bc(self, var).is_dirichlet())
-        {
-            value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
-        } else if (cell == Cell(1) && !self.functions.left_bc(self, var).is_dirichlet())
-            || (cell == Cell(self.domain.n_cell)
-                && !self.functions.right_bc(self, var).is_dirichlet())
-        {
-            // If we're at a boundary that doesn't have dirichlet BCs, use double the computed
-            // gradient as described in the comment in `update_ghost_cells()`
-            value + sign * 1.0 * self.dvar_limited(var, cell)
+        // NOTE: If we're at a boundary that has flux BCs, we're doubling the gradient as described
+        // in the comment in `update_ghost_cells()`
+        if cell == Cell(1) {
+            match self.functions.left_bc(self, var) {
+                BoundaryCondition::Dirichlet(_) => {
+                    value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
+                }
+                BoundaryCondition::Flux(_) => value + sign * 1.0 * self.dvar_limited(var, cell),
+                BoundaryCondition::None => value + sign * 0.5 * self.dvar_limited(var, cell),
+            }
+        } else if cell == Cell(self.domain.n_cell) {
+            match self.functions.right_bc(self, var) {
+                BoundaryCondition::Dirichlet(_) => {
+                    value + sign * 0.5 * self.dvar_limited_for_dirichlet_bcs(var, cell)
+                }
+                BoundaryCondition::Flux(_) => value + sign * 1.0 * self.dvar_limited(var, cell),
+                BoundaryCondition::None => value + sign * 0.5 * self.dvar_limited(var, cell),
+            }
         } else {
             value + sign * 0.5 * self.dvar_limited(var, cell)
         }
@@ -693,7 +701,7 @@ where
             let var = Variable(var);
 
             match self.functions.left_bc(self, var) {
-                BoundaryCondition::Flux(_) => {
+                BoundaryCondition::Flux(_) | BoundaryCondition::None => {
                     // TODO: I don't think this is correct. It's kind of a piecewise constant
                     // approximation of what I think we should be doing: something quite similar to
                     // the dirichlet case, where we calculate the gradient using the limiter but
@@ -729,7 +737,7 @@ where
             }
 
             match self.functions.right_bc(self, var) {
-                BoundaryCondition::Flux(_) => {
+                BoundaryCondition::Flux(_) | BoundaryCondition::None => {
                     // TODO: the above also applies here
                     *self.var_mut(var, Cell(self.domain.n_cell + 1)) =
                         self.var(var, Cell(self.domain.n_cell));
