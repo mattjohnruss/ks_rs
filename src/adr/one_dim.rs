@@ -437,13 +437,6 @@ where
             - self.functions.diffusivity(self, var, cell) * dvar_dx_p
     }
 
-    fn flux_m(&self, var: Variable, cell: Cell) -> f64 {
-        let velocity_m = self.functions.velocity_m_at_midpoint(self, var, cell);
-        let dvar_dx_m = self.dvar_dx_m_at_midpoint(var, cell);
-        self.var_point_value_x_m(var, cell) * velocity_m
-            - self.functions.diffusivity(self, var, cell) * dvar_dx_m
-    }
-
     // Flux functions for imposing Dirichlet boundary conditions and for calculating effective
     // boundary fluxes when Dirichlet conditions are imposed. These don't upwind the point values,
     // instead getting the appropriate point value directly, since upwinding could cause an
@@ -479,14 +472,6 @@ where
         match self.functions.velocity_p_at_midpoint(self, var, cell) {
             v if v > 0.0 => self.var_point_value_at_face(var, cell, Face::East),
             _ => self.var_point_value_at_face(var, cell.right(), Face::West),
-        }
-    }
-
-    #[inline]
-    fn var_point_value_x_m(&self, var: Variable, cell: Cell) -> f64 {
-        match self.functions.velocity_m_at_midpoint(self, var, cell) {
-            v if v > 0.0 => self.var_point_value_at_face(var, cell.left(), Face::East),
-            _ => self.var_point_value_at_face(var, cell, Face::West),
         }
     }
 
