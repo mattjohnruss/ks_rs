@@ -113,6 +113,7 @@ impl ProblemFunctions for DiffusionZeroFluxBcs {}
 #[derive(Clone)]
 pub struct Problem1D<F> {
     data: Array<f64, Ix2>,
+    fluxes: Array<f64, Ix2>,
     ghost_data: Array<f64, Ix2>,
     n_variable: usize,
     pub time: f64,
@@ -135,6 +136,7 @@ where
 
         Problem1D {
             data: Array::zeros((n_variable, domain.n_cell)),
+            fluxes: Array::zeros((n_variable, domain.n_cell + 1)),
             ghost_data: Array::zeros((n_variable, 2)),
             n_variable,
             time: 0.0,
@@ -371,6 +373,20 @@ where
         cell.0
     }
 
+    /// Calculates the fluxes and stores them for later
+    // Indices are as follows:
+    // Cell: |  0  [  1  |  2  | ... | n-1 |  n  ]  n+1 |
+    // Flux:       0     1     2    n-2   n-1    n
+    fn fill_flux_cache(&mut self) {
+        (0..self.n_variable).for_each(|var| {
+            self.fluxes[(var, 0)] = self.boundary_flux_left(Variable(var));
+            (1..=self.domain.n_cell - 1).for_each(|cell| {
+                self.fluxes[(var, cell)] = self.flux_p(Variable(var), Cell(cell));
+            });
+            self.fluxes[(var, self.domain.n_cell)] = self.boundary_flux_right(Variable(var));
+        });
+    }
+
     /// Calculate all terms on the right-hand side of the equation for the given variable
     /// in the given cell
     #[cfg_attr(feature = "experimental_optimisations", inline(always))]
@@ -379,23 +395,9 @@ where
 
         // flux (includes diffusion and advection)
         result += {
-            // This logic also works for equations with zero flux (i.e. ODEs parametrised by
-            // space; e.g. C_b in the chemokine model) if the diffusivity, advection velocity and
-            // flux BCs are set to zero
-            let flux_m = if cell == Cell(1) {
-                // At the left-hand boundary
-                self.boundary_flux_left(var)
-            } else {
-                self.flux_m(var, cell)
-            };
-
-            let flux_p = if cell == Cell(self.domain.n_cell) {
-                // At the right-hand boundary
-                self.boundary_flux_right(var)
-            } else {
-                self.flux_p(var, cell)
-            };
-
+            let idx = cell.0 - 1;
+            let flux_m = self.fluxes[(var.0, idx)];
+            let flux_p = self.fluxes[(var.0, idx + 1)];
             -(flux_p - flux_m) / self.dx
         };
 
@@ -876,6 +878,7 @@ where
 
     fn actions_before_explicit_stage(&mut self) {
         self.update_ghost_cells();
+        self.fill_flux_cache();
     }
 
     fn actions_after_explicit_timestep(&mut self) {
