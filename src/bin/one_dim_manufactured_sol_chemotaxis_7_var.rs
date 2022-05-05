@@ -172,6 +172,8 @@ fn main() -> Result<()> {
     let mut i = 1;
     let mut outputs = 1;
 
+    let start = std::time::Instant::now();
+
     while problem.time < t_max {
         let dt = problem.calculate_dt();
         ssp_rk33.step(&mut problem, dt);
@@ -195,6 +197,9 @@ fn main() -> Result<()> {
         }
         i += 1;
     }
+
+    let duration = std::time::Instant::now() - start;
+    println!("Time for {i} timesteps: {} ({:.2} timesteps / s)", duration.as_secs_f64(), i as f64 / duration.as_secs_f64());
 
     Ok(())
 }
