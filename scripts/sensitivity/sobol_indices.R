@@ -397,7 +397,6 @@ trace_data_longer <- trace_data[
   #facet_grid(rows = vars(param), cols = vars(variable), scales = "free") +
   #xlab("Time since start of inflammation")
 
-no_x_axis <- theme()
 #no_x_axis <- theme(
   #axis.title.x = element_blank(),
   #axis.line.x = element_blank(),
@@ -405,180 +404,52 @@ no_x_axis <- theme()
   #axis.ticks.x = element_blank()
 #)
 
-no_y_axis <- theme(
-  axis.title.y = element_blank(),
-  axis.line.y = element_blank(),
-  axis.text.y = element_blank(),
-  axis.ticks.y = element_blank()
-)
+#no_y_axis <- theme(
+  #axis.title.y = element_blank(),
+  #axis.line.y = element_blank(),
+  #axis.text.y = element_blank(),
+  #axis.ticks.y = element_blank()
+#)
 
 blue <- scale_colour_gradient(low = "black", high = "blue")
 red <- scale_colour_gradient(low = "black", high = "red")
 green <- scale_colour_gradient(low = "black", high = "green")
 orange <- scale_colour_gradient(low = "black", high = "orange")
 
-p1 <- ggplot(
-    trace_data,
-    aes(x = `t_{inf}`, y = `C_b^{tot}`, group = rep, colour = j_phi_i_i_factor)
-  ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  blue +
-  no_x_axis
-
-p2 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `phi_{C_b}^{tot}`,
-      group = rep,
-      colour = j_phi_i_i_factor
-    )
-  ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  blue +
-  no_x_axis
-
-p3 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `-F_{phi_{C_b}}(x=0)`,
-      group = rep,
-      colour = j_phi_i_i_factor
-    )
-  ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  blue +
-  no_x_axis
-
-p4 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `C_b^{tot}`,
-      group = rep,
-      colour = m_i_factor
+grid_panel <- function(y_var, colour_by, colour_style, axis_style=NULL) {
+  p <- ggplot(
+      trace_data,
+      aes(
+        x = `t_{inf}`,
+        y = {{ y_var }},
+        group = rep,
+        colour = {{ colour_by }}
       )
     ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  red +
-  no_x_axis
+    geom_line(alpha = 0.2) +
+    theme_cowplot() +
+    colour_style
+  if (!is.null(axis_style)) {
+    p <- p + axis_style
+  }
+  p
+}
 
-p5 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `phi_{C_b}^{tot}`,
-      group = rep,
-      colour = m_i_factor
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  red +
-  no_x_axis
+p1 <- grid_panel(`C_b^{tot}`, j_phi_i_i_factor, blue)
+p2 <- grid_panel(`phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
+p3 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, blue)
 
-p6 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `-F_{phi_{C_b}}(x=0)`,
-      group = rep,
-      colour = m_i_factor
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  red +
-  no_x_axis
+p4 <- grid_panel(`C_b^{tot}`, m_i_factor, red)
+p5 <- grid_panel(`phi_{C_b}^{tot}`, m_i_factor, red)
+p6 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, m_i_factor, red)
 
-p7 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `C_b^{tot}`,
-      group = rep,
-      colour = t_j_phi_i_lag
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  green +
-  no_x_axis
+p7 <- grid_panel(`C_b^{tot}`, t_j_phi_i_lag, green)
+p8 <- grid_panel(`phi_{C_b}^{tot}`, t_j_phi_i_lag, green)
+p9 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, t_j_phi_i_lag, green)
 
-p8 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `phi_{C_b}^{tot}`,
-      group = rep,
-      colour = t_j_phi_i_lag
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  green +
-  no_x_axis
-
-p9 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `-F_{phi_{C_b}}(x=0)`,
-      group = rep,
-      colour = t_j_phi_i_lag
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  green +
-  no_x_axis
-
-p10 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `C_b^{tot}`,
-      group = rep,
-      colour = gamma
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  orange
-
-p11 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `phi_{C_b}^{tot}`,
-      group = rep,
-      colour = gamma
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  orange
-
-p12 <- ggplot(
-    trace_data,
-    aes(
-      x = `t_{inf}`,
-      y = `-F_{phi_{C_b}}(x=0)`,
-      group = rep,
-      colour = gamma
-      )
-    ) +
-  geom_line(alpha = 0.2) +
-  theme_cowplot() +
-  orange
-
-#p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 +
-  #plot_layout(guides = "collect", ncol = 3)
+p10 <- grid_panel(`C_b^{tot}`, gamma, orange)
+p11 <- grid_panel(`phi_{C_b}^{tot}`, gamma, orange)
+p12 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, gamma, orange)
 
 plot_list <- list(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
 
