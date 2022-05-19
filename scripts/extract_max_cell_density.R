@@ -224,6 +224,8 @@ p_dc_b_dx_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_ga
   theme_cowplot() +
   theme(plot.title = element_text(hjust = 0.5))
 
+p_dc_b_dx_location
+
 ggsave(
   plot = p_dc_b_dx_location,
   paste(plot_dir, "max_dc_b_dx_location.png", sep = "/"),
@@ -250,6 +252,8 @@ p_dc_b_dx_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma
   ) &
   theme_cowplot() +
   theme(plot.title = element_text(hjust = 0.5))
+
+p_dc_b_dx_value
 
 ggsave(
   plot = p_dc_b_dx_value,
