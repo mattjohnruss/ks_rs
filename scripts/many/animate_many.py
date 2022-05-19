@@ -60,6 +60,7 @@ for ax in axs.flat:
     ax.margins(x=0)
 
 fig.set_size_inches(16, 9, True)
+time_annotation = fig.text(0.01, 0.98, 'Time = 0')
 
 
 def data_single(rep, vars, time):
@@ -151,6 +152,8 @@ def animate(time):
 
                     lines[rep][i][j].set_ydata(data[rep][:, i + 1])
                     lines[rep][i][j].set_color((r, g, b, 0.4))
+
+    time_annotation.set_text(f'Time = {time}')
 
     return lines
 
