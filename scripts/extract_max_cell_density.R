@@ -68,7 +68,7 @@ max_phi_c_b_all_and_params <- cbind(
 # Plots
 #------
 
-# Location of max phi_c_b
+# Some plotting styles and helper functions
 
 blue <- scale_colour_gradient(
   low = "black",
@@ -93,52 +93,46 @@ orange <- scale_colour_gradient(
   )
 )
 
-p_j_phi_i_i_factor <- ggplot(
-  max_phi_c_b_all_and_params,
-  aes(time_inf, x, group = rep, colour = j_phi_i_i_factor)
-) +
+p_location_panel <- function(data, colour_by, colour_style) {
+  ggplot(
+    data,
+    aes(time_inf, x, group = rep, colour = {{ colour_by }})
+    ) +
   geom_path(alpha = 0.1) +
-  blue +
+  colour_style +
   xlab("Time since inflammation") +
-  theme_cowplot()
+  ylab(expression(x))
+}
 
-p_m_i_factor <- ggplot(
-  max_phi_c_b_all_and_params,
-  aes(time_inf, x, group = rep, colour = m_i_factor)
-) +
+p_value_panel <- function(data, colour_by, colour_style, ylabel) {
+  ggplot(
+    data,
+    aes(time_inf, phi_C_b, group = rep, colour = {{ colour_by }})
+    ) +
   geom_path(alpha = 0.1) +
-  red +
+  colour_style +
   xlab("Time since inflammation") +
-  theme_cowplot()
+  ylab(ylabel)
+}
 
-p_t_j_phi_i_lag <- ggplot(
-  max_phi_c_b_all_and_params,
-  aes(time_inf, x, group = rep, colour = t_j_phi_i_lag)
-) +
-  geom_path(alpha = 0.1) +
-  green +
-  xlab("Time since inflammation") +
-  theme_cowplot()
+# Location of max phi_c_b
 
-p_gamma <- ggplot(
-  max_phi_c_b_all_and_params,
-  aes(time_inf, x, group = rep, colour = gamma)
-) +
-  geom_path(alpha = 0.1) +
-  orange +
-  xlab("Time since inflammation") +
-  theme_cowplot()
+p_j_phi_i_i_factor <- p_location_panel(max_phi_c_b_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_location_panel(max_phi_c_b_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_location_panel(max_phi_c_b_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_location_panel(max_phi_c_b_all_and_params, gamma, orange)
 
-p_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+p_phi_c_b_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
   plot_annotation(
     title = expression(
       paste("Location of maxmimum ", phi[C[b]], " concentration")
-    ),
-    theme = theme(plot.title = element_text(hjust = 0.5))
-  )
+    )
+  ) &
+  theme_cowplot() +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ggsave(
-  plot = p_location,
+  plot = p_phi_c_b_location,
   "plots/max_phi_c_b_location.png",
   width = 13,
   height = 7
@@ -146,23 +140,16 @@ ggsave(
 
 # Value of max phi_c_b
 
-p_value_panel <- function(colour_by, colour_style) {
-  ggplot(
-    max_phi_c_b_all_and_params,
-    aes(time_inf, phi_C_b, group = rep, colour = {{ colour_by }})
-    ) +
-  geom_path(alpha = 0.1) +
-  colour_style +
-  xlab("Time since inflammation") +
-  ylab(expression(phi[C[b]]))
+p_phi_c_b_value_panel <- function(...) {
+  p_value_panel(..., expression(phi[C[b]]))
 }
 
-p_j_phi_i_i_factor <- p_value_panel(j_phi_i_i_factor, blue)
-p_m_i_factor <- p_value_panel(m_i_factor, red)
-p_t_j_phi_i_lag <- p_value_panel(t_j_phi_i_lag, green)
-p_gamma <- p_value_panel(gamma, orange)
+p_j_phi_i_i_factor <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, gamma, orange)
 
-p_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+p_phi_c_b_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
   plot_annotation(
     title = expression(
       paste("Value of maxmimum ", phi[C[b]], " concentration")
@@ -171,10 +158,10 @@ p_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
   theme_cowplot() +
   theme(plot.title = element_text(hjust = 0.5))
 
-p_value
+p_phi_c_b_value
 
 ggsave(
-  plot = p_value,
+  plot = p_phi_c_b_value,
   "plots/max_phi_c_b_value.png",
   width = 13,
   height = 7
