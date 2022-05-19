@@ -497,6 +497,10 @@ ggplot(trace_data_long[rep %in% interesting_runs]) +
 
 grid_panel(`phi_i^{tot}` + `phi_m^{tot}` + `phi_{C_u}^{tot}` + `phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
 
+############################
+
+# Sobol indices as a function of time - general methods
+
 t_inf_max <- trace_data %>%
     .[, .(t_stop = max(`t_{inf}`)), by = rep] %>%
     .[, min(t_stop)]
@@ -509,19 +513,12 @@ get_t_inf <- function(i) {
   trace_data[rep == i & `t_{inf}` <= t_inf_max, .(`t_{inf}`)]
 }
 
-############################
 
-# Sobol indices as a function of time - general methods
 
 sobol_at_time <- function(data, output, variable) {
   y <- data[output_inf == output, ..variable] %>% unlist
-  print(y)
   #y <- y - mean(y)
-  print(length(x$X))
-  print(length(y))
-  print("before tell")
   tell(x, y)
-  print("after tell")
   list(S = x$S, T = x$T)
 }
 
