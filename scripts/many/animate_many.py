@@ -6,9 +6,11 @@ import json
 from count_outputs_since_inflammation import min_n_outputs
 
 n_rep = 600
+reps = range(n_rep)
+
 n_var = 7
 
-n_time = min_n_outputs(n_rep)
+n_time = min_n_outputs(reps)
 
 var_names = ['$C_u$', '$C_b$', '$C_s$', '$\\phi_i$', '$\\phi_m$',
              '$\\phi_{{C_u}}$', '$\\phi_{{C_b}}$']
@@ -45,7 +47,7 @@ def get_params_scaled(rep):
                 (gamma_max - gamma_min)]
 
 
-params_scaled = [get_params_scaled(rep) for rep in range(0, n_rep)]
+params_scaled = [get_params_scaled(rep) for rep in reps]
 
 vars = [2, 7]
 n_plot_var = len(vars)
@@ -87,7 +89,7 @@ def colour_from_param(param_scaled, max_colour):
     return mpl.colors.hsv_to_rgb(colour)
 
 
-def plot_single(rep, vars, time):
+def plot_single(idx, rep, vars, time):
     data = data_single(rep, vars, time)
 
     lines = [[None for j in range(n_vary_param)] for i in range(n_plot_var)]
@@ -95,7 +97,7 @@ def plot_single(rep, vars, time):
     if data is not None:
         for i in range(n_plot_var):
             for j in range(n_vary_param):
-                (r, g, b) = colour_from_param(params_scaled[rep][j],
+                (r, g, b) = colour_from_param(params_scaled[idx][j],
                                               param_max_colours[j])
 
                 line, = axs[i, j].plot(data[:, 0], data[:, i + 1],
@@ -112,8 +114,8 @@ for j in range(n_vary_param):
     axs[n_plot_var - 1, j].set_xlabel(r"$x$", fontsize=18)
     axs[0, j].set_title(param_names[j])
 
-lines = [plot_single(rep, vars, 0) for rep in range(0, n_rep)]
-data = [None for rep in range(0, n_rep)]
+lines = [plot_single(idx, rep, vars, 0) for idx, rep in enumerate(reps)]
+data = [None for rep in reps]
 
 use_fixed_y_axis_limits = True
 fixed_y_axis_max = [9.0, 1.8]
@@ -123,12 +125,12 @@ def animate(time):
     print(f"vars: {vars}, time: {time} / {n_time}")
 
     data_max = [0.0] * n_plot_var
-    for rep in range(0, n_rep):
-        data[rep] = data_single(rep, vars, time)
+    for idx, rep in enumerate(reps):
+        data[idx] = data_single(rep, vars, time)
 
         if not use_fixed_y_axis_limits:
             data_rep_max = \
-                [data[rep][:, i + 1].max() for i in range(n_plot_var)]
+                [data[idx][:, i + 1].max() for i in range(n_plot_var)]
 
             for i in range(n_plot_var):
                 if data_rep_max[i] > data_max[i]:
@@ -143,15 +145,15 @@ def animate(time):
         for j in range(n_vary_param):
             axs[i, j].set_ylim(0.0, 1.01*y_axis_max[i])
 
-    for rep in range(0, n_rep):
-        if data[rep] is not None:
+    for idx, rep in enumerate(reps):
+        if data[idx] is not None:
             for i in range(n_plot_var):
                 for j in range(n_vary_param):
-                    (r, g, b) = colour_from_param(params_scaled[rep][j],
+                    (r, g, b) = colour_from_param(params_scaled[idx][j],
                                                   param_max_colours[j])
 
-                    lines[rep][i][j].set_ydata(data[rep][:, i + 1])
-                    lines[rep][i][j].set_color((r, g, b, 0.4))
+                    lines[idx][i][j].set_ydata(data[idx][:, i + 1])
+                    lines[idx][i][j].set_color((r, g, b, 0.4))
 
     time_annotation.set_text(f'Time = {time}')
 

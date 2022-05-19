@@ -7,6 +7,6 @@ def n_outputs_one(i, subdir):
                 os.path.isfile(os.path.join(path, name))])
 
 
-def min_n_outputs(n_rep, subdir="inflammation"):
-    len_all = [n_outputs_one(i, subdir) for i in range(n_rep)]
+def min_n_outputs(reps, subdir="inflammation"):
+    len_all = [n_outputs_one(i, subdir) for i in reps]
     return min(len_all)
