@@ -4,6 +4,7 @@ library(ggplot2)
 library(cowplot)
 library(stringr)
 library(patchwork)
+library(parallel)
 
 params <- fread(paste(res_dir_base, "d_m.csv", sep = "/"))
 
@@ -20,36 +21,35 @@ get_max_single <- function(rep_id) {
 
   n_files <- length(filenames)
 
-  data <- fread(
-    paste(res_dir_base, rep, "inflammation", "output_00000.csv", sep = "/"),
-    blank.lines.skip = TRUE
-  )
-  data[, rep := rep]
-  data[, file := 0]
+  data <- list()
 
-  for (i in 1:(n_files - 1)) {
+  for (i in 1:n_files) {
     filename <- sprintf(
       paste(res_dir_base, rep, "inflammation", "output_%05d.csv", sep = "/"),
-      i
+      i - 1
     )
-    data_new <- fread(filename, blank.lines.skip = TRUE)
-    data_new[, rep := rep]
-    data_new[, file := i]
-    data <- rbind(data, data_new)
+    data[[i]] <- fread(filename, blank.lines.skip = TRUE)
+    data[[i]][, rep := rep]
+    data[[i]][, output_inf := i]
   }
+
+  data <- rbindlist(data)
 
   # Remove all the awkward characters from the columns names
   setnames(data, str_remove_all(names(data), "[\\\\${}]"))
 
-  # Find the maximum of phi_C_b at each time and return all variables at that
+  # When there are multiple equal maxima we just take the first one. They are
+  # likely to be close to each other, and it only matters when considering the
+  # maximum as a function of space.
+
+  # Find the maximum of phi_C_b at each time and save all variables at that
   # time
-  data[data[, .I[phi_C_b == max(phi_C_b)], by = time_inf]$V1]
+  data[data[, .I[phi_C_b == max(phi_C_b)][1], by = time_inf]$V1]
 }
 
-#max_phi_c_b_all <- list()
-#for (rep_id in 1:n_rep) {
-  #max_phi_c_b_all[[rep_id]] <- get_max_single(rep_id)
-#}
+#system.time(
+  #max_phi_c_b_all <- mclapply(1:n_rep, get_max_single)
+#)
 
 #max_phi_c_b_all <- rbindlist(max_phi_c_b_all)
 
@@ -59,7 +59,7 @@ get_max_single <- function(rep_id) {
   #sep = " "
 #)
 
-max_phi_c_b_all <- fread(paste(res_dir_base, "max_dc_b_dx_all.csv", sep = "/"))
+max_phi_c_b_all <- fread(paste(res_dir_base, "max_phi_c_b_all.csv", sep = "/"))
 
 max_phi_c_b_all_and_params <- cbind(
   max_phi_c_b_all,
