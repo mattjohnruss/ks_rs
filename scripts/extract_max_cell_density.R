@@ -66,6 +66,8 @@ get_max_single <- function(rep_id) {
   list(phi_c_b_data, dc_b_dx_data)
 }
 
+#options(mc.cores = 16)
+
 #system.time(
   #all_max_data <- mclapply(1:n_rep, get_max_single)
 #)
