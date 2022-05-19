@@ -201,8 +201,8 @@ x_2 <- gen_param_sample()
 # indices simulataneously without calculating the combined second-order indices
 # individually. I.e. 2p indices rather than an amount quadratic in p. We'll
 # probably want to use one of these (or similar) most of the time.
-x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
-#x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
+#x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
+x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
 add_constants_and_gammas_to_param_table(x$X)
 
