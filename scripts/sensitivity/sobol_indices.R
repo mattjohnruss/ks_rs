@@ -1,4 +1,3 @@
-library(conflicted)
 library(magrittr)
 library(sensitivity)
 library(ggplot2)
@@ -238,6 +237,7 @@ trace_data_long <- melt(
 )
 
 integrated_fluxes <- calculate_integrated_fluxes(trace_data)
+integrated_fluxes[, net_change := cells_in - cells_out]
 
 cells_vs_params <- x$X[
   ,
@@ -246,7 +246,8 @@ cells_vs_params <- x$X[
     t_j_phi_i_lag,
     gamma,
     cells_in = integrated_fluxes[, cells_in],
-    cells_out = integrated_fluxes[, cells_out]
+    cells_out = integrated_fluxes[, cells_out],
+    net_change = integrated_fluxes[, net_change]
   )
 ]
 
@@ -264,7 +265,7 @@ cells_vs_params_long <- cells_vs_params %>%
   ) %>%
   melt(
     .,
-    measure.vars = c("cells_in", "cells_out"),
+    measure.vars = c("cells_in", "cells_out", "net_change"),
     variable.name = "variable",
     value.name = "cells"
   )
@@ -316,6 +317,14 @@ ggsave(
   height = 7
 )
 
+# Sobol indices for net change in number of cells
+# -----------------------------------------------
+y <- integrated_fluxes$net_change
+
+tell(x, y)
+print(x)
+ggplot(x)
+
 # Other plots
 # -----------
 
@@ -325,8 +334,8 @@ ggplot(cells_vs_params_long) +
     x = param_value,
     y = cells,
     colour = variable,
-    group = variable
-  )) +
+    group = variable,
+  ), size = 2) +
   facet_wrap(vars(param), scales = "free") +
   theme_cowplot() +
   xlab("Parameter value") +
