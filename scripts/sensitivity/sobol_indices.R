@@ -483,3 +483,190 @@ ggsave(
   width = 13,
   height = 7
 )
+
+############################
+
+# Plot some specific repeats from interesting parts of paramteter space
+
+interesting_runs <- c(138, 347, 68, 419)
+
+ggplot(trace_data_long[rep %in% interesting_runs]) +
+  geom_line(aes(x = `t_{inf}`, y = value, colour = factor(rep)), size = 2) +
+  facet_wrap(vars(variable), scales = "free") +
+  theme_cowplot()
+
+grid_panel(`phi_i^{tot}` + `phi_m^{tot}` + `phi_{C_u}^{tot}` + `phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
+
+t_inf_max <- trace_data %>%
+    .[, .(t_stop = max(`t_{inf}`)), by = rep] %>%
+    .[, min(t_stop)]
+
+output_inf_max <- trace_data %>%
+  .[, .(output_stop = max(output_inf)), by = rep] %>%
+  .[, min(output_stop)]
+
+get_t_inf <- function(i) {
+  trace_data[rep == i & `t_{inf}` <= t_inf_max, .(`t_{inf}`)]
+}
+
+############################
+
+# Sobol indices as a function of time - general methods
+
+sobol_at_time <- function(data, output, variable) {
+  y <- data[output_inf == output, ..variable] %>% unlist
+  print(y)
+  #y <- y - mean(y)
+  print(length(x$X))
+  print(length(y))
+  print("before tell")
+  tell(x, y)
+  print("after tell")
+  list(S = x$S, T = x$T)
+}
+
+# Sobol indices of cell outflux as a function of time
+
+flux_first_order_sobol_indices <- list()
+flux_total_order_sobol_indices <- list()
+
+for (i in 1:output_inf_max) {
+  print(i)
+  st <- sobol_at_time(trace_data, i, "-F_{phi_{C_b}}(x=0)")
+  s <- st$S
+  t <- st$T
+
+  s <- cbind(rownames(s), s %>% as.data.table)
+  setnames(s, "V1", "variable")
+  t <- cbind(rownames(t), t %>% as.data.table)
+  setnames(t, "V1", "variable")
+  t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
+  s[, `t_{inf}` := t_inf]
+  t[, `t_{inf}` := t_inf]
+
+  flux_first_order_sobol_indices[[i]] <- s
+  flux_total_order_sobol_indices[[i]] <- t
+}
+
+flux_first_order_sobol_indices <- rbindlist(flux_first_order_sobol_indices)
+flux_total_order_sobol_indices <- rbindlist(flux_total_order_sobol_indices)
+
+p_flux_first_order <- ggplot(
+  flux_first_order_sobol_indices,
+  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+) +
+  geom_ribbon(
+    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
+    alpha = 0.2
+  ) +
+  geom_line() +
+  labs(x = "Time since inflammation", y = "First-order Sobol index") +
+  coord_cartesian(ylim = c(-0.1, 1.0)) +
+  theme_cowplot()
+
+p_flux_first_order
+
+ggsave(
+  plot = p_flux_first_order,
+  paste(plot_dir, "flux_first_order_sobol_indices.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
+
+p_flux_total_order <- ggplot(
+  flux_total_order_sobol_indices,
+  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+) +
+  geom_ribbon(
+    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
+    alpha = 0.2
+  ) +
+  geom_line() +
+  labs(x = "Time since inflammation", y = "Total-order Sobol index") +
+  coord_cartesian(ylim = c(0, 1.2)) +
+  theme_cowplot()
+
+p_flux_total_order
+
+ggsave(
+  plot = p_flux_total_order,
+  paste(plot_dir, "flux_total_order_sobol_indices.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
+
+################
+
+# Sobol indices of maximum gradient of C_b as a function of time
+
+# This section currently requires data from
+# `scripts/extract_max_cell_density.R` to be loaded into the session
+# TODO: refactor
+
+gradient_first_order_sobol_indices <- list()
+gradient_total_order_sobol_indices <- list()
+
+for (i in 1:output_inf_max) {
+  print(i)
+  st <- sobol_at_time(max_dc_b_dx_all_and_params, i, "dC_b_dx")
+  s <- st$S
+  t <- st$T
+
+  s <- cbind(rownames(s), s %>% as.data.table)
+  setnames(s, "V1", "variable")
+  t <- cbind(rownames(t), t %>% as.data.table)
+  setnames(t, "V1", "variable")
+  t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
+  s[, `t_{inf}` := t_inf]
+  t[, `t_{inf}` := t_inf]
+
+  gradient_first_order_sobol_indices[[i]] <- s
+  gradient_total_order_sobol_indices[[i]] <- t
+}
+
+gradient_first_order_sobol_indices <- rbindlist(gradient_first_order_sobol_indices)
+gradient_total_order_sobol_indices <- rbindlist(gradient_total_order_sobol_indices)
+
+p_gradient_first_order <- ggplot(
+  gradient_first_order_sobol_indices,
+  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+) +
+  geom_ribbon(
+    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
+    alpha = 0.2
+  ) +
+  geom_line() +
+  labs(x = "Time since inflammation", y = "First-order Sobol index") +
+  coord_cartesian(ylim = c(-0.1, 1.0)) +
+  theme_cowplot()
+
+p_gradient_first_order
+
+ggsave(
+  plot = p_gradient_first_order,
+  paste(plot_dir, "gradient_first_order_sobol_indices.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
+
+p_gradient_total_order <- ggplot(
+  gradient_total_order_sobol_indices,
+  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+) +
+  geom_ribbon(
+    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
+    alpha = 0.2
+  ) +
+  geom_line() +
+  labs(x = "Time since inflammation", y = "Total-order Sobol index") +
+  coord_cartesian(ylim = c(0, 1.2)) +
+  theme_cowplot()
+
+p_gradient_total_order
+
+ggsave(
+  plot = p_gradient_total_order,
+  paste(plot_dir, "gradient_total_order_sobol_indices.pdf", sep = "/"),
+  width = 13,
+  height = 7
+)
