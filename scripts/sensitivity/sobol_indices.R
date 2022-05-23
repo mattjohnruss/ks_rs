@@ -121,18 +121,16 @@ read_trace_data <- function(all_params) {
   trace_data <- data.table::fread(
     paste(res_dir_base, rep, "trace.csv", sep = "/")
   )
-  trace_data <- trace_data[`t_{inf}` >= 0]
   trace_data[, rep := rep]
-  trace_data[, output_inf := .I]
+  trace_data[`t_{inf}` >= 0, output_inf := .I]
   trace_data <- cbind(trace_data, all_params[rep + 1])
 
   for (rep in 1:(n_runs - 1)) {
     filename <- paste(res_dir_base, rep, "trace.csv", sep = "/")
     print(filename)
     trace_data_new <- data.table::fread(filename)
-    trace_data_new <- trace_data_new[`t_{inf}` >= 0]
     trace_data_new[, rep := rep]
-    trace_data_new[, output_inf := .I]
+    trace_data_new[`t_{inf}` >= 0, output_inf := .I]
     trace_data_new <- cbind(trace_data_new, all_params[rep + 1])
     trace_data <- rbind(trace_data, trace_data_new)
   }
@@ -219,7 +217,8 @@ add_constants_and_gammas_to_param_table(x$X)
 # maybe we should split this into two scripts to make it easier to call them as
 # needed from R.
 
-trace_data <- read_trace_data(x$X)
+trace_data_full <- read_trace_data(x$X)
+trace_data <- trace_data_full[`t_{inf}` >= 0]
 
 trace_data_long <- melt(
   trace_data,
