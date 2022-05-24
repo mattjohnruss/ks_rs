@@ -227,7 +227,7 @@ p_gamma <- p_location_panel(max_dc_b_dx_all_and_params, gamma, orange)
 p_dc_b_dx_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
   plot_annotation(
     title = expression(
-      paste("Location of maxmimum ", phi[C[b]], " concentration")
+      paste("Location of maxmimum ", C[b], " gradient")
     )
   ) &
   theme_cowplot() +
