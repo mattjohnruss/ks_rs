@@ -116,6 +116,40 @@ fn exact_solution(var: Variable, x: f64, _time: f64, p: &ChemotaxisParameters) -
     }
 }
 
+fn trace_header(mut trace_writer: impl Write) -> Result<()> {
+    writeln!(
+        &mut trace_writer,
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0)"
+    )?;
+    Ok(())
+}
+
+fn trace(problem: &Problem1D<Chemotaxis>, mut trace_writer: impl Write) -> Result<()> {
+    let c_u_total = problem.integrate_solution(C_U);
+    let c_b_total = problem.integrate_solution(C_B);
+    let c_s_total = problem.integrate_solution(C_S);
+    let phi_i_total = problem.integrate_solution(PHI_I);
+    let phi_m_total = problem.integrate_solution(PHI_M);
+    let phi_c_u_total = problem.integrate_solution(PHI_C_U);
+    let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+
+    writeln!(
+        &mut trace_writer,
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e}",
+        problem.time,
+        c_u_total,
+        c_b_total,
+        c_s_total,
+        phi_i_total,
+        phi_m_total,
+        phi_c_u_total,
+        phi_c_b_total,
+        -problem.boundary_flux_right(PHI_I.into()),
+        -problem.boundary_flux_left(PHI_C_B.into()),
+    )?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
@@ -161,6 +195,12 @@ fn main() -> Result<()> {
     problem.output(&mut buf_writer)?;
     buf_writer.flush()?;
 
+    let trace_file = fs::File::create(dir_path.join("trace.csv"))?;
+    let mut trace_writer = BufWriter::new(trace_file);
+
+    trace_header(&mut trace_writer)?;
+    trace(&problem, &mut trace_writer)?;
+
     // output exact ICs
     let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", 0)))?;
     let mut buf_writer = BufWriter::new(file);
@@ -184,6 +224,7 @@ fn main() -> Result<()> {
             let mut buf_writer = BufWriter::new(file);
             println!("Outputting at time = {}, i = {}", problem.time, i);
             problem.output(&mut buf_writer)?;
+            trace(&problem, &mut trace_writer)?;
 
             // output exact solution
             let file = fs::File::create(dir_path.join(format!("output_exact_{:05}.csv", outputs)))?;
