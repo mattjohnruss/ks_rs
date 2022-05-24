@@ -142,6 +142,7 @@ p_location_panel <- function(data, colour_by, colour_style) {
     aes(time_inf, x, group = rep, colour = {{ colour_by }})
     ) +
   geom_path(alpha = 0.1) +
+  coord_cartesian(ylim = c(0, 1)) +
   colour_style +
   xlab("Time since inflammation") +
   ylab(expression(x))
