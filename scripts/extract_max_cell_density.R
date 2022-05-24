@@ -173,7 +173,10 @@ p_phi_c_b_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_ga
     )
   ) &
   theme_cowplot() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
 
 ggsave(
   plot = p_phi_c_b_location,
@@ -200,7 +203,10 @@ p_phi_c_b_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma
     )
   ) &
   theme_cowplot() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
 
 p_phi_c_b_value
 
@@ -225,7 +231,10 @@ p_dc_b_dx_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_ga
     )
   ) &
   theme_cowplot() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
 
 p_dc_b_dx_location
 
@@ -254,7 +263,10 @@ p_dc_b_dx_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma
     )
   ) &
   theme_cowplot() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
 
 p_dc_b_dx_value
 
