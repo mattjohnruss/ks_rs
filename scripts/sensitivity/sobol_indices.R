@@ -117,25 +117,18 @@ simulate_all <- function(all_params) {
 read_trace_data <- function(all_params) {
   n_runs <- nrow(all_params)
 
-  rep <- 0
-  trace_data <- data.table::fread(
-    paste(res_dir_base, rep, "trace.csv", sep = "/")
-  )
-  trace_data[, rep := rep]
-  trace_data[`t_{inf}` >= 0, output_inf := .I]
-  trace_data <- cbind(trace_data, all_params[rep + 1])
+  trace_data <- list()
 
-  for (rep in 1:(n_runs - 1)) {
-    filename <- paste(res_dir_base, rep, "trace.csv", sep = "/")
+  for (rep in 1:n_runs) {
+    filename <- paste(res_dir_base, rep - 1, "trace.csv", sep = "/")
     print(filename)
-    trace_data_new <- data.table::fread(filename)
-    trace_data_new[, rep := rep]
-    trace_data_new[`t_{inf}` >= 0, output_inf := .I]
-    trace_data_new <- cbind(trace_data_new, all_params[rep + 1])
-    trace_data <- rbind(trace_data, trace_data_new)
+    trace_data[[rep]] <- data.table::fread(filename)
+    trace_data[[rep]][, rep := rep - 1]
+    trace_data[[rep]][`t_{inf}` >= 0, output_inf := .I]
+    trace_data[[rep]] <- cbind(trace_data[[rep]], all_params[rep])
   }
 
-  return(trace_data)
+  return(rbindlist(trace_data))
 }
 
 calculate_integrated_fluxes <- function(trace_data) {
