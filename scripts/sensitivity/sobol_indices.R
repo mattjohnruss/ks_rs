@@ -168,7 +168,7 @@ calculate_integrated_fluxes <- function(trace_data) {
   return(integrated_fluxes)
 }
 
-gen_param_sample <- function() {
+gen_param_sample <- function(n_rep) {
   data.table(
     j_phi_i_i_factor = runif(
       n_rep,
@@ -183,10 +183,8 @@ gen_param_sample <- function() {
   )
 }
 
-n_rep <- 100
-
-x_1 <- gen_param_sample()
-x_2 <- gen_param_sample()
+x_1 <- gen_param_sample(100)
+x_2 <- gen_param_sample(100)
 
 # Calculates all indices up to `order` - i.e. if order = 2, it calculates all
 # combined 2nd order indices, which can be expensive for many parameters. Seems
