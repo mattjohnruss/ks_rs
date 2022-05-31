@@ -91,7 +91,7 @@ add_constants_and_gammas_to_param_table <- function(params) {
 # corresponding to the index of this run, e.g. `res/32/config.json`. Skips the
 # `gamma` column as this has already been duplicated into the various `gamma_*`
 # columns that are actually used in the sims.
-write_json_params_files <- function(all_params) {
+write_json_params_files <- function(all_params, res_dir_base) {
   for (i in 1:nrow(all_params)) {
     j <- jsonlite::toJSON(jsonlite::unbox(all_params[i, !"gamma"]), digits = 16)
     res_dir <- paste(res_dir_base, i - 1, sep = "/")
@@ -108,9 +108,14 @@ write_json_params_files <- function(all_params) {
 # Run all simulations. First creates the config files and then it calls a shell
 # script that runs GNU Parallel with the appropriate arguments. It finally
 # reads all simulation outputs from file back into R for processing later.
-simulate_all <- function(all_params) {
+simulate_all <- function(all_params, res_dir_base) {
   n_params <- nrow(all_params)
-  cmd <- paste("bash", "scripts/sensitivity/run_all.bash", n_params, res_dir_base)
+  cmd <- paste(
+    "bash",
+    "scripts/sensitivity/run_all.bash",
+    n_params,
+    res_dir_base
+  )
   system(cmd)
 }
 
@@ -195,10 +200,10 @@ x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
 add_constants_and_gammas_to_param_table(x$X)
 
-#write_json_params_files(x$X)
+#write_json_params_files(x$X, res_dir_base)
 #fwrite(x$X, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")
 
-#simulate_all(x$X)
+#simulate_all(x$X, res_dir_base)
 
 # TODO: handle the fact that we will sometimes only want to run the simulations
 # and not do the sensitivity analysis in the same run, and vice-versa. In the
