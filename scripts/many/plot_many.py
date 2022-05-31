@@ -54,14 +54,14 @@ var_slider = Slider(ax_var_slider, 'Variable', valmin=1, valmax=n_var,
 time_slider = Slider(ax_time_slider, 'Time', valmin=0, valmax=(n_time - 1),
                      valstep=times)
 
-first_data_for_header = pd.read_csv('0/output_00000.csv', sep=' ',
+first_data_for_header = pd.read_csv('0/inflammation/output_00000.csv', sep=' ',
                                     usecols=range(1, n_var + 2))
 col_names = [n.replace('\\\\', '\\') for n in first_data_for_header.columns]
 
 
 def data_single(rep, var, time):
     try:
-        return np.genfromtxt(f'{rep}/output_{time:05d}.csv', skip_header=1,
+        return np.genfromtxt(f'{rep}/inflammation/output_{time:05d}.csv', skip_header=1,
                              usecols=(1, var + 1))
 
     except IOError:
