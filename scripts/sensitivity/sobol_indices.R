@@ -122,7 +122,6 @@ simulate_all <- function(all_params, res_dir_base) {
 
 read_trace_data <- function(all_params) {
   n_runs <- nrow(all_params)
-
   trace_data <- list()
 
   for (rep in 1:n_runs) {
@@ -137,9 +136,8 @@ read_trace_data <- function(all_params) {
   return(rbindlist(trace_data))
 }
 
+# Time-integration of fluxes using the trapezium rule
 calculate_integrated_fluxes <- function(trace_data) {
-  # Time-integration of fluxes using the trapezium rule
-
   # Find the stopping time of the simulation that finishes first - this is where
   # we'll integrate up to
   t_max <- trace_data %>%
