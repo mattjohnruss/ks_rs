@@ -92,7 +92,8 @@ add_constants_and_gammas_to_param_table <- function(params) {
 # `gamma` column as this has already been duplicated into the various `gamma_*`
 # columns that are actually used in the sims.
 write_json_params_files <- function(all_params, res_dir_base) {
-  for (i in 1:nrow(all_params)) {
+  n_runs <- nrow(all_params)
+  for (i in 1:n_runs) {
     j <- jsonlite::toJSON(jsonlite::unbox(all_params[i, !"gamma"]), digits = 16)
     res_dir <- paste(res_dir_base, i - 1, sep = "/")
 
@@ -109,11 +110,11 @@ write_json_params_files <- function(all_params, res_dir_base) {
 # script that runs GNU Parallel with the appropriate arguments. It finally
 # reads all simulation outputs from file back into R for processing later.
 simulate_all <- function(all_params, res_dir_base) {
-  n_params <- nrow(all_params)
+  n_runs <- nrow(all_params)
   cmd <- paste(
     "bash",
     "scripts/sensitivity/run_all.bash",
-    n_params,
+    n_runs,
     res_dir_base
   )
   system(cmd)
