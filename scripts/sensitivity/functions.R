@@ -141,17 +141,20 @@ calculate_integrated_fluxes <- function(trace_data) {
   return(integrated_fluxes)
 }
 
-gen_param_sample <- function(n_rep) {
-  data.table(
-    j_phi_i_i_factor = runif(
-      n_rep,
-      min = j_phi_i_i_factor_min, max = j_phi_i_i_factor_max
-    ),
-    m_i_factor = runif(n_rep, min = m_i_factor_min, max = m_i_factor_max),
-    t_j_phi_i_lag = runif(
-      n_rep,
-      min = t_j_phi_i_lag_min, max = t_j_phi_i_lag_max
-    ),
-    gamma = runif(n_rep, min = gamma_min, max = gamma_max)
-  )
+# This works but I suspect it could be written in a nicer way
+gen_param_sample <- function(n_rep, names, mins, maxs) {
+  d <- list()
+  for (i in seq_len(length(names))) {
+    d[[i]] <- data.table(
+      id = 1:n_rep,
+      param = rep(names[i], n_rep),
+      value = runif(n_rep, mins[i], maxs[i])
+    )
+  }
+  d <- d %>%
+    data.table::rbindlist(.) %>%
+    dcast(., id ~ param) %>%
+    .[, id := NULL]
+  data.table::setcolorder(d, names)
+  return(d)
 }
