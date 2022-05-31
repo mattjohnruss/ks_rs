@@ -25,18 +25,12 @@ t_j_phi_i_lag_max <- 25.0
 gamma_min <- 0.0
 gamma_max <- 10.0
 
-x_1 <- gen_param_sample(
-  100,
-  c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
-  c(j_phi_i_i_factor_min, m_i_factor_min, t_j_phi_i_lag_min, gamma_min),
-  c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
-)
-x_2 <- gen_param_sample(
-  100,
-  c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
-  c(j_phi_i_i_factor_min, m_i_factor_min, t_j_phi_i_lag_min, gamma_min),
-  c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
-)
+names <- c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma")
+mins <- c(j_phi_i_i_factor_min, m_i_factor_min, t_j_phi_i_lag_min, gamma_min)
+maxs <- c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
+
+x_1 <- gen_param_sample(100, names, mins, maxs)
+x_2 <- gen_param_sample(100, names, mins, maxs)
 
 # Calculates all indices up to `order` - i.e. if order = 2, it calculates all
 # combined 2nd order indices, which can be expensive for many parameters. Seems
