@@ -61,7 +61,7 @@ add_constants_and_gammas_to_param_table(x$X)
 # maybe we should split this into two scripts to make it easier to call them as
 # needed from R.
 
-trace_data_full <- read_trace_data(x$X)
+trace_data_full <- read_trace_data(x$X, res_dir_base)
 trace_data <- trace_data_full[`t_{inf}` >= 0]
 
 trace_data_long <- melt(

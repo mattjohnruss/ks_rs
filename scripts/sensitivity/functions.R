@@ -96,7 +96,7 @@ simulate_all <- function(all_params, res_dir_base) {
   system(cmd)
 }
 
-read_trace_data <- function(all_params) {
+read_trace_data <- function(all_params, res_dir_base) {
   n_runs <- nrow(all_params)
   trace_data <- list()
 
