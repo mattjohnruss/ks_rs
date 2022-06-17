@@ -1,6 +1,7 @@
 library(data.table)
 library(magrittr)
 library(jsonlite)
+library(stringr)
 
 # Constant parameter values
 phi_bar_over_c_bar <- 1.40179e-6
@@ -110,6 +111,36 @@ read_trace_data <- function(all_params, res_dir_base) {
   }
 
   return(rbindlist(trace_data))
+}
+
+# Reads spatial data for all reps at a particular time
+read_spatial_data <- function(all_params, time, res_dir_base) {
+  n_runs <- nrow(all_params)
+  spatial_data <- list()
+
+  for (rep in 1:n_runs) {
+    filename <- paste(
+      res_dir_base,
+      rep - 1,
+      sprintf("inflammation/output_%05i.csv", time),
+      sep = "/"
+    )
+    if (file.exists(filename)) {
+      #print(filename)
+      spatial_data[[rep]] <- data.table::fread(
+        filename,
+        blank.lines.skip = TRUE
+      )
+      spatial_data[[rep]][, rep := rep - 1]
+      spatial_data[[rep]][, output_inf := time]
+      spatial_data[[rep]] <- cbind(spatial_data[[rep]], all_params[rep])
+    } else {
+      print(paste0("skipping missing file ", filename))
+    }
+  }
+  spatial_data <- rbindlist(spatial_data)
+  setnames(spatial_data, str_remove_all(names(spatial_data), "[\\\\${}]"))
+  return(spatial_data)
 }
 
 # Time-integration of fluxes using the trapezium rule
