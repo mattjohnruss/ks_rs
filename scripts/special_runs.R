@@ -32,24 +32,6 @@ add_constants_and_gammas_to_param_table(params)
 
 #simulate_all(params)
 
-trace_data_full <- read_trace_data(params, res_dir_base)
-trace_data <- trace_data_full[`t_{inf}` >= 0]
-
-trace_data_long <- melt(
-  trace_data,
-  measure.vars = c(
-    "C_u^{tot}",
-    "C_b^{tot}",
-    "C_s^{tot}",
-    "phi_i^{tot}",
-    "phi_m^{tot}",
-    "phi_{C_u}^{tot}",
-    "phi_{C_b}^{tot}",
-    "-F_{phi_i}(x=1)",
-    "-F_{phi_{C_b}}(x=0)"
-  )
-)
-
 ui <- fluidPage(
   flowLayout(
     sliderInput(
@@ -145,57 +127,3 @@ server <- function(input, output) {
 }
 
 shinyApp(ui = ui, server = server)
-
-p <- ggplot(
-  trace_data_long[
-    pe %in% c(5, -2, 2, -5)
-    #pe %in% c(5, -5)
-    #gamma == 1 &
-    #t_j_phi_i_lag == 0 &
-    #m_i_factor == 2
-    #j_phi_i_i_factor == 2
-  ]
-) +
-  geom_line(
-    aes(
-      `t_{inf}`,
-      value,
-      group = rep,
-      linetype = factor(gamma),
-      colour = factor(pe),
-      alpha = factor(m_i_factor)
-    ),
-    #alpha = 0.75,
-    size = 1
-  ) +
-  scale_alpha_manual(values = c(0.3, 1.0)) +
-  facet_wrap(vars(variable), scales = "free")
-
-ggplotly(p)
-
-ggplot(
-  trace_data[
-    #variable == "phi_{C_b}^{tot}" &
-    pe %in% c(5, -2, 2, -5) &
-    #gamma == 1 &
-    t_j_phi_i_lag == 0
-    #m_i_factor == 2
-    #j_phi_i_i_factor == 2
-  ]
-) +
-  geom_line(
-    aes(
-      `t_{inf}`,
-      `phi_{C_u}^{tot}` / `phi_{C_b}^{tot}`,
-      group = rep,
-      linetype = factor(gamma),
-      colour = factor(pe)
-    ),
-    alpha = 0.75,
-    size = 1
-  ) +
-  facet_grid(
-    rows = vars(j_phi_i_i_factor),
-    cols = vars(m_i_factor),
-    scales = "free"
-  )
