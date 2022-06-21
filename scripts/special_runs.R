@@ -52,13 +52,23 @@ trace_data_long <- melt(
 
 ui <- fluidPage(
   flowLayout(
-    sliderInput(inputId = "time",
-                label = "Time since inflammation:",
-                min = 0,
-                max = 1500,
-                value = 0),
-    varSelectInput("colour_by", "Colour by", params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)]),
-    varSelectInput("linetype_by", "Linetype by", params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)]),
+    sliderInput(
+      inputId = "time",
+      label = "Time since inflammation:",
+      min = 0,
+      max = 1500,
+      value = 0),
+    varSelectInput(
+      "colour_by",
+      "Colour by",
+      params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)],
+      selected = "pe"
+    ),
+    varSelectInput(
+      "linetype_by",
+      "Linetype by",
+      params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)]
+    ),
     checkboxGroupInput(
       "j_phi_i_i_factor",
       "j_phi_i_i_factor",
@@ -115,8 +125,7 @@ server <- function(input, output) {
       measure.vars = c("C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b")
     )
     ggplot(data_long[
-      pe %in% c(-5, -2, 2, 5) &
-        j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
+      j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
         m_i_factor %in% as.numeric(input$m_i_factor) &
         t_j_phi_i_lag %in% as.numeric(input$t_j_phi_i_lag) &
         gamma %in% as.numeric(input$gamma) &
@@ -130,7 +139,7 @@ server <- function(input, output) {
         linetype = factor(!!input$linetype_by)
       )
     ) +
-    geom_line(alpha = 0.5, size = 1) +
+    geom_line(alpha = 0.75, size = 1.5) +
     facet_wrap(vars(variable), scales = "free")
   })
 }
