@@ -15,6 +15,13 @@ set.seed(12345L)
 
 res_dir_base <- "res_sensitivity_3_neg_pe"
 
+# Set and create the plot directory if it doesn't exist
+plot_dir <- paste(res_dir_base, "plots", sep = "/")
+
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
+
 # Min/max for the parameters we're varying
 j_phi_i_i_factor_min <- 1.0
 j_phi_i_i_factor_max <- 1000.0
@@ -112,12 +119,6 @@ cells_vs_params_long <- cells_vs_params %>%
     variable.name = "variable",
     value.name = "cells"
   )
-
-plot_dir <- paste(res_dir_base, "plots", sep = "/")
-
-if (!dir.exists(plot_dir)) {
-  dir.create(plot_dir, recursive = TRUE)
-}
 
 # Sobol indices for cell influx
 # -----------------------------
