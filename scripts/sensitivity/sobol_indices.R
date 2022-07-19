@@ -22,6 +22,21 @@ if (!dir.exists(plot_dir)) {
   dir.create(plot_dir, recursive = TRUE)
 }
 
+# Parameter labels as `expression`s for nicer formatting in plots
+labels <- c(
+  "j_phi_i_i_factor" = expression(paste(J[phi[i]]^I, " factor")),
+  "m_i_factor" = expression(paste(M^I, " factor")),
+  "t_j_phi_i_lag" = expression(paste(J[phi[i]]^I, " delay")),
+  "gamma" = expression(
+    paste(
+      gamma[ui], ", ",
+      gamma[um], ", ",
+      gamma[bi], ", ",
+      gamma[bm]
+    )
+  )
+)
+
 # Min/max for the parameters we're varying
 j_phi_i_i_factor_min <- 1.0
 j_phi_i_i_factor_max <- 1000.0
@@ -39,17 +54,6 @@ maxs <- c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
 x_1 <- gen_param_sample(100, names, mins, maxs)
 x_2 <- gen_param_sample(100, names, mins, maxs)
 
-# Calculates all indices up to `order` - i.e. if order = 2, it calculates all
-# combined 2nd order indices, which can be expensive for many parameters. Seems
-# like this can suffer from poor conditioning like `sobol2002`, `sobol2007`,
-# despite that it's not mentioned in the docs. Workaround is to centre the
-# outputs by subtracting the mean before calling `tell` below.
-#x <- sobol(model = NULL, X1 = x_1, X2 = x_2, order = 1, nboot = 100)
-
-# These estimators directly calculate the regular first-order indices and total
-# indices simulataneously without calculating the combined second-order indices
-# individually. I.e. 2p indices rather than an amount quadratic in p. We'll
-# probably want to use one of these (or similar) most of the time.
 #x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
@@ -120,43 +124,77 @@ cells_vs_params_long <- cells_vs_params %>%
     value.name = "cells"
   )
 
-# Sobol indices for cell influx
-# -----------------------------
+sobol_indices_cells_plot <- function(x, title) {
+  rn <- rownames(x$T)
+
+  data <- rbind(
+    cbind(
+      parameter = factor(rn, levels = rn),
+      effect = "main",
+      x$S %>% as.data.table()
+    ),
+    cbind(
+      parameter = factor(rn, levels = rn),
+      effect = "total",
+      x$T %>% as.data.table()
+    )
+  )
+
+  ggplot(
+    data,
+    aes(
+      parameter,
+      y = original,
+      ymin = `min. c.i.`,
+      ymax = `max. c.i.`,
+      group = effect,
+      shape = effect,
+      colour = effect)
+    ) +
+    geom_point(size = 3, position = position_dodge(width = 0.3)) +
+    geom_errorbar(width = 0.2, position = position_dodge(width = 0.3)) +
+    scale_x_discrete(labels = labels) +
+    scale_shape_discrete(labels = c("main" = "Main", "total" = "Total")) +
+    scale_colour_discrete(labels = c("main" = "Main", "total" = "Total")) +
+    labs(
+      x = NULL,
+      y = "Total index",
+      shape = "Effect",
+      colour = "Effect",
+      title = title
+    ) +
+    theme_cowplot() +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+# Sobol indices for cells in
+# --------------------------
 y <- integrated_fluxes$cells_in
 
-# Some of the estimators in `sensitivity` apparently suffer from a
-# "conditioning problem", such as `sobol2002` and `sobol2007.` A workaround is
-# to centre the model outputs before running estimators or to use alternative
-# estimators like `soboljansen`, `sobolmartinez` etc. I'm assuming this is also
-# the case for `sobol` (which we initially used), but its docs don't mention
-# it. Generally, we'll use on the above alternatives, as they calculate
-# first-order and total indices simulataneously, not requiring a number of runs
-# quadratic in dimension of parameter space.
-#tell(x, y - mean(y))
 tell(x, y)
 print(x)
 
-# TODO: this simple plotting helper function has a typo ("effet" instead of
-# "effect") in the legend - report upstream and/or make our plots from x$S and
-# x$T
-ggplot(x)
+p_sobol_indices_cells_in <- sobol_indices_cells_plot(x, "Cells in")
 
-ggsave(
-  paste(plot_dir, "sobol_indices_cells_in.pdf", sep = "/"),
-  width = 13,
-  height = 7
-)
-
-# Sobol indices for cell outflux
-# ------------------------------
+# Sobol indices for cells out
+# ---------------------------
 y <- integrated_fluxes$cells_out
 
 tell(x, y)
 print(x)
-ggplot(x)
+
+p_sobol_indices_cells_out <- sobol_indices_cells_plot(x, "Cells out")
+
+# Combined plot for cells in and out
+------------------------------------
+
+p_sobol_indices_cells <- p_sobol_indices_cells_in +
+  p_sobol_indices_cells_out +
+  plot_layout(guides = "collect")
 
 ggsave(
-  paste(plot_dir, "sobol_indices_cells_out.pdf", sep = "/"),
+  plot = p_sobol_indices_cells,
+  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/"),
   width = 13,
   height = 7
 )
@@ -173,19 +211,32 @@ ggplot(x)
 # -----------
 
 # Plot the integrated cell numbers against parameter values
-ggplot(cells_vs_params_long) +
+p_cells_vs_params <- ggplot(cells_vs_params_long) +
   geom_point(aes(
     x = param_value,
     y = cells,
     colour = variable,
     group = variable,
   ), size = 2) +
-  facet_wrap(vars(param), scales = "free") +
+  facet_wrap(
+    vars(param),
+    scales = "free",
+    labeller = as_labeller(function(v) labels[v], label_parsed),
+    strip.position = "bottom"
+  ) +
+  scale_color_discrete(
+    labels = c(
+      "cells_in" = "Cells in",
+      "cells_out" = "Cells out",
+      "net_change" = "Net change"
+    )
+  ) +
   theme_cowplot() +
-  xlab("Parameter value") +
-  ylab("Cells (dimensionless)")
+  theme(strip.background = element_blank(), strip.placement = "outside") +
+  labs(colour = "Variable", x = NULL, y = "Cells (dimensionless)")
 
 ggsave(
+  plot = p_cells_vs_params,
   paste(plot_dir, "cells_vs_params.pdf", sep = "/"),
   width = 13,
   height = 7
