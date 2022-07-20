@@ -1,7 +1,7 @@
 library(sensitivity)
 library(ggplot2)
 library(cowplot)
-#library(patchwork)
+library(patchwork)
 library(GGally)
 
 source("scripts/sensitivity/functions.R")
@@ -23,18 +23,11 @@ if (!dir.exists(plot_dir)) {
 }
 
 # Parameter labels as `expression`s for nicer formatting in plots
-labels <- c(
+param_labels <- c(
   "j_phi_i_i_factor" = expression(paste(J[phi[i]]^I, " factor")),
   "m_i_factor" = expression(paste(M^I, " factor")),
   "t_j_phi_i_lag" = expression(paste(J[phi[i]]^I, " delay")),
-  "gamma" = expression(
-    paste(
-      gamma[ui], ", ",
-      gamma[um], ", ",
-      gamma[bi], ", ",
-      gamma[bm]
-    )
-  )
+  "gamma" = expression(gamma)
 )
 
 # Min/max for the parameters we're varying
@@ -153,12 +146,13 @@ sobol_indices_cells_plot <- function(x, title) {
     ) +
     geom_point(size = 3, position = position_dodge(width = 0.3)) +
     geom_errorbar(width = 0.2, position = position_dodge(width = 0.3)) +
-    scale_x_discrete(labels = labels) +
+    scale_x_discrete(labels = param_labels) +
     scale_shape_discrete(labels = c("main" = "Main", "total" = "Total")) +
     scale_colour_discrete(labels = c("main" = "Main", "total" = "Total")) +
+    coord_cartesian(ylim = c(0.0, 1.0)) +
     labs(
       x = NULL,
-      y = "Total index",
+      y = "Sobol index",
       shape = "Effect",
       colour = "Effect",
       title = title
@@ -186,7 +180,7 @@ print(x)
 p_sobol_indices_cells_out <- sobol_indices_cells_plot(x, "Cells out")
 
 # Combined plot for cells in and out
-------------------------------------
+#-----------------------------------
 
 p_sobol_indices_cells <- p_sobol_indices_cells_in +
   p_sobol_indices_cells_out +
@@ -205,7 +199,7 @@ y <- integrated_fluxes$net_change
 
 tell(x, y)
 print(x)
-ggplot(x)
+sobol_indices_cells_plot(x, "Net change in cells")
 
 # Other plots
 # -----------
@@ -221,7 +215,7 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
   facet_wrap(
     vars(param),
     scales = "free",
-    labeller = as_labeller(function(v) labels[v], label_parsed),
+    labeller = as_labeller(function(v) param_labels[v], label_parsed),
     strip.position = "bottom"
   ) +
   scale_color_discrete(
@@ -233,7 +227,7 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
   ) +
   theme_cowplot() +
   theme(strip.background = element_blank(), strip.placement = "outside") +
-  labs(colour = "Variable", x = NULL, y = "Cells (dimensionless)")
+  labs(colour = NULL, x = NULL, y = "Cells (dimensionless)")
 
 ggsave(
   plot = p_cells_vs_params,
@@ -320,7 +314,7 @@ red <- scale_colour_gradient(low = "black", high = "red")
 green <- scale_colour_gradient(low = "black", high = "green")
 orange <- scale_colour_gradient(low = "black", high = "orange")
 
-grid_panel <- function(y_var, colour_by, colour_style, axis_style=NULL) {
+grid_panel <- function(y_var, colour_by, colour_style, axis_style = NULL) {
   p <- ggplot(
       trace_data,
       aes(
@@ -452,7 +446,14 @@ p_flux_first_order <- ggplot(
     alpha = 0.2
   ) +
   geom_line() +
-  labs(x = "Time since inflammation", y = "First-order Sobol index") +
+  labs(
+    x = "Time since inflammation",
+    y = "First-order Sobol index",
+    colour = "Parameter",
+    fill = "Parameter"
+  ) +
+  scale_colour_discrete(labels = param_labels) +
+  scale_fill_discrete(labels = param_labels) +
   coord_cartesian(ylim = c(-0.1, 1.0)) +
   theme_cowplot()
 
