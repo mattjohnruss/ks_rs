@@ -255,27 +255,27 @@ ggsave(
   #xlab("Parameter value") +
   #ylab("Cells (dimensionless)")
 
-trace_data_longer <- trace_data[
-  ,
-  .(
-    rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_i}(x=1)`,
-    `-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma
-  )
-  ] %>%
-  melt(
-    .,
-    measure.vars = c(
-      "C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_i}(x=1)", "-F_{phi_{C_b}}(x=0)"
-    )
-  ) %>%
-  melt(
-    .,
-    measure.vars = c(
-      "j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"
-    ),
-    variable.name = "param",
-    value.name = "param_value"
-  )
+#trace_data_longer <- trace_data[
+  #,
+  #.(
+    #rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_i}(x=1)`,
+    #`-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma
+  #)
+  #] %>%
+  #melt(
+    #.,
+    #measure.vars = c(
+      #"C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_i}(x=1)", "-F_{phi_{C_b}}(x=0)"
+    #)
+  #) %>%
+  #melt(
+    #.,
+    #measure.vars = c(
+      #"j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"
+    #),
+    #variable.name = "param",
+    #value.name = "param_value"
+  #)
 
 #ggplot(trace_data_longer[variable != "-F_{phi_i}(x=1)"]) +
   #geom_line(
