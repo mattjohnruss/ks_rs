@@ -189,3 +189,11 @@ gen_param_sample <- function(n_rep, names, mins, maxs) {
   data.table::setcolorder(d, names)
   return(d)
 }
+
+ggsave_with_defaults <- function(
+  filename,
+  width = 10,
+  height = 7,
+  ...) {
+  ggplot2::ggsave(filename, width = width, height = height, ...)
+}

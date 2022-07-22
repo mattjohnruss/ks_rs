@@ -3,6 +3,7 @@ library(ggplot2)
 library(cowplot)
 library(patchwork)
 library(GGally)
+library(ggnewscale)
 
 source("scripts/sensitivity/functions.R")
 
@@ -22,13 +23,22 @@ if (!dir.exists(plot_dir)) {
   dir.create(plot_dir, recursive = TRUE)
 }
 
-# Parameter labels as `expression`s for nicer formatting in plots
+# Parameter and variable labels as `expression`s for nicer formatting in plots
 param_labels <- c(
   "j_phi_i_i_factor" = expression(paste(J[phi[i]]^I, " factor")),
   "m_i_factor" = expression(paste(M^I, " factor")),
   "t_j_phi_i_lag" = expression(paste(J[phi[i]]^I, " delay")),
   "gamma" = expression(gamma)
 )
+
+# Add any other variables as needed
+variable_labels <- c(
+  "C_b^{tot}" = expression(paste("Total ", C[b])),
+  "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
+  "-F_{phi_{C_b}}(x=0)" = expression(paste("Cell flux at l.v."))
+)
+
+all_labels <- c(param_labels, variable_labels)
 
 # Min/max for the parameters we're varying
 j_phi_i_i_factor_min <- 1.0
@@ -186,11 +196,9 @@ p_sobol_indices_cells <- p_sobol_indices_cells_in +
   p_sobol_indices_cells_out +
   plot_layout(guides = "collect")
 
-ggsave(
+ggsave_with_defaults(
   plot = p_sobol_indices_cells,
-  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/")
 )
 
 # Sobol indices for net change in number of cells
@@ -211,7 +219,7 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
     y = cells,
     colour = variable,
     group = variable,
-  ), size = 2) +
+  ), size = 1.5) +
   facet_wrap(
     vars(param),
     scales = "free",
@@ -229,11 +237,9 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
   theme(strip.background = element_blank(), strip.placement = "outside") +
   labs(colour = NULL, x = NULL, y = "Cells (dimensionless)")
 
-ggsave(
+ggsave_with_defaults(
   plot = p_cells_vs_params,
-  paste(plot_dir, "cells_vs_params.pdf", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "cells_vs_params.pdf", sep = "/")
 )
 
 # Individual cells in/out plots
@@ -255,68 +261,165 @@ ggsave(
   #xlab("Parameter value") +
   #ylab("Cells (dimensionless)")
 
-blue <- scale_colour_gradient(low = "black", high = "blue")
-red <- scale_colour_gradient(low = "black", high = "red")
-green <- scale_colour_gradient(low = "black", high = "green")
-orange <- scale_colour_gradient(low = "black", high = "orange")
-
-grid_panel <- function(y_var, colour_by, colour_style, axis_style = NULL) {
-  p <- ggplot(
-      trace_data,
-      aes(
-        x = `t_{inf}`,
-        y = {{ y_var }},
-        group = rep,
-        colour = {{ colour_by }}
-      )
-    ) +
-    geom_line(alpha = 0.2) +
-    theme_cowplot() +
-    colour_style
-  if (!is.null(axis_style)) {
-    p <- p + axis_style
-  }
-  p
+colour_bar_gradient_ordered <- function(high, order) {
+  scale_colour_gradient(
+    low = "black",
+    high = high,
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      order = order
+    )
+  )
 }
-
-p1 <- grid_panel(`C_b^{tot}`, j_phi_i_i_factor, blue)
-p2 <- grid_panel(`phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
-p3 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, blue)
-
-p4 <- grid_panel(`C_b^{tot}`, m_i_factor, red)
-p5 <- grid_panel(`phi_{C_b}^{tot}`, m_i_factor, red)
-p6 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, m_i_factor, red)
-
-p7 <- grid_panel(`C_b^{tot}`, t_j_phi_i_lag, green)
-p8 <- grid_panel(`phi_{C_b}^{tot}`, t_j_phi_i_lag, green)
-p9 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, t_j_phi_i_lag, green)
-
-p10 <- grid_panel(`C_b^{tot}`, gamma, orange)
-p11 <- grid_panel(`phi_{C_b}^{tot}`, gamma, orange)
-p12 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, gamma, orange)
-
-plot_list <- list(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
-
-# Use the GGally package to make the plot grid - seems to be the only easy way
-# that does everything we need, including row/column labels
-
-trace_grid <- ggmatrix(
-  plot_list,
-  3, 4,
-  c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
-  c("C_b^{tot}", "phi_{C_b^{tot}}", "-F_{phi_{C_b}}(x=0)"),
-  xlab = "t_{inf}",
-  byrow = FALSE
+blue <- colour_bar_gradient_ordered("blue", 1)
+red <- colour_bar_gradient_ordered("red", 2)
+green <- colour_bar_gradient_ordered("green", 3)
+orange <- colour_bar_gradient_ordered("orange", 4)
+colour_scales <- c(
+  "j_phi_i_i_factor" = blue,
+  "m_i_factor" = red,
+  "t_j_phi_i_lag" = green,
+  "gamma" = orange
 )
-trace_grid
 
-# output a png - a pdf of this plot is huge (due to the enormous number of
-# lines) and renders very slowly
-ggsave(
-  plot = trace_grid,
-  paste(plot_dir, "trace_coloured_by_params.png", sep = "/"),
-  width = 13,
-  height = 7
+#grid_panel <- function(y_var, colour_by, colour_style, axis_style = NULL) {
+  #p <- ggplot(
+      #trace_data[rep %in% 0:9],
+      #aes(
+        #x = `t_{inf}`,
+        #y = {{ y_var }},
+        #group = rep,
+        #colour = {{ colour_by }}
+      #)
+    #) +
+    #geom_line(alpha = 0.2) +
+    #labs(x = "Time since inflammation") +
+    #theme_cowplot() +
+    #theme(legend.position = "top") +
+    #colour_style
+  #if (!is.null(axis_style)) {
+    #p <- p + axis_style
+  #}
+  #p
+#}
+
+#p1 <- grid_panel(`C_b^{tot}`, j_phi_i_i_factor, blue)
+#p2 <- grid_panel(`phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
+#p3 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, blue)
+
+#p4 <- grid_panel(`C_b^{tot}`, m_i_factor, red)
+#p5 <- grid_panel(`phi_{C_b}^{tot}`, m_i_factor, red)
+#p6 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, m_i_factor, red)
+
+#p7 <- grid_panel(`C_b^{tot}`, t_j_phi_i_lag, green)
+#p8 <- grid_panel(`phi_{C_b}^{tot}`, t_j_phi_i_lag, green)
+#p9 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, t_j_phi_i_lag, green)
+
+#p10 <- grid_panel(`C_b^{tot}`, gamma, orange)
+#p11 <- grid_panel(`phi_{C_b}^{tot}`, gamma, orange)
+#p12 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, gamma, orange)
+
+#plot_list <- list(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
+
+## Use the GGally package to make the plot grid - seems to be the only easy way
+## that does everything we need, including row/column labels
+
+#trace_grid <- ggmatrix(
+  #plot_list,
+  #nrow = 3,
+  #ncol = 4,
+  ##xAxisLabels = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+  #xAxisLabels = NULL,
+  #yAxisLabels = c("C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_{C_b}}(x=0)"),
+  #xlab = "Time since inflammation",
+  #byrow = FALSE,
+  #switch = "y",
+  #labeller = as_labeller(function(v) all_labels[v], label_parsed),
+  #gg = guides(colour = guide_colorbar())
+#) +
+#theme_cowplot() +
+#theme(strip.background.y = element_blank(), strip.placement = "outside", legend.position = "top")
+#trace_grid
+
+## output a png - a pdf of this plot is huge (due to the enormous number of
+## lines) and renders very slowly
+#ggsave_with_defaults(
+  #plot = trace_grid,
+  ##paste(plot_dir, "trace_coloured_by_params.pdf", sep = "/"),
+  #paste(plot_dir, "trace_coloured_by_params.png", sep = "/")
+#)
+
+trace_data_longer <- trace_data[
+  ,
+  .(
+    rep, `t_{inf}`, `C_b^{tot}`, `phi_{C_b}^{tot}`, `-F_{phi_{C_b}}(x=0)`,
+    j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma
+  )
+  ] %>%
+  melt(
+    .,
+    measure.vars = c(
+      "C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_{C_b}}(x=0)"
+    )
+  ) %>%
+  melt(
+    .,
+    measure.vars = c(
+      "j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"
+    ),
+    variable.name = "param",
+    value.name = "param_value"
+  )
+
+p_trace_grid <- ggplot(
+  trace_data_longer,
+  aes(
+    x = `t_{inf}`,
+    y = value,
+  )
+)
+for (param_name in trace_data_longer$param %>% levels) {
+  p_trace_grid <- p_trace_grid +
+    geom_line(
+      aes(
+        group = rep,
+        colour = param_value
+      ),
+      alpha = 0.2,
+      data = trace_data_longer[param == param_name]
+    ) +
+    colour_scales[param_name] +
+    labs(colour = param_labels[param_name]) +
+    new_scale_colour()
+}
+p_trace_grid <- p_trace_grid +
+  labs(x = "Time since inflammation", y = NULL) +
+  facet_grid(
+    rows = vars(variable),
+    cols = vars(param),
+    scales = "free",
+    switch = "y",
+    labeller = as_labeller(function(v) all_labels[v], label_parsed)
+  ) +
+  theme_cowplot() +
+  theme(
+    plot.background = element_rect("white"),
+    strip.text.x = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    legend.box.just = "bottom",
+    legend.position = "top",
+    legend.justification = "centre",
+    # no idea why 1/24 seems to be correct here given that "npc" units mean
+    # that surely it should be 0.25, but who cares
+    legend.key.width = unit(1.0 / 24.0, "npc"),
+    legend.key.height = unit(0.3, "cm")
+  )
+
+ggsave_with_defaults(
+  paste(plot_dir, "trace_grid.png", sep = "/"),
+  plot = p_trace_grid
 )
 
 ############################
@@ -405,11 +508,9 @@ p_flux_first_order <- ggplot(
 
 p_flux_first_order
 
-ggsave(
+ggsave_with_defaults(
   plot = p_flux_first_order,
   paste(plot_dir, "flux_first_order_sobol_indices.pdf", sep = "/"),
-  width = 13,
-  height = 7
 )
 
 p_flux_total_order <- ggplot(
@@ -427,11 +528,9 @@ p_flux_total_order <- ggplot(
 
 p_flux_total_order
 
-ggsave(
+ggsave_with_defaults(
   plot = p_flux_total_order,
-  paste(plot_dir, "flux_total_order_sobol_indices.pdf", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "flux_total_order_sobol_indices.pdf", sep = "/")
 )
 
 ################
@@ -481,11 +580,9 @@ p_gradient_first_order <- ggplot(
 
 p_gradient_first_order
 
-ggsave(
+ggsave_with_defaults(
   plot = p_gradient_first_order,
-  paste(plot_dir, "gradient_first_order_sobol_indices.pdf", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "gradient_first_order_sobol_indices.pdf", sep = "/")
 )
 
 p_gradient_total_order <- ggplot(
@@ -503,9 +600,7 @@ p_gradient_total_order <- ggplot(
 
 p_gradient_total_order
 
-ggsave(
+ggsave_with_defaults(
   plot = p_gradient_total_order,
-  paste(plot_dir, "gradient_total_order_sobol_indices.pdf", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "gradient_total_order_sobol_indices.pdf", sep = "/")
 )
