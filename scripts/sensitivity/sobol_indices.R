@@ -427,6 +427,33 @@ sobol_at_time <- function(data, output, variable) {
   list(S = x$S, T = x$T)
 }
 
+p_sobol_vs_time <- function(sobol_data, title, ylim) {
+  ggplot(
+    sobol_data,
+    aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+  ) +
+    geom_ribbon(
+      aes(
+        ymin = `min. c.i.`,
+        ymax = `max. c.i.`,
+        fill = variable,
+        colour = NULL
+      ),
+      alpha = 0.2
+    ) +
+    geom_line() +
+    labs(
+      x = "Time since inflammation",
+      y = title,
+      colour = "Parameter",
+      fill = "Parameter"
+    ) +
+    scale_colour_discrete(labels = param_labels) +
+    scale_fill_discrete(labels = param_labels) +
+    coord_cartesian(ylim = ylim) +
+    theme_cowplot()
+}
+
 # Sobol indices of cell outflux as a function of time
 
 flux_first_order_sobol_indices <- list()
@@ -453,47 +480,26 @@ for (i in 1:output_inf_max) {
 flux_first_order_sobol_indices <- rbindlist(flux_first_order_sobol_indices)
 flux_total_order_sobol_indices <- rbindlist(flux_total_order_sobol_indices)
 
-p_flux_first_order <- ggplot(
-  flux_first_order_sobol_indices,
-  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
-) +
-  geom_ribbon(
-    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
-    alpha = 0.2
-  ) +
-  geom_line() +
-  labs(
-    x = "Time since inflammation",
-    y = "First-order Sobol index",
-    colour = "Parameter",
-    fill = "Parameter"
-  ) +
-  scale_colour_discrete(labels = param_labels) +
-  scale_fill_discrete(labels = param_labels) +
-  coord_cartesian(ylim = c(-0.1, 1.0)) +
-  theme_cowplot()
+# First order
 
-p_flux_first_order
+p_flux_first_order <- p_sobol_vs_time(
+  flux_first_order_sobol_indices,
+  "First-order Sobol index",
+  c(-0.1, 1.0)
+)
 
 ggsave_with_defaults(
   plot = p_flux_first_order,
   paste(plot_dir, "flux_first_order_sobol_indices.pdf", sep = "/"),
 )
 
-p_flux_total_order <- ggplot(
-  flux_total_order_sobol_indices,
-  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
-) +
-  geom_ribbon(
-    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
-    alpha = 0.2
-  ) +
-  geom_line() +
-  labs(x = "Time since inflammation", y = "Total-order Sobol index") +
-  coord_cartesian(ylim = c(0, 1.2)) +
-  theme_cowplot()
+# Total order
 
-p_flux_total_order
+p_flux_total_order <- p_sobol_vs_time(
+  flux_total_order_sobol_indices,
+  "Total-order Sobol index",
+  c(0, 1.2)
+)
 
 ggsave_with_defaults(
   plot = p_flux_total_order,
@@ -506,7 +512,6 @@ ggsave_with_defaults(
 
 # This section currently requires data from
 # `scripts/extract_max_cell_density.R` to be loaded into the session
-# TODO: refactor
 
 gradient_first_order_sobol_indices <- list()
 gradient_total_order_sobol_indices <- list()
@@ -532,40 +537,26 @@ for (i in 1:output_inf_max) {
 gradient_first_order_sobol_indices <- rbindlist(gradient_first_order_sobol_indices)
 gradient_total_order_sobol_indices <- rbindlist(gradient_total_order_sobol_indices)
 
-p_gradient_first_order <- ggplot(
-  gradient_first_order_sobol_indices,
-  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
-) +
-  geom_ribbon(
-    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
-    alpha = 0.2
-  ) +
-  geom_line() +
-  labs(x = "Time since inflammation", y = "First-order Sobol index") +
-  coord_cartesian(ylim = c(-0.1, 1.0)) +
-  theme_cowplot()
+# First order
 
-p_gradient_first_order
+p_gradient_first_order <- p_sobol_vs_time(
+  gradient_first_order_sobol_indices,
+  "First-order Sobol index",
+  c(-0.1, 1.0)
+)
 
 ggsave_with_defaults(
   plot = p_gradient_first_order,
   paste(plot_dir, "gradient_first_order_sobol_indices.pdf", sep = "/")
 )
 
-p_gradient_total_order <- ggplot(
-  gradient_total_order_sobol_indices,
-  aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
-) +
-  geom_ribbon(
-    aes(ymin = `min. c.i.`, ymax = `max. c.i.`, fill = variable, colour = NULL),
-    alpha = 0.2
-  ) +
-  geom_line() +
-  labs(x = "Time since inflammation", y = "Total-order Sobol index") +
-  coord_cartesian(ylim = c(0, 1.2)) +
-  theme_cowplot()
+# Total order
 
-p_gradient_total_order
+p_gradient_total_order <- p_sobol_vs_time(
+  gradient_total_order_sobol_indices,
+  "Total-order Sobol index",
+  c(0.0, 1.2)
+)
 
 ggsave_with_defaults(
   plot = p_gradient_total_order,
