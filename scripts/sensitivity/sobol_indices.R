@@ -378,16 +378,16 @@ ggsave_with_defaults(
 
 ############################
 
-# Plot some specific repeats from interesting parts of paramteter space
+## Plot some specific repeats from interesting parts of paramteter space
 
-interesting_runs <- c(138, 347, 68, 419)
+#interesting_runs <- c(138, 347, 68, 419)
 
-ggplot(trace_data_long[rep %in% interesting_runs]) +
-  geom_line(aes(x = `t_{inf}`, y = value, colour = factor(rep)), size = 2) +
-  facet_wrap(vars(variable), scales = "free") +
-  theme_cowplot()
+#ggplot(trace_data_long[rep %in% interesting_runs]) +
+  #geom_line(aes(x = `t_{inf}`, y = value, colour = factor(rep)), size = 2) +
+  #facet_wrap(vars(variable), scales = "free") +
+  #theme_cowplot()
 
-grid_panel(`phi_i^{tot}` + `phi_m^{tot}` + `phi_{C_u}^{tot}` + `phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
+#grid_panel(`phi_i^{tot}` + `phi_m^{tot}` + `phi_{C_u}^{tot}` + `phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
 
 ############################
 
