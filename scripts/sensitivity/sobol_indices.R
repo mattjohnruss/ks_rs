@@ -157,14 +157,14 @@ sobol_indices_cells_plot <- function(x, title) {
     geom_point(size = 3, position = position_dodge(width = 0.3)) +
     geom_errorbar(width = 0.2, position = position_dodge(width = 0.3)) +
     scale_x_discrete(labels = param_labels) +
-    scale_shape_discrete(labels = c("main" = "Main", "total" = "Total")) +
-    scale_colour_discrete(labels = c("main" = "Main", "total" = "Total")) +
+    scale_shape_discrete(labels = c("main" = "First", "total" = "Total")) +
+    scale_colour_discrete(labels = c("main" = "First", "total" = "Total")) +
     coord_cartesian(ylim = c(0.0, 1.0)) +
     labs(
       x = NULL,
       y = "Sobol index",
-      shape = "Effect",
-      colour = "Effect",
+      shape = "Order",
+      colour = "Order",
       title = title
     ) +
     theme_cowplot() +
@@ -207,7 +207,7 @@ y <- integrated_fluxes$net_change
 
 tell(x, y)
 print(x)
-sobol_indices_cells_plot(x, "Net change in cells")
+p_sobol_indices_cells_net_change <- sobol_indices_cells_plot(x, "Net change in cells")
 
 # Other plots
 # -----------
