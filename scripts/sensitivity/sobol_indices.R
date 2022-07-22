@@ -401,11 +401,24 @@ output_inf_max <- trace_data %>%
   .[, .(output_stop = max(output_inf)), by = rep] %>%
   .[, min(output_stop)]
 
-get_t_inf <- function(i) {
-  trace_data[rep == i & `t_{inf}` <= t_inf_max, .(`t_{inf}`)]
+# checks that the t_inf values for different reps are essentially equal
+check_t_infs <- function() {
+  get_t_inf <- function(i) {
+    trace_data[rep == i & `t_{inf}` <= t_inf_max, .(`t_{inf}`)]
+  }
+
+  compare_t_infs <- function(i, j) {
+    (abs(get_t_inf(i) - get_t_inf(j)) <= 1e-4) %>% all
+  }
+
+  for (i in 2:599) {
+    if (!compare_t_infs(1, i)) {
+      print(paste0("1 and ", i, " t_infs differ more than 1e-4"))
+    }
+  }
 }
 
-
+# check_t_infs()
 
 sobol_at_time <- function(data, output, variable) {
   y <- data[output_inf == output, ..variable] %>% unlist
