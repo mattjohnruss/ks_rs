@@ -304,52 +304,6 @@ colour_scales <- c(
   #p
 #}
 
-#p1 <- grid_panel(`C_b^{tot}`, j_phi_i_i_factor, blue)
-#p2 <- grid_panel(`phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
-#p3 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, blue)
-
-#p4 <- grid_panel(`C_b^{tot}`, m_i_factor, red)
-#p5 <- grid_panel(`phi_{C_b}^{tot}`, m_i_factor, red)
-#p6 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, m_i_factor, red)
-
-#p7 <- grid_panel(`C_b^{tot}`, t_j_phi_i_lag, green)
-#p8 <- grid_panel(`phi_{C_b}^{tot}`, t_j_phi_i_lag, green)
-#p9 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, t_j_phi_i_lag, green)
-
-#p10 <- grid_panel(`C_b^{tot}`, gamma, orange)
-#p11 <- grid_panel(`phi_{C_b}^{tot}`, gamma, orange)
-#p12 <- grid_panel(`-F_{phi_{C_b}}(x=0)`, gamma, orange)
-
-#plot_list <- list(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
-
-## Use the GGally package to make the plot grid - seems to be the only easy way
-## that does everything we need, including row/column labels
-
-#trace_grid <- ggmatrix(
-  #plot_list,
-  #nrow = 3,
-  #ncol = 4,
-  ##xAxisLabels = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
-  #xAxisLabels = NULL,
-  #yAxisLabels = c("C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_{C_b}}(x=0)"),
-  #xlab = "Time since inflammation",
-  #byrow = FALSE,
-  #switch = "y",
-  #labeller = as_labeller(function(v) all_labels[v], label_parsed),
-  #gg = guides(colour = guide_colorbar())
-#) +
-#theme_cowplot() +
-#theme(strip.background.y = element_blank(), strip.placement = "outside", legend.position = "top")
-#trace_grid
-
-## output a png - a pdf of this plot is huge (due to the enormous number of
-## lines) and renders very slowly
-#ggsave_with_defaults(
-  #plot = trace_grid,
-  ##paste(plot_dir, "trace_coloured_by_params.pdf", sep = "/"),
-  #paste(plot_dir, "trace_coloured_by_params.png", sep = "/")
-#)
-
 trace_data_longer <- trace_data[
   ,
   .(
