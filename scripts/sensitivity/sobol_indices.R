@@ -510,8 +510,7 @@ ggsave_with_defaults(
 
 # Sobol indices of maximum gradient of C_b as a function of time
 
-# This section currently requires data from
-# `scripts/extract_max_cell_density.R` to be loaded into the session
+source("scripts/extract_max_cell_density.R")
 
 gradient_first_order_sobol_indices <- list()
 gradient_total_order_sobol_indices <- list()
@@ -561,4 +560,148 @@ p_gradient_total_order <- p_sobol_vs_time(
 ggsave_with_defaults(
   plot = p_gradient_total_order,
   paste(plot_dir, "gradient_total_order_sobol_indices.pdf", sep = "/")
+)
+
+# Max value and location of max value plots for phi_c_b and dc_b_dx
+# -----------------------------------------------------------------
+
+# Some plotting styles and helper functions
+
+p_location_panel <- function(data, colour_by, colour_style) {
+  print(deparse(substitute(colour_by)))
+  print(param_labels[deparse(substitute(colour_by))])
+
+  ggplot(
+    data,
+    aes(time_inf, x, group = rep, colour = {{ colour_by }})
+    ) +
+  geom_path(alpha = 0.1) +
+  coord_cartesian(ylim = c(0, 1)) +
+  colour_style +
+  labs(
+    x = "Time since inflammation",
+    y = expression(x),
+    colour = param_labels[deparse(substitute(colour_by))]
+  )
+}
+
+p_value_panel <- function(data, colour_by, colour_style, ylabel) {
+  print(deparse(substitute(colour_by)))
+  print(param_labels[deparse(substitute(colour_by))])
+
+  ggplot(
+    data,
+    aes(time_inf, phi_C_b, group = rep, colour = {{ colour_by }})
+    ) +
+  geom_path(alpha = 0.1) +
+  colour_style +
+  labs(
+    x = "Time since inflammation",
+    y = ylabel,
+    colour = param_labels[deparse(substitute(colour_by))]
+  )
+}
+
+# Location of max phi_c_b
+
+p_j_phi_i_i_factor <- p_location_panel(max_phi_c_b_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_location_panel(max_phi_c_b_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_location_panel(max_phi_c_b_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_location_panel(max_phi_c_b_all_and_params, gamma, orange)
+
+p_phi_c_b_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+  plot_annotation(
+    title = expression(
+      paste("Location of maxmimum ", phi[C[b]], " concentration")
+    )
+  ) &
+  theme_cowplot() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
+
+ggsave_with_defaults(
+  plot = p_phi_c_b_location,
+  paste(plot_dir, "max_phi_c_b_location.png", sep = "/")
+)
+
+# Value of max phi_c_b
+
+p_phi_c_b_value_panel <- function(...) {
+  p_value_panel(..., expression(phi[C[b]]))
+}
+
+p_j_phi_i_i_factor <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_phi_c_b_value_panel(max_phi_c_b_all_and_params, gamma, orange)
+
+p_phi_c_b_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+  plot_annotation(
+    title = expression(
+      paste("Value of maxmimum ", phi[C[b]], " concentration")
+    )
+  ) &
+  theme_cowplot() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
+
+ggsave_with_defaults(
+  plot = p_phi_c_b_value,
+  paste(plot_dir, "max_phi_c_b_value.png", sep = "/")
+)
+
+# Location of max gradient of c_b
+
+p_j_phi_i_i_factor <- p_location_panel(max_dc_b_dx_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_location_panel(max_dc_b_dx_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_location_panel(max_dc_b_dx_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_location_panel(max_dc_b_dx_all_and_params, gamma, orange)
+
+p_dc_b_dx_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+  plot_annotation(
+    title = expression(
+      paste("Location of maxmimum ", C[b], " gradient")
+    )
+  ) &
+  theme_cowplot() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
+
+ggsave_with_defaults(
+  plot = p_dc_b_dx_location,
+  paste(plot_dir, "max_dc_b_dx_location.png", sep = "/")
+)
+
+# Value of max gradient of c_b
+
+p_dc_b_dx_value_panel <- function(...) {
+  p_value_panel(..., expression(dC[b]/dx))
+}
+
+p_j_phi_i_i_factor <- p_dc_b_dx_value_panel(max_dc_b_dx_all_and_params, j_phi_i_i_factor, blue)
+p_m_i_factor <- p_dc_b_dx_value_panel(max_dc_b_dx_all_and_params, m_i_factor, red)
+p_t_j_phi_i_lag <- p_dc_b_dx_value_panel(max_dc_b_dx_all_and_params, t_j_phi_i_lag, green)
+p_gamma <- p_dc_b_dx_value_panel(max_dc_b_dx_all_and_params, gamma, orange)
+
+p_dc_b_dx_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma +
+  plot_annotation(
+    title = expression(
+      paste("Value of maxmimum ", C[b], " gradient")
+    )
+  ) &
+  theme_cowplot() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.background = element_rect("white")
+  )
+
+ggsave_with_defaults(
+  plot = p_dc_b_dx_value,
+  paste(plot_dir, "max_dc_b_dx_value.png", sep = "/")
 )
