@@ -178,11 +178,9 @@ p_phi_c_b_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_ga
     plot.background = element_rect("white")
   )
 
-ggsave(
+ggsave_with_defaults(
   plot = p_phi_c_b_location,
-  paste(plot_dir, "max_phi_c_b_location.png", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "max_phi_c_b_location.png", sep = "/")
 )
 
 # Value of max phi_c_b
@@ -208,13 +206,9 @@ p_phi_c_b_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma
     plot.background = element_rect("white")
   )
 
-p_phi_c_b_value
-
-ggsave(
+ggsave_with_defaults(
   plot = p_phi_c_b_value,
-  paste(plot_dir, "max_phi_c_b_value.png", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "max_phi_c_b_value.png", sep = "/")
 )
 
 # Location of max gradient of c_b
@@ -236,13 +230,9 @@ p_dc_b_dx_location <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_ga
     plot.background = element_rect("white")
   )
 
-p_dc_b_dx_location
-
-ggsave(
+ggsave_with_defaults(
   plot = p_dc_b_dx_location,
-  paste(plot_dir, "max_dc_b_dx_location.png", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "max_dc_b_dx_location.png", sep = "/")
 )
 
 # Value of max gradient of c_b
@@ -268,11 +258,7 @@ p_dc_b_dx_value <- p_j_phi_i_i_factor + p_m_i_factor + p_t_j_phi_i_lag + p_gamma
     plot.background = element_rect("white")
   )
 
-p_dc_b_dx_value
-
-ggsave(
+ggsave_with_defaults(
   plot = p_dc_b_dx_value,
-  paste(plot_dir, "max_dc_b_dx_value.png", sep = "/"),
-  width = 13,
-  height = 7
+  paste(plot_dir, "max_dc_b_dx_value.png", sep = "/")
 )
