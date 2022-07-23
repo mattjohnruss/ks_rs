@@ -220,6 +220,7 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
     colour = variable,
     group = variable,
   ), size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
   facet_wrap(
     vars(param),
     scales = "free",
