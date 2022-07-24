@@ -64,6 +64,37 @@ add_constants_and_gammas_to_param_table <- function(params) {
   params[, gamma_bm := gamma]
 }
 
+# Parameter and variable labels as `expression`s for nicer formatting in plots
+param_labels <- c(
+  "j_phi_i_i_factor" = expression(paste(J[phi[i]]^I, " factor")),
+  "m_i_factor" = expression(paste(M^I, " factor")),
+  "t_j_phi_i_lag" = expression(paste(J[phi[i]]^I, " delay")),
+  "gamma" = expression(gamma)
+)
+
+# Add any other variables as needed
+variable_labels <- c(
+  "C_b^{tot}" = expression(paste("Total ", C[b])),
+  "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
+  "-F_{phi_{C_b}}(x=0)" = expression(paste("Cell flux at l.v."))
+)
+
+all_labels <- c(param_labels, variable_labels)
+
+# Min/max for the parameters we're varying
+j_phi_i_i_factor_min <- 1.0
+j_phi_i_i_factor_max <- 1000.0
+m_i_factor_min <- 1.0
+m_i_factor_max <- 1000.0
+t_j_phi_i_lag_min <- 0.0
+t_j_phi_i_lag_max <- 25.0
+gamma_min <- 0.0
+gamma_max <- 10.0
+
+names <- c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma")
+mins <- c(j_phi_i_i_factor_min, m_i_factor_min, t_j_phi_i_lag_min, gamma_min)
+maxs <- c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
+
 # Write a config file for each set of parameter values to the directory
 # corresponding to the index of this run, e.g. `res/32/config.json`. Skips the
 # `gamma` column as this has already been duplicated into the various `gamma_*`
