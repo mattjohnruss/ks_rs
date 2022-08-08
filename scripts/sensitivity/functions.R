@@ -3,6 +3,7 @@ library(magrittr)
 library(jsonlite)
 library(stringr)
 
+# TODO: having these as globals is awful
 # Constant parameter values
 phi_bar_over_c_bar <- 1.40179e-6
 phi_bar_over_phi_max <- 0.1
@@ -31,6 +32,11 @@ j_phi_i_h <- 0.000455461
 phi_i_init <- 0.9
 phi_m_init <- 0.0
 
+# TODO: this function should really only set the parameters that haven't
+# already been set. Currently the behaviour of each line depends on whether
+# the corresponding column is already set: if it's not set, it is created with
+# the value of the global variable; if it is set, it is set to itself (i.e. no
+# change)! This kind-of does what we want but isn't good.
 add_constants_and_gammas_to_param_table <- function(params) {
   params[, phi_bar_over_c_bar := phi_bar_over_c_bar]
   params[, phi_bar_over_phi_max := phi_bar_over_phi_max]
