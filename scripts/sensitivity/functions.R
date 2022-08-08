@@ -69,12 +69,15 @@ param_labels <- c(
   "j_phi_i_i_factor" = expression(paste(J[phi[i]]^I, " factor")),
   "m_i_factor" = expression(paste(M^I, " factor")),
   "t_j_phi_i_lag" = expression(paste(J[phi[i]]^I, " delay")),
-  "gamma" = expression(gamma)
+  "gamma" = expression(gamma),
+  "pe" = expression(Pe)
 )
 
 # Add any other variables as needed
 variable_labels <- c(
+  "C_b" = expression(C[b]),
   "C_b^{tot}" = expression(paste("Total ", C[b])),
+  "phi_C_b" = expression(phi[C[b]]),
   "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
   "-F_{phi_{C_b}}(x=0)" = expression(paste("Cell flux at l.v."))
 )
