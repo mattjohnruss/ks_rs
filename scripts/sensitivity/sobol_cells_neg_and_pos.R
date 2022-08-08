@@ -260,7 +260,7 @@ sobol_neg_and_pos <- function() {
         colour = factor(pe),
         group = factor(pe),
         shape = factor(pe)
-      ), size = 1.5) +
+      ), size = 1.25) +
       geom_hline(yintercept = 0, linetype = "dashed") +
       labs(
         x = param_labels[param_str],
@@ -284,7 +284,10 @@ sobol_neg_and_pos <- function() {
       theme(
         strip.background = element_blank(),
         strip.placement = "outside",
-        legend.text.align = 0
+        legend.text.align = 0,
+        # TODO re-enable the legend but find a better place to fit it in - it's
+        # on the RHS at the moment and squeezes the plots a lot
+        legend.position = "none"
       )
   }
 
@@ -373,7 +376,7 @@ sobol_neg_and_pos <- function() {
 
     p_cells_out_panels[[i]] <- cells_vs_params_panel(
       cells_vs_params_long_all,
-      "cells_in",
+      "cells_out",
       param_strs[i]
     )
 
