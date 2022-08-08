@@ -5,3 +5,4 @@ todo
 Cargo.lock
 __pycache__
 scripts/wip
+plots*/
