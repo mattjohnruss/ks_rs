@@ -93,6 +93,13 @@ ui <- fluidPage(
       ),
       selected = c("-5", "-2", "2", "5"),
       inline = TRUE
+    ),
+    checkboxGroupInput(
+      "variables",
+      "Variables",
+      c("C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b"),
+      selected = c("C_b", "phi_C_b"),
+      inline = TRUE
     )
   ),
   plotOutput(outputId = "distPlot", height = "1200"),
@@ -107,7 +114,8 @@ server <- function(input, output) {
       measure.vars = c("C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b")
     )
     ggplot(data_long[
-      j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
+      variable %in% input$variables &
+        j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
         m_i_factor %in% as.numeric(input$m_i_factor) &
         t_j_phi_i_lag %in% as.numeric(input$t_j_phi_i_lag) &
         gamma %in% as.numeric(input$gamma) &
