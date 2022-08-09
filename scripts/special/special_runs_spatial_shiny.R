@@ -5,7 +5,7 @@ library(shiny)
 
 source("scripts/sensitivity/functions.R")
 
-theme_set(theme_cowplot())
+theme_set(theme_cowplot() + background_grid())
 
 res_dir_base <- "res_special"
 
@@ -129,7 +129,7 @@ server <- function(input, output) {
         linetype = factor(!!input$linetype_by)
       )
     ) +
-    geom_line(alpha = 0.75, size = 1.5) +
+    geom_line(size = 1.5) +
     facet_wrap(vars(variable), scales = "free")
   })
 }
