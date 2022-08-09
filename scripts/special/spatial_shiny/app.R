@@ -3,11 +3,11 @@ library(cowplot)
 library(plotly)
 library(shiny)
 
-source("scripts/sensitivity/functions.R")
+source("../../sensitivity/functions.R")
 
 theme_set(theme_cowplot() + background_grid())
 
-res_dir_base <- "res_special"
+res_dir_base <- "../../../res_special"
 
 params <- expand.grid(
   c(2, 1000),
