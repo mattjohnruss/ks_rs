@@ -102,12 +102,38 @@ ui <- fluidPage(
       inline = TRUE
     )
   ),
-  plotOutput(outputId = "distPlot", height = "1200"),
+  plotOutput(outputId = "homeostasisPlot", height = "600"),
+  plotOutput(outputId = "laterPlot", height = "600"),
   theme = bslib::bs_theme(version = 5)
 )
 
 server <- function(input, output) {
-  output$distPlot <- renderPlot({
+  output$homeostasisPlot <- renderPlot({
+    data <- read_spatial_data(params, 0, res_dir_base)
+    data_long <- melt(
+      data,
+      measure.vars = c("C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b")
+    )
+    ggplot(data_long[
+      variable %in% input$variables &
+        j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
+        m_i_factor %in% as.numeric(input$m_i_factor) &
+        t_j_phi_i_lag %in% as.numeric(input$t_j_phi_i_lag) &
+        gamma %in% as.numeric(input$gamma) &
+        pe %in% as.numeric(input$pe)
+      ],
+      aes(
+        x = x,
+        y = value,
+        group = rep,
+        colour = factor(!!input$colour_by),
+        linetype = factor(!!input$linetype_by)
+      )
+    ) +
+    geom_line(size = 1.5) +
+    facet_wrap(vars(variable), scales = "free")
+  })
+  output$laterPlot <- renderPlot({
     data <- read_spatial_data(params, input$time, res_dir_base)
     data_long <- melt(
       data,
