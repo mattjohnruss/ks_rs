@@ -6,6 +6,11 @@ source("scripts/sensitivity/functions.R")
 theme_set(theme_cowplot() + background_grid())
 
 res_dir_base <- "res_special"
+plot_dir <- paste(res_dir_base, "plots", sep = "/")
+
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
 
 params <- expand.grid(
   c(2, 1000),
@@ -58,7 +63,7 @@ spatial_plot_subset <- function(time,
     # scale_alpha_manual only works for a parameter with at most the number of
     # values specified here
       p <- p + aes(alpha = factor({{ alpha_by }})) +
-        scale_alpha_manual(values = c(1.0, 0.3)) +
+        scale_alpha_manual(values = c(1.0, 0.4)) +
         labs(alpha = param_labels[deparse(substitute(alpha_by))])
   }
 
@@ -74,24 +79,47 @@ spatial_plot_subset <- function(time,
     labs(
       x = expression(x),
       y = NULL,
-      title = paste("Time since inflammation: ", time),
+      title = paste("Time since inflammation: ", data[, time_inf] %>% unique),
       colour = param_labels[deparse(substitute(colour_by))]
     )
   p
 }
 
-params_subset <- list(
-  j_phi_i_i_factor = c(2, 1000),
-  m_i_factor = 1000,
-  t_j_phi_i_lag = 0,
-  gamma = c(0, 1),
-  pe = c(-5, -2, 2, 5)
+p_spatial_homeostasis <- spatial_plot_subset(
+  0,
+  list(
+    j_phi_i_i_factor = 1000,
+    m_i_factor = 1000,
+    t_j_phi_i_lag = 0,
+    gamma = c(0, 1),
+    pe = c(-5, -3, -1, 1, 3, 5)
+  ),
+  colour_by = pe,
+  linetype_by = gamma
+)
+p_spatial_homeostasis
+
+ggsave_with_defaults(
+  plot = p_spatial_homeostasis,
+  paste(plot_dir, "spatial_homeostasis.pdf", sep = "/")
 )
 
-spatial_plot_subset(
-  60,
-  params_subset,
+p_spatial_early <- spatial_plot_subset(
+  50,
+  list(
+    j_phi_i_i_factor = 1000,
+    m_i_factor = 1000,
+    t_j_phi_i_lag = c(0, 25),
+    gamma = c(0, 1),
+    pe = c(-5, -3, -1, 1, 3, 5)
+  ),
   colour_by = pe,
-  linetype_by = j_phi_i_i_factor,
-  alpha_by = gamma
+  linetype_by = gamma,
+  alpha_by = t_j_phi_i_lag
+)
+p_spatial_early
+
+ggsave_with_defaults(
+  plot = p_spatial_early,
+  paste(plot_dir, "spatial_early.pdf", sep = "/")
 )
