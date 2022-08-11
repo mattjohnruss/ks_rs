@@ -91,7 +91,7 @@ ui <- fluidPage(
         "4" = "4",
         "5" = "5"
       ),
-      selected = c("-5", "-2", "2", "5"),
+      selected = c("-5", "-3", "-1", "1", "3", "5"),
       inline = TRUE
     ),
     checkboxGroupInput(
@@ -116,9 +116,9 @@ server <- function(input, output) {
     )
     ggplot(data_long[
       variable %in% input$variables &
-        j_phi_i_i_factor %in% as.numeric(input$j_phi_i_i_factor) &
-        m_i_factor %in% as.numeric(input$m_i_factor) &
-        t_j_phi_i_lag %in% as.numeric(input$t_j_phi_i_lag) &
+        j_phi_i_i_factor == 2 &
+        m_i_factor == 2 &
+        t_j_phi_i_lag == 0 &
         gamma %in% as.numeric(input$gamma) &
         pe %in% as.numeric(input$pe)
       ],
@@ -131,7 +131,10 @@ server <- function(input, output) {
       )
     ) +
     geom_line(size = 1.5) +
-    facet_wrap(vars(variable), scales = "free")
+    facet_wrap(
+      vars(variable), scales = "free",
+      labeller = as_labeller(function(v) all_labels[v], label_parsed)
+    )
   })
   output$laterPlot <- renderPlot({
     data <- read_spatial_data(params, input$time, res_dir_base)
@@ -156,7 +159,10 @@ server <- function(input, output) {
       )
     ) +
     geom_line(size = 1.5) +
-    facet_wrap(vars(variable), scales = "free")
+    facet_wrap(
+      vars(variable), scales = "free",
+      labeller = as_labeller(function(v) all_labels[v], label_parsed)
+    )
   })
 }
 
