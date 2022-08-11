@@ -105,17 +105,17 @@ ggsave_with_defaults(
 )
 
 p_spatial_early <- spatial_plot_subset(
-  50,
+  10,
   list(
     j_phi_i_i_factor = 1000,
-    m_i_factor = 1000,
-    t_j_phi_i_lag = c(0, 25),
+    m_i_factor = c(2, 1000),
+    t_j_phi_i_lag = 0,
     gamma = c(0, 1),
     pe = c(-5, -3, -1, 1, 3, 5)
   ),
   colour_by = pe,
   linetype_by = gamma,
-  alpha_by = t_j_phi_i_lag
+  alpha_by = m_i_factor
 )
 p_spatial_early
 
