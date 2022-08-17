@@ -1,7 +1,5 @@
 library(ggplot2)
 library(cowplot)
-library(plotly)
-library(shiny)
 
 source("../../sensitivity/functions.R")
 
@@ -134,7 +132,8 @@ server <- function(input, output) {
     facet_wrap(
       vars(variable), scales = "free",
       labeller = as_labeller(function(v) all_labels[v], label_parsed)
-    )
+    ) +
+    labs(y = NULL)
   })
   output$laterPlot <- renderPlot({
     data <- read_spatial_data(params, input$time, res_dir_base)
@@ -162,7 +161,8 @@ server <- function(input, output) {
     facet_wrap(
       vars(variable), scales = "free",
       labeller = as_labeller(function(v) all_labels[v], label_parsed)
-    )
+    ) +
+    labs(y = NULL)
   })
 }
 

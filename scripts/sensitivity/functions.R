@@ -81,8 +81,13 @@ param_labels <- c(
 
 # Add any other variables as needed
 variable_labels <- c(
+  "C_u" = expression(C[u]),
   "C_b" = expression(C[b]),
   "C_b^{tot}" = expression(paste("Total ", C[b])),
+  "C_s" = expression(C[s]),
+  "phi_i" = expression(phi[i]),
+  "phi_m" = expression(phi[m]),
+  "phi_C_u" = expression(phi[C[u]]),
   "phi_C_b" = expression(phi[C[b]]),
   "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
   "-F_{phi_{C_b}}(x=0)" = expression(paste("Cell flux at l.v."))
