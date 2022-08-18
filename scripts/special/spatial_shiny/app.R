@@ -37,7 +37,7 @@ ui <- fluidPage(
       label = "Time since inflammation:",
       min = 0,
       max = 1500,
-      value = 0),
+      value = 500),
     varSelectInput(
       "colour_by",
       "Colour by",
@@ -47,25 +47,26 @@ ui <- fluidPage(
     varSelectInput(
       "linetype_by",
       "Linetype by",
-      params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)]
+      params[, .(j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma, pe)],
+      selected = "gamma"
     ),
     checkboxGroupInput(
       "j_phi_i_i_factor",
       "j_phi_i_i_factor",
       c("2" = "2", "1000" = "1000"),
-      selected = c("2", "1000")
+      selected = c("2")
     ),
     checkboxGroupInput(
       "m_i_factor",
       "m_i_factor",
       c("2" = "2", "1000" = "1000"),
-      selected = c("2", "1000")
+      selected = c("2")
     ),
     checkboxGroupInput(
       "t_j_phi_i_lag",
       "t_j_phi_i_lag",
       c("0" = "0", "25" = "25"),
-      selected = c("0", "25")
+      selected = c("0")
     ),
     checkboxGroupInput(
       "gamma",
