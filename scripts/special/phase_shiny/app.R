@@ -174,19 +174,19 @@ ui <- fluidPage(
       "j_phi_i_i_factor",
       "j_phi_i_i_factor",
       c("2" = "2", "1000" = "1000"),
-      selected = c("2", "1000")
+      selected = c("2")
     ),
     checkboxGroupInput(
       "m_i_factor",
       "m_i_factor",
       c("2" = "2", "1000" = "1000"),
-      selected = c("2", "1000")
+      selected = c("2")
     ),
     checkboxGroupInput(
       "t_j_phi_i_lag",
       "t_j_phi_i_lag",
       c("0" = "0", "25" = "25"),
-      selected = c("0", "25")
+      selected = c("0")
     ),
     checkboxGroupInput(
       "gamma",
