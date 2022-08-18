@@ -1,15 +1,16 @@
 library(ggplot2)
 library(cowplot)
+library(patchwork)
 
 source("scripts/sensitivity/functions.R")
 
 theme_set(theme_cowplot() + background_grid())
 
 res_dir_base <- "res_special"
-plot_dir <- paste(res_dir_base, "plots", sep = "/")
+plot_dir_base <- paste(res_dir_base, "plots", sep = "/")
 
-if (!dir.exists(plot_dir)) {
-  dir.create(plot_dir, recursive = TRUE)
+if (!dir.exists(plot_dir_base)) {
+  dir.create(plot_dir_base, recursive = TRUE)
 }
 
 params <- expand.grid(
@@ -114,8 +115,7 @@ spatial_plot_subset_2 <- function(time,
       theme(strip.background = element_blank(), strip.placement = "outside") +
       labs(
         x = expression(x),
-        y = variable_labels[deparse(substitute(variable))],
-        colour = param_labels[deparse(substitute(colour_by))]
+        y = variable_labels[deparse(substitute(variable))]
       )
     p
   }
@@ -123,12 +123,15 @@ spatial_plot_subset_2 <- function(time,
   plots <- list()
 
   plots[[1]] <- spatial_plot_panel(C_b) +
-    labs(title = paste(
+    labs(
+      title = paste(
         "Time since inflammation: ",
         round(data[, time_inf] %>% unique, 3)
-      )
+      ),
+      colour = param_labels[deparse(substitute(colour_by))]
     )
-  plots[[2]] <- spatial_plot_panel(phi_C_b)
+  plots[[2]] <- spatial_plot_panel(phi_C_b) +
+    labs(colour = param_labels[deparse(substitute(colour_by))])
 
   if (!missing(linetype_by)) {
     for (i in 1:length(plots)) {
@@ -150,31 +153,58 @@ spatial_plot_subset_2 <- function(time,
   plots
 }
 
-# j_phi_i_i_factor = 2, m_i_factor = 2
+# general
 
-params_subset <- list(
-  j_phi_i_i_factor = 2,
-  m_i_factor = 2,
-  t_j_phi_i_lag = 0,
-  gamma = c(0, 1),
-  pe = c(-5, -3, -1, 1, 3, 5)
-)
-
-p_spatial_2_2 <- lapply(seq(0, 500, 100), function(t_inf) {
+spatial_plot_general <- function(params_subset) {
+  p <- lapply(c(0, 50, 100, 150, 250, 500), function(t_inf) {
     spatial_plot_subset_2(
       t_inf,
       params_subset,
       colour_by = pe,
       linetype_by = gamma
     )
-})
+  })
 
-p_spatial_2_2 <- wrap_plots(
-  rlang::flatten(p_spatial_2_2),
-  ncol = 2,
-  guides = "collect"
-) +
-plot_annotation(tag_levels = "A")
+  p <- wrap_plots(
+    rlang::flatten(p),
+    ncol = 2,
+    guides = "collect"
+    ) +
+  plot_annotation(tag_levels = "A")
+
+  p
+}
+
+spatial_plot_general(
+  list(
+    j_phi_i_i_factor = 1000,
+    m_i_factor = 2,
+    t_j_phi_i_lag = 25,
+    gamma = c(0, 1),
+    pe = c(-5, -3, -1, 1, 3, 5)
+  )
+)
+
+params_subset <- list(
+  gamma = c(0, 1),
+  pe = c(-5, -3, -1, 1, 3, 5)
+)
+
+# t_j_phi_i_lag = 0
+# -----------------
+plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=0", sep = "/")
+
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
+
+params_subset$t_j_phi_i_lag <- 0
+
+# j_phi_i_i_factor = 2, m_i_factor = 2
+params_subset$j_phi_i_i_factor <- 2
+params_subset$m_i_factor <- 2
+
+p_spatial_2_2 <- spatial_plot_general(params_subset)
 
 ggsave_with_defaults(
   plot = p_spatial_2_2,
@@ -184,30 +214,10 @@ ggsave_with_defaults(
 )
 
 # j_phi_i_i_factor = 1000, m_i_factor = 2
+params_subset$j_phi_i_i_factor <- 1000
+params_subset$m_i_factor <- 2
 
-params_subset <- list(
-  j_phi_i_i_factor = 1000,
-  m_i_factor = 2,
-  t_j_phi_i_lag = 0,
-  gamma = c(0, 1),
-  pe = c(-5, -3, -1, 1, 3, 5)
-)
-
-p_spatial_1000_2 <- lapply(seq(0, 500, 100), function(t_inf) {
-    spatial_plot_subset_2(
-      t_inf,
-      params_subset,
-      colour_by = pe,
-      linetype_by = gamma
-    )
-})
-
-p_spatial_1000_2 <- wrap_plots(
-  rlang::flatten(p_spatial_1000_2),
-  ncol = 2,
-  guides = "collect"
-) +
-plot_annotation(tag_levels = "A")
+p_spatial_1000_2 <- spatial_plot_general(params_subset)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_2,
@@ -217,30 +227,10 @@ ggsave_with_defaults(
 )
 
 # j_phi_i_i_factor = 2, m_i_factor = 1000
+params_subset$j_phi_i_i_factor <- 2
+params_subset$m_i_factor <- 1000
 
-params_subset <- list(
-  j_phi_i_i_factor = 2,
-  m_i_factor = 1000,
-  t_j_phi_i_lag = 0,
-  gamma = c(0, 1),
-  pe = c(-5, -3, -1, 1, 3, 5)
-)
-
-p_spatial_2_1000 <- lapply(seq(0, 500, 100), function(t_inf) {
-    spatial_plot_subset_2(
-      t_inf,
-      params_subset,
-      colour_by = pe,
-      linetype_by = gamma
-    )
-})
-
-p_spatial_2_1000 <- wrap_plots(
-  rlang::flatten(p_spatial_2_1000),
-  ncol = 2,
-  guides = "collect"
-) +
-plot_annotation(tag_levels = "A")
+p_spatial_2_1000 <- spatial_plot_general(params_subset)
 
 ggsave_with_defaults(
   plot = p_spatial_2_1000,
@@ -250,30 +240,72 @@ ggsave_with_defaults(
 )
 
 # j_phi_i_i_factor = 1000, m_i_factor = 1000
+params_subset$j_phi_i_i_factor <- 1000
+params_subset$m_i_factor <- 1000
 
-params_subset <- list(
-  j_phi_i_i_factor = 1000,
-  m_i_factor = 1000,
-  t_j_phi_i_lag = 0,
-  gamma = c(0, 1),
-  pe = c(-5, -3, -1, 1, 3, 5)
+p_spatial_1000_1000 <- spatial_plot_general(params_subset)
+
+ggsave_with_defaults(
+  plot = p_spatial_1000_1000,
+  paste(plot_dir, "spatial_1000_1000.pdf", sep = "/"),
+  width = 8.5,
+  height = 14
 )
 
-p_spatial_1000_1000 <- lapply(seq(0, 500, 100), function(t_inf) {
-    spatial_plot_subset_2(
-      t_inf,
-      params_subset,
-      colour_by = pe,
-      linetype_by = gamma
-    )
-})
+# t_j_phi_i_lag = 25
+# -----------------
+plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=25", sep = "/")
 
-p_spatial_1000_1000 <- wrap_plots(
-  rlang::flatten(p_spatial_1000_1000),
-  ncol = 2,
-  guides = "collect"
-) +
-plot_annotation(tag_levels = "A")
+if (!dir.exists(plot_dir)) {
+  dir.create(plot_dir, recursive = TRUE)
+}
+
+params_subset$t_j_phi_i_lag <- 25
+
+# j_phi_i_i_factor = 2, m_i_factor = 2
+params_subset$j_phi_i_i_factor <- 2
+params_subset$m_i_factor <- 2
+
+p_spatial_2_2 <- spatial_plot_general(params_subset)
+
+ggsave_with_defaults(
+  plot = p_spatial_2_2,
+  paste(plot_dir, "spatial_2_2.pdf", sep = "/"),
+  width = 8.5,
+  height = 14
+)
+
+# j_phi_i_i_factor = 1000, m_i_factor = 2
+params_subset$j_phi_i_i_factor <- 1000
+params_subset$m_i_factor <- 2
+
+p_spatial_1000_2 <- spatial_plot_general(params_subset)
+
+ggsave_with_defaults(
+  plot = p_spatial_1000_2,
+  paste(plot_dir, "spatial_1000_2.pdf", sep = "/"),
+  width = 8.5,
+  height = 14
+)
+
+# j_phi_i_i_factor = 2, m_i_factor = 1000
+params_subset$j_phi_i_i_factor <- 2
+params_subset$m_i_factor <- 1000
+
+p_spatial_2_1000 <- spatial_plot_general(params_subset)
+
+ggsave_with_defaults(
+  plot = p_spatial_2_1000,
+  paste(plot_dir, "spatial_2_1000.pdf", sep = "/"),
+  width = 8.5,
+  height = 14
+)
+
+# j_phi_i_i_factor = 1000, m_i_factor = 1000
+params_subset$j_phi_i_i_factor <- 1000
+params_subset$m_i_factor <- 1000
+
+p_spatial_1000_1000 <- spatial_plot_general(params_subset)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_1000,
