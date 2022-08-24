@@ -40,6 +40,10 @@ spatial_plot_subset <- function(times,
   )
 
   data <- rbindlist(data)
+  # Round the time to a few decimal places as a hack to ensure that all times
+  # we consider "equal" when plotting (e.g. 30.000000 and 30.000020) are
+  # treated as such by facet_grid etc.
+  data[, time_inf := round(time_inf, 3)]
   data_long <- melt(data, measure.vars = c("C_b", "phi_C_b"))
 
   p <- ggplot(
