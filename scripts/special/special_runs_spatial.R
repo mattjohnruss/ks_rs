@@ -108,10 +108,6 @@ spatial_plot_subset <- function(data_subset_long,
   p
 }
 
-plot_times <- c(0, 50, 100, 150, 250, 500)
-
-data_subset_long <- read_spatial_data_at_times(plot_times)
-
 params_subset <- list(
   gamma = c(0, 1),
   pe = c(-5, -3, -1, 1, 3, 5)
@@ -119,6 +115,9 @@ params_subset <- list(
 
 # t_j_phi_i_lag = 0
 # -----------------
+plot_times <- c(0, 50, 100, 150, 250, 500)
+data_subset_long <- read_spatial_data_at_times(plot_times)
+
 plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=0", sep = "/")
 
 if (!dir.exists(plot_dir)) {
@@ -200,7 +199,10 @@ ggsave_with_defaults(
 )
 
 # t_j_phi_i_lag = 25
-# -----------------
+# ------------------
+plot_times <- c(0, 250, 300, 350, 400, 500)
+data_subset_long <- read_spatial_data_at_times(plot_times)
+
 plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=25", sep = "/")
 
 if (!dir.exists(plot_dir)) {
