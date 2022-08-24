@@ -61,7 +61,7 @@ spatial_plot_subset <- function(times,
       colour = factor({{ colour_by }})
     )
   ) +
-  facet_nested(
+  facet_grid2(
     rows = vars(time_inf),
     cols = vars(variable),
     scales = "free",
@@ -69,7 +69,7 @@ spatial_plot_subset <- function(times,
     labeller = labeller(
       .cols = as_labeller(function(v) all_labels[v], label_parsed),
       .rows = as_labeller(
-        function(t) paste0("t[inf] == ", round(as.numeric(t), 3)),
+        function(t) paste0("t[inf] == ", as.numeric(t)),
         label_parsed
       )
     ),
