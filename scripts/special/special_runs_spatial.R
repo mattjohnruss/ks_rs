@@ -1,6 +1,7 @@
 library(ggplot2)
 library(cowplot)
 library(patchwork)
+library(ggh4x)
 
 source("scripts/sensitivity/functions.R")
 
@@ -153,8 +154,77 @@ spatial_plot_subset_2 <- function(time,
   plots
 }
 
-# general
+spatial_plot_subset_3 <- function(times,
+                                  params_subset,
+                                  colour_by,
+                                  linetype_by,
+                                  alpha_by) {
+  data <- lapply(
+    times, function(t_inf) read_spatial_data(params, t_inf, res_dir_base)
+  )
 
+  data <- rbindlist(data)
+  data_long <- melt(data, measure.vars = c("C_b", "phi_C_b"))
+
+  p <- ggplot(
+    data_long[
+      j_phi_i_i_factor %in% as.numeric(params_subset$j_phi_i_i_factor) &
+        m_i_factor %in% as.numeric(params_subset$m_i_factor) &
+        t_j_phi_i_lag %in% as.numeric(params_subset$t_j_phi_i_lag) &
+        gamma %in% as.numeric(params_subset$gamma) &
+        pe %in% as.numeric(params_subset$pe)
+    ],
+    aes(
+      x = x,
+      y = value,
+      group = rep,
+      colour = factor({{ colour_by }})
+    )
+  ) +
+  facet_nested(
+    rows = vars(time_inf),
+    cols = vars(variable),
+    scales = "free",
+    independent = "y",
+    labeller = labeller(
+      .cols = as_labeller(function(v) all_labels[v], label_parsed),
+      .rows = as_labeller(
+        function(t) paste0("t[inf] == ", round(as.numeric(t), 3)),
+        label_parsed
+      )
+    ),
+    switch = "y"
+  )
+
+  p <- p +
+    geom_line(size = 1) +
+    theme(
+      #strip.background = element_blank(),
+      strip.placement = "outside"
+    ) +
+    labs(
+      x = expression(x),
+      y = variable_labels[deparse(substitute(variable))],
+      colour = param_labels[deparse(substitute(colour_by))]
+    )
+
+  if (!missing(linetype_by)) {
+    p <- p + aes(linetype = factor({{ linetype_by }})) +
+      labs(linetype = param_labels[deparse(substitute(linetype_by))])
+  }
+
+  if (!missing(alpha_by)) {
+    # scale_alpha_manual only works for a parameter with at most the number of
+    # values specified here
+    p <- p + aes(alpha = factor({{ alpha_by }})) +
+      scale_alpha_manual(values = c(1.0, 0.4)) +
+      labs(alpha = param_labels[deparse(substitute(alpha_by))])
+  }
+
+  p
+}
+
+# general
 spatial_plot_general <- function(params_subset) {
   p <- lapply(c(0, 50, 100, 150, 250, 500), function(t_inf) {
     spatial_plot_subset_2(
