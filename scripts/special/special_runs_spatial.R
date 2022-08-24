@@ -199,8 +199,10 @@ spatial_plot_subset_3 <- function(times,
   p <- p +
     geom_line(size = 1) +
     theme(
-      #strip.background = element_blank(),
-      strip.placement = "outside"
+      #strip.background.y = element_blank(),
+      strip.placement = "outside",
+      strip.text = element_text(size = rel(1.25)),
+      #strip.text.y.left = element_text(angle = 0)
     ) +
     labs(
       x = expression(x),
@@ -245,15 +247,7 @@ spatial_plot_general <- function(params_subset) {
   p
 }
 
-spatial_plot_general(
-  list(
-    j_phi_i_i_factor = 1000,
-    m_i_factor = 2,
-    t_j_phi_i_lag = 25,
-    gamma = c(0, 1),
-    pe = c(-5, -3, -1, 1, 3, 5)
-  )
-)
+plot_times <- c(0, 5, 10, 15, 25, 50)
 
 params_subset <- list(
   gamma = c(0, 1),
@@ -274,7 +268,12 @@ params_subset$t_j_phi_i_lag <- 0
 params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 2
 
-p_spatial_2_2 <- spatial_plot_general(params_subset)
+p_spatial_2_2 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_2_2,
@@ -287,7 +286,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 2
 
-p_spatial_1000_2 <- spatial_plot_general(params_subset)
+p_spatial_1000_2 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_2,
@@ -300,7 +304,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 1000
 
-p_spatial_2_1000 <- spatial_plot_general(params_subset)
+p_spatial_2_1000 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_2_1000,
@@ -313,7 +322,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 1000
 
-p_spatial_1000_1000 <- spatial_plot_general(params_subset)
+p_spatial_1000_1000 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_1000,
@@ -336,7 +350,12 @@ params_subset$t_j_phi_i_lag <- 25
 params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 2
 
-p_spatial_2_2 <- spatial_plot_general(params_subset)
+p_spatial_2_2 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_2_2,
@@ -349,7 +368,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 2
 
-p_spatial_1000_2 <- spatial_plot_general(params_subset)
+p_spatial_1000_2 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_2,
@@ -362,7 +386,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 1000
 
-p_spatial_2_1000 <- spatial_plot_general(params_subset)
+p_spatial_2_1000 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_2_1000,
@@ -375,7 +404,12 @@ ggsave_with_defaults(
 params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 1000
 
-p_spatial_1000_1000 <- spatial_plot_general(params_subset)
+p_spatial_1000_1000 <- spatial_plot_subset_3(
+  plot_times,
+  params_subset,
+  colour_by = pe,
+  linetype_by = gamma
+)
 
 ggsave_with_defaults(
   plot = p_spatial_1000_1000,
