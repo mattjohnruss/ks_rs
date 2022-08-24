@@ -102,7 +102,7 @@ spatial_plot_subset <- function(times,
   p
 }
 
-plot_times <- c(0, 5, 10, 15, 25, 50)
+plot_times <- c(0, 50, 100, 150, 250, 500)
 
 params_subset <- list(
   gamma = c(0, 1),
