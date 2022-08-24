@@ -30,11 +30,7 @@ params <- expand.grid(
 # pe on the RHS references the global variable)
 add_constants_and_gammas_to_param_table(params)
 
-spatial_plot_subset <- function(times,
-                                params_subset,
-                                colour_by,
-                                linetype_by,
-                                alpha_by) {
+read_spatial_data_at_times <- function(times) {
   data <- lapply(
     times, function(t_inf) read_spatial_data(params, t_inf, res_dir_base)
   )
@@ -44,10 +40,16 @@ spatial_plot_subset <- function(times,
   # we consider "equal" when plotting (e.g. 30.000000 and 30.000020) are
   # treated as such by facet_grid etc.
   data[, time_inf := round(time_inf, 3)]
-  data_long <- melt(data, measure.vars = c("C_b", "phi_C_b"))
+  melt(data, measure.vars = c("C_b", "phi_C_b"))
+}
 
+spatial_plot_subset <- function(data_subset_long,
+                                params_subset,
+                                colour_by,
+                                linetype_by,
+                                alpha_by) {
   p <- ggplot(
-    data_long[
+    data_subset_long[
       j_phi_i_i_factor %in% as.numeric(params_subset$j_phi_i_i_factor) &
         m_i_factor %in% as.numeric(params_subset$m_i_factor) &
         t_j_phi_i_lag %in% as.numeric(params_subset$t_j_phi_i_lag) &
@@ -108,6 +110,8 @@ spatial_plot_subset <- function(times,
 
 plot_times <- c(0, 50, 100, 150, 250, 500)
 
+data_subset_long <- read_spatial_data_at_times(plot_times)
+
 params_subset <- list(
   gamma = c(0, 1),
   pe = c(-5, -3, -1, 1, 3, 5)
@@ -128,7 +132,7 @@ params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 2
 
 p_spatial_2_2 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -146,7 +150,7 @@ params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 2
 
 p_spatial_1000_2 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -164,7 +168,7 @@ params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 1000
 
 p_spatial_2_1000 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -182,7 +186,7 @@ params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 1000
 
 p_spatial_1000_1000 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -210,7 +214,7 @@ params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 2
 
 p_spatial_2_2 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -228,7 +232,7 @@ params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 2
 
 p_spatial_1000_2 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -246,7 +250,7 @@ params_subset$j_phi_i_i_factor <- 2
 params_subset$m_i_factor <- 1000
 
 p_spatial_2_1000 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
@@ -264,7 +268,7 @@ params_subset$j_phi_i_i_factor <- 1000
 params_subset$m_i_factor <- 1000
 
 p_spatial_1000_1000 <- spatial_plot_subset(
-  plot_times,
+  data_subset_long,
   params_subset,
   colour_by = pe,
   linetype_by = gamma
