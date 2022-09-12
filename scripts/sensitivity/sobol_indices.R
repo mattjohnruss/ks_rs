@@ -4,6 +4,8 @@ library(cowplot)
 library(patchwork)
 library(GGally)
 library(ggnewscale)
+library(ggh4x)
+library(ggbreak)
 
 source("scripts/sensitivity/functions.R")
 
@@ -675,3 +677,131 @@ ggsave_with_defaults(
   plot = p_dc_b_dx_value,
   paste(plot_dir, "max_dc_b_dx_value.png", sep = "/")
 )
+
+################
+
+# Get the rows corresponding to the (global) maximum cell flux across lymphatic
+# vessel
+trace_max_flux <- trace_data[, .SD[which.max(`-F_{phi_{C_b}}(x=0)`)], by = rep]
+
+trace_max_flux_long <- melt(
+  trace_max_flux,
+  measure.vars = c(
+    "j_phi_i_i_factor",
+    "m_i_factor",
+    "t_j_phi_i_lag",
+    "gamma"),
+  variable.name = "param",
+  value.name = "param_value"
+)
+
+# Get the first local maximum assuming it's before t_inf = 50
+trace_max_flux_first <-
+  trace_data[`t_{inf}` < 49, .SD[which.max(`-F_{phi_{C_b}}(x=0)`)], by = rep]
+
+trace_max_flux_first_long <- melt(
+  trace_max_flux_first,
+  measure.vars = c(
+    "j_phi_i_i_factor",
+    "m_i_factor",
+    "t_j_phi_i_lag",
+    "gamma"),
+  variable.name = "param",
+  value.name = "param_value"
+)
+
+# Get the second local maximum assuming it's after t_inf = 50
+trace_max_flux_second <-
+  trace_data[`t_{inf}` >= 49, .SD[which.max(`-F_{phi_{C_b}}(x=0)`)], by = rep]
+
+trace_max_flux_second_long <- melt(
+  trace_max_flux_second,
+  measure.vars = c(
+    "j_phi_i_i_factor",
+    "m_i_factor",
+    "t_j_phi_i_lag",
+    "gamma"),
+  variable.name = "param",
+  value.name = "param_value"
+)
+
+plot_max_flux <- function(max_data) {
+  p <- ggplot(
+    max_data,
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`)
+  )
+
+  panel <- function(param_str, new_scale_after = TRUE) {
+    p <<- p +
+      geom_point(
+        aes(colour = param_value),
+        data = max_data[param == param_str]
+      ) +
+      colour_scales[param_str] +
+      labs(colour = param_labels[param_str])
+
+    if (new_scale_after) {
+      p <<- p + new_scale_colour()
+    }
+  }
+  panel("j_phi_i_i_factor")
+  panel("m_i_factor")
+  panel("t_j_phi_i_lag")
+  panel("gamma", new_scale_after = FALSE)
+
+  p +
+    #scale_x_continuous(limits = c(0, 60), breaks = seq(0, 60, 5)) +
+    facet_wrap(
+      vars(param),
+      labeller = as_labeller(function(v) all_labels[v], label_parsed)
+    ) +
+    #scale_x_break(c(10, 48)) +
+    theme_cowplot() +
+    background_grid() +
+    #theme(
+      #strip.background = element_blank(),
+      #strip.text = element_blank()
+    #) +
+    labs(x = "Time since inflammation", y = "Max. cell flux at l.v.")
+}
+
+#plot_max_flux(trace_max_flux_second_long)
+p_max_flux <- plot_max_flux(trace_max_flux_long)
+
+ggsave_with_defaults(
+  plot = p_max_flux,
+  paste(plot_dir, "max_flux.pdf", sep = "/")
+)
+
+#################
+# other way to do plots
+
+max_flux_panel <- function(param) {
+  ggplot(
+    trace_max_flux,
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, colour = {{ param }})
+  ) +
+    geom_point(size = 2) +
+    scale_x_continuous(limits = c(0, 60), breaks = seq(0, 60, 5)) +
+    scale_x_break(c(10, 48)) +
+    theme_cowplot() +
+    background_grid()
+}
+
+p_1 <- max_flux_panel(j_phi_i_i_factor) + blue
+p_2 <- max_flux_panel(m_i_factor) + red
+p_3 <- max_flux_panel(t_j_phi_i_lag) + green
+p_4 <- max_flux_panel(gamma) + orange
+
+#((p_1 | p_2) / (p_3 | p_4)) + plot_layout(guides = "collect")
+
+aplot::plot_list(p_1, p_2, p_3, p_4, guides = "collect")
+
+trace_max_flux_full_traj <-
+  trace_data[rep %in% trace_max_flux[`t_{inf}` < 20, rep]]
+
+ggplot(
+  trace_max_flux_full_traj,
+  aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep)
+) +
+  geom_line()
