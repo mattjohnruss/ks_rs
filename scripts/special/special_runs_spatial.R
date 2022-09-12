@@ -43,242 +43,93 @@ read_spatial_data_at_times <- function(times) {
   melt(data, measure.vars = c("C_b", "phi_C_b"))
 }
 
-spatial_plot_subset <- function(data_subset_long,
-                                params_subset,
-                                colour_by,
-                                linetype_by,
-                                alpha_by) {
-  p <- ggplot(
-    data_subset_long[
-      j_phi_i_i_factor %in% as.numeric(params_subset$j_phi_i_i_factor) &
-        m_i_factor %in% as.numeric(params_subset$m_i_factor) &
-        t_j_phi_i_lag %in% as.numeric(params_subset$t_j_phi_i_lag) &
-        gamma %in% as.numeric(params_subset$gamma) &
-        pe %in% as.numeric(params_subset$pe)
-    ],
+# Combined spatial plots
+# ----------------------
+
+spatial_plot_subset_combined <- function(plot_times, pes, lag) {
+  data_subset_long <- read_spatial_data_at_times(plot_times)
+
+  # Manually set the factor labels so they appear correctly in the facet strips
+  # without having to use a complex labeller
+  data_subset_long[, j_phi_i_i_factor := factor(
+    j_phi_i_i_factor,
+    labels = c(
+      expression(paste(J[phi[i]]^I, " factor = 2")),
+      expression(paste(J[phi[i]]^I, " factor = 1000"))
+    )
+  )]
+
+  data_subset_long[, m_i_factor := factor(
+    m_i_factor,
+    labels = c(
+      expression(paste(M^I, " factor = 2")),
+      expression(paste(M^I, " factor = 1000"))
+    )
+  )]
+
+  data_subset_long[, time_inf := factor(
+    time_inf,
+    labels = sapply(plot_times, function(t) paste0("t[inf] == ", t / 10))
+  )]
+
+  data_subset_long[, variable := factor(
+    variable,
+    labels = c(
+      variable_labels["C_b"],
+      variable_labels["phi_C_b"]
+    )
+  )]
+
+  ggplot(
+    data_subset_long[t_j_phi_i_lag == lag & pe %in% pes],
     aes(
       x = x,
       y = value,
       group = rep,
-      colour = factor({{ colour_by }})
+      colour = factor(pe),
+      linetype = factor(gamma)
     )
   ) +
-  facet_grid2(
-    rows = vars(time_inf),
-    cols = vars(variable),
-    scales = "free",
-    independent = "y",
-    labeller = labeller(
-      .cols = as_labeller(function(v) all_labels[v], label_parsed),
-      .rows = as_labeller(
-        function(t) paste0("t[inf] == ", as.numeric(t)),
-        label_parsed
-      )
-    ),
-    switch = "y"
-  )
-
-  p <- p +
+    facet_nested(
+      rows = vars(j_phi_i_i_factor, time_inf),
+      cols = vars(m_i_factor, variable),
+      scales = "free_y",
+      independent = "y",
+      labeller = label_parsed,
+      switch = "y"
+    ) +
     geom_line(size = 1) +
     theme(
-      #strip.background.y = element_blank(),
       strip.placement = "outside",
       strip.text = element_text(size = rel(1.25)),
-      #strip.text.y.left = element_text(angle = 0)
+      strip.background = element_rect(fill = "#eaeaea")
     ) +
     labs(
       x = expression(x),
-      y = variable_labels[deparse(substitute(variable))],
-      colour = param_labels[deparse(substitute(colour_by))]
+      y = NULL,
+      colour = param_labels["pe"],
+      linetype = param_labels["gamma"]
     )
-
-  if (!missing(linetype_by)) {
-    p <- p + aes(linetype = factor({{ linetype_by }})) +
-      labs(linetype = param_labels[deparse(substitute(linetype_by))])
-  }
-
-  if (!missing(alpha_by)) {
-    # scale_alpha_manual only works for a parameter with at most the number of
-    # values specified here
-    p <- p + aes(alpha = factor({{ alpha_by }})) +
-      scale_alpha_manual(values = c(1.0, 0.4)) +
-      labs(alpha = param_labels[deparse(substitute(alpha_by))])
-  }
-
-  p
 }
 
-params_subset <- list(
-  gamma = c(0, 1),
-  pe = c(-5, -3, -1, 1, 3, 5)
-)
+pes <- c(-5, -3, -1, 1, 3, 5)
 
-# t_j_phi_i_lag = 0
-# -----------------
 plot_times <- c(0, 50, 100, 150, 250, 500)
-data_subset_long <- read_spatial_data_at_times(plot_times)
-
-plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=0", sep = "/")
-
-if (!dir.exists(plot_dir)) {
-  dir.create(plot_dir, recursive = TRUE)
-}
-
-params_subset$t_j_phi_i_lag <- 0
-
-# j_phi_i_i_factor = 2, m_i_factor = 2
-params_subset$j_phi_i_i_factor <- 2
-params_subset$m_i_factor <- 2
-
-p_spatial_2_2 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
+p_spatial_lag_0 <- spatial_plot_subset_combined(plot_times, pes, 0)
 
 ggsave_with_defaults(
-  plot = p_spatial_2_2,
-  paste(plot_dir, "spatial_2_2.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
+  plot = p_spatial_lag_0,
+  paste(plot_dir_base, "spatial_lag_0.pdf", sep = "/"),
+  width = 14,
+  height = 20
 )
 
-# j_phi_i_i_factor = 1000, m_i_factor = 2
-params_subset$j_phi_i_i_factor <- 1000
-params_subset$m_i_factor <- 2
-
-p_spatial_1000_2 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_1000_2,
-  paste(plot_dir, "spatial_1000_2.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# j_phi_i_i_factor = 2, m_i_factor = 1000
-params_subset$j_phi_i_i_factor <- 2
-params_subset$m_i_factor <- 1000
-
-p_spatial_2_1000 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_2_1000,
-  paste(plot_dir, "spatial_2_1000.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# j_phi_i_i_factor = 1000, m_i_factor = 1000
-params_subset$j_phi_i_i_factor <- 1000
-params_subset$m_i_factor <- 1000
-
-p_spatial_1000_1000 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_1000_1000,
-  paste(plot_dir, "spatial_1000_1000.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# t_j_phi_i_lag = 25
-# ------------------
 plot_times <- c(0, 250, 300, 350, 400, 500)
-data_subset_long <- read_spatial_data_at_times(plot_times)
-
-plot_dir <- paste(plot_dir_base, "t_j_phi_i_lag=25", sep = "/")
-
-if (!dir.exists(plot_dir)) {
-  dir.create(plot_dir, recursive = TRUE)
-}
-
-params_subset$t_j_phi_i_lag <- 25
-
-# j_phi_i_i_factor = 2, m_i_factor = 2
-params_subset$j_phi_i_i_factor <- 2
-params_subset$m_i_factor <- 2
-
-p_spatial_2_2 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
+p_spatial_lag_25 <- spatial_plot_subset_combined(plot_times, pes, 25)
 
 ggsave_with_defaults(
-  plot = p_spatial_2_2,
-  paste(plot_dir, "spatial_2_2.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# j_phi_i_i_factor = 1000, m_i_factor = 2
-params_subset$j_phi_i_i_factor <- 1000
-params_subset$m_i_factor <- 2
-
-p_spatial_1000_2 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_1000_2,
-  paste(plot_dir, "spatial_1000_2.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# j_phi_i_i_factor = 2, m_i_factor = 1000
-params_subset$j_phi_i_i_factor <- 2
-params_subset$m_i_factor <- 1000
-
-p_spatial_2_1000 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_2_1000,
-  paste(plot_dir, "spatial_2_1000.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
-)
-
-# j_phi_i_i_factor = 1000, m_i_factor = 1000
-params_subset$j_phi_i_i_factor <- 1000
-params_subset$m_i_factor <- 1000
-
-p_spatial_1000_1000 <- spatial_plot_subset(
-  data_subset_long,
-  params_subset,
-  colour_by = pe,
-  linetype_by = gamma
-)
-
-ggsave_with_defaults(
-  plot = p_spatial_1000_1000,
-  paste(plot_dir, "spatial_1000_1000.pdf", sep = "/"),
-  width = 8.5,
-  height = 14
+  plot = p_spatial_lag_25,
+  paste(plot_dir_base, "spatial_lag_25.pdf", sep = "/"),
+  width = 14,
+  height = 20
 )
