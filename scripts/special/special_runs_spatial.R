@@ -99,6 +99,7 @@ spatial_plot_subset_combined <- function(plot_times, pes, lag) {
       switch = "y"
     ) +
     geom_line(size = 1) +
+    scale_linetype_discrete(limits = rev) +
     theme(
       strip.placement = "outside",
       strip.text = element_text(size = rel(1.25)),
