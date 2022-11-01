@@ -36,7 +36,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
         let x = problem.x(cell);
 
         let p = &problem.functions.p;
-        // Ignore phi_i_init and set phi_i to it's exact solution
+        // Ignore phi_i_init and set phi_i to its exact solution
         let phi_i = 0.5 * x * x * (p.j_phi_i / p.d_phi_i);
 
         *problem.var_mut(C_U, cell) = 1.0 - x;
