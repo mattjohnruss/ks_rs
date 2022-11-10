@@ -8,7 +8,7 @@ library(stringr)
 phi_bar_over_c_bar <- 1.40179e-6
 phi_bar_over_phi_max <- 0.1
 c_bar_over_e <- 0.1
-pe <- 5.0
+pe <- -5.0
 alpha_plus <- 23.25
 alpha_minus <- 0.3
 beta_plus <- 0.0000385493

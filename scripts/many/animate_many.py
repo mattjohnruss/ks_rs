@@ -5,8 +5,12 @@ import matplotlib as mpl
 import json
 from count_outputs_since_inflammation import min_n_outputs
 
-n_rep = 600
-reps = range(n_rep)
+# n_rep = 600
+# reps = range(n_rep)
+
+reps = 138, 347, 68, 419
+# reps are 0-indexed on disk but 1-indexed in R so decrement them
+reps = [rep - 1 for rep in reps]
 
 n_var = 7
 

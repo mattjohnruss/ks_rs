@@ -49,6 +49,9 @@ add_constants_and_gammas_to_param_table(x$X)
 trace_data_full <- read_trace_data(x$X, res_dir_base)
 trace_data <- trace_data_full[`t_{inf}` >= 0]
 
+# add dimensional time so we can plot against it
+trace_data[, t_inf_h := 0.6944444444 * `t_{inf}`]
+
 trace_data_long <- melt(
   trace_data,
   measure.vars = c(
@@ -805,3 +808,613 @@ ggplot(
   aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, group = rep)
 ) +
   geom_line()
+
+#################################
+
+# Find all local maxima and minima of fluxes
+
+# Helper functions
+find_local_maxima_indices <- function(values) {
+  max_ind <- NULL
+
+  for (i in 2:(length(values) - 1)) {
+    if (values[i] > values[i - 1] && values[i] > values[i + 1]) {
+      max_ind <- c(max_ind, i)
+    }
+  }
+  max_ind
+}
+
+find_local_minima_indices <- function(values) {
+  min_ind <- NULL
+
+  for (i in 2:(length(values) - 1)) {
+    if (values[i] < values[i - 1] && values[i] < values[i + 1]) {
+      min_ind <- c(min_ind, i)
+    }
+  }
+  min_ind
+}
+
+flux_trace_plot_subset <- function(subset_rep_ids) {
+  ggplot(
+    trace_data[rep %in% subset_rep_ids],
+    aes(
+      x = t_inf_h,
+      y = `-F_{phi_{C_b}}(x=0)`,
+      group = rep
+    )
+  ) +
+  geom_line() +
+  theme_cowplot() +
+  background_grid() +
+  labs(
+    x = "Time since inflammation (h)",
+    y = "Cell flux at l.v."
+  )
+}
+
+parameter_pairs_plot <- function(data) {
+  ggpairs(
+    data,
+    columns = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+    upper = "blank",
+    diag = list(continuous = "barDiag"),
+    progress = FALSE,
+    labeller = as_labeller(function(v) param_labels[v], label_parsed)
+  ) +
+  theme_cowplot() +
+  background_grid()
+}
+
+# Find the local maxima of the flux for each rep
+flux_local_maxima <- trace_data[,
+  .SD[find_local_maxima_indices(`-F_{phi_{C_b}}(x=0)`)],
+  by = rep
+] %>%
+  .[, extrema_id := 1:.N, by = rep] %>%
+  .[, extrema_type := factor("maximum")]
+
+# Find the local minima of the flux for each rep
+flux_local_minima <- trace_data[,
+  .SD[find_local_minima_indices(`-F_{phi_{C_b}}(x=0)`)],
+  by = rep
+] %>%
+  .[, extrema_id := 1:.N, by = rep] %>%
+  .[, extrema_type := factor("minimum")]
+
+flux_local_extrema <- rbind(flux_local_maxima, flux_local_minima)
+
+# Plot all extrema at once
+ggplot(
+  flux_local_extrema[extrema_id == 1],
+  aes(
+    x = t_inf_h,
+    y = `-F_{phi_{C_b}}(x=0)`,
+    colour = extrema_type,
+    #shape = extrema_type,
+    group = rep
+  )
+) +
+  geom_point(size = 1) +
+  geom_line(alpha = 0.2) +
+  scale_x_continuous(limits = c(0, 39)) +
+  scale_shape_manual(values = c(19, 6)) +
+  theme_cowplot() +
+  background_grid() +
+  labs(
+    x = "Time since inflammation (h)",
+    y = "Cell flux at l.v.",
+    colour = "Count",
+    shape = "Type"
+  ) #+
+  #geom_point(data = flux_local_extrema[extrema_type == "minimum"])
+
+# Plot all minima
+ggplot(
+  flux_local_minima,
+  aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, colour = factor(extrema_id))
+) +
+  geom_point() +
+  scale_x_continuous(limits = c(0, 55)) +
+  theme_cowplot() +
+  background_grid()
+
+# Plot all maxima
+ggplot(
+  flux_local_maxima,
+  aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`, colour = factor(extrema_id))
+) +
+  geom_point() +
+  geom_vline(xintercept = 8 - 2) +
+  geom_vline(xintercept = 8 + 2) +
+  scale_x_continuous(limits = c(0, 55)) +
+  theme_cowplot() +
+  background_grid()
+
+# Find the reps that have only one local maximum
+flux_single_max <- flux_local_maxima %>%
+  .[, .SD[which.max(extrema_id)], by = rep] %>%
+  .[extrema_id == 1]
+
+# Find the reps that have only one local minimum
+flux_single_min <- flux_local_minima %>%
+  .[, .SD[which.max(extrema_id)], by = rep] %>%
+  .[extrema_id == 1]
+
+# Bindi's suggested max/min thresholds
+
+# (i) Solutions that have only 1 max at early time, t1 (t1 = 20?)
+flux_early_max_ids <- flux_single_max[`t_{inf}` < 20, rep]
+
+# (ii) Solutions that have only 1 min at t2, where t1 < t2 < t3
+# TODO what are sensible t1 and t3 here? in the previous case, the choice of t1
+# makes no difference, as long as it's > 5...
+flux_middle_min_ids <- flux_single_min[`t_{inf}` > 0, rep]
+
+# (iii) Solutions that have only 1 max at the end of inflammation, t3 (t3 ~ 50)
+flux_end_inf_max_ids <- flux_single_max[abs(`t_{inf}` - 50) < 1e-4, rep]
+
+# (iv) Solutions that have only 1 max after the end of inflammation, "t4" (t_inf > 50 (+ a
+# bit due to output times not strictly being evenly spaced)
+flux_after_inf_max_ids <- flux_single_max[`t_{inf}` > 50.00002, rep]
+
+flux_trace_plot_subset(flux_early_max_ids) +
+  geom_point(
+    data = flux_single_max[`t_{inf}` < 20],
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`),
+    colour = "red",
+    shape = "cross"
+  )
+
+flux_trace_plot_subset(flux_middle_min_ids) +
+  geom_point(
+    data = flux_single_min,
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`),
+    colour = "red",
+    shape = "cross"
+  )
+
+flux_trace_plot_subset(flux_end_inf_max_ids) +
+  geom_point(
+    data = flux_single_max[abs(`t_{inf}` - 50) < 1e-4],
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`),
+    colour = "red",
+    shape = "cross"
+  )
+
+flux_trace_plot_subset(flux_after_inf_max_ids) +
+  geom_point(
+    data = flux_single_max[`t_{inf}` > 50.00002],
+    aes(x = `t_{inf}`, y = `-F_{phi_{C_b}}(x=0)`),
+    colour = "red",
+    shape = "cross"
+  )
+
+parameter_pairs_plot(flux_single_min)
+parameter_pairs_plot(trace_data[output_inf == 1])
+
+#####
+
+# Get the ids for the reps that have at least 2 maxima
+reps_w_al_2_maxima <- flux_local_maxima[extrema_id == 2, rep]
+
+# Get the actual rows from the flux table up to the 2nd maximum
+flux_local_al_2_maxima <- flux_local_maxima[
+  rep %in% reps_w_al_2_maxima & extrema_id <= 2
+]
+
+# Only keep the columns we need here. This makes transforming into wide form
+# below easier because we don't need to account for columns that vary between
+# rows for one rep...
+flux_local_al_2_maxima <- flux_local_al_2_maxima[
+  ,
+  .(
+    rep,
+    `t_{inf}`,
+    t_inf_h,
+    j_phi_i_i_factor,
+    m_i_factor,
+    t_j_phi_i_lag,
+    gamma,
+    extrema_id,
+    `-F_{phi_{C_b}}(x=0)`
+  )
+]
+
+# dcast the two maxima into their own columns
+flux_local_al_2_maxima_wide <- dcast(
+  flux_local_al_2_maxima,
+  ... ~ extrema_id,
+  value.var = c("t_{inf}", "t_inf_h", "-F_{phi_{C_b}}(x=0)")
+)
+
+# calculate the ratio max_2/max_1
+flux_local_al_2_maxima_wide[
+  ,
+  ratio_21 := `-F_{phi_{C_b}}(x=0)_2` / `-F_{phi_{C_b}}(x=0)_1`,
+  by = rep
+]
+
+# "join" the ratio_21 column with the trace_data
+trace_data_with_max_21_ratio <-
+  trace_data[rep %in% flux_local_al_2_maxima_wide[, rep]][
+  flux_local_al_2_maxima_wide[, .(rep, ratio_21)],
+  on = "rep"
+]
+
+## convert to long form
+#trace_data_with_ratios_long <- melt(
+  #trace_data_with_max_21_ratio,
+  #measure.vars = c(
+    #"C_u^{tot}",
+    #"C_b^{tot}",
+    #"C_s^{tot}",
+    #"phi_i^{tot}",
+    #"phi_m^{tot}",
+    #"phi_{C_u}^{tot}",
+    #"phi_{C_b}^{tot}",
+    #"-F_{phi_i}(x=1)",
+    #"-F_{phi_{C_b}}(x=0)"
+  #)
+#)
+
+ggplot(
+  flux_local_al_2_maxima_wide,
+  aes(x = ratio_21, colour = j_phi_i_i_factor)
+) +
+  geom_histogram(bins = 50)
+  #geom_density()
+  #geom_point(position = position_jitter(seed = 1))
+
+ggplot(
+  trace_data_with_max_21_ratio,
+  aes(x = t_inf_h, y = `-F_{phi_{C_b}}(x=0)`, colour = ratio_21, group = rep)
+) +
+  geom_line(alpha = 0.5, size = 1) +
+  scale_colour_distiller(palette = "Spectral") +
+  labs(
+    x = "Time since inflammation (h)",
+    y = "Cell flux at l.v.",
+    colour = "Max 2 / Max 1"
+  ) +
+  theme_cowplot() +
+  background_grid()
+
+###########
+
+# Find the ids of all reps that have no local minima
+
+# First get the reps that do have minima
+reps_w_some_minima <- flux_local_minima[, .(rep)] %>% unique
+
+# Then take the complement. There's definitely a better way to do this but this
+# works...
+reps_w_no_minima <-
+  data.table(rep = 0:trace_data[, max(rep)])[!reps_w_some_minima, rep, on = "rep"]
+
+flux_trace_plot_subset(reps_w_no_minima)
+
+# We want the subset of the above reps that have a maximum at (or maybe soon
+# after?) t_inf = 50, regardless of the total number of maxima
+
+reps_w_no_min_but_max_50 <-
+  flux_local_maxima[rep %in% reps_w_no_minima & `t_{inf}` >= 50, rep]
+
+flux_trace_plot_subset(reps_w_no_min_but_max_50)
+
+parameter_pairs_plot(trace_data[rep %in% reps_w_no_min_but_max_50])
+
+###########
+
+# Work out, for reps that have a minimum before t_inf == 50 (i.e. somewhere
+# during inflammation), the ratio of the minimum to the first maximum. The
+# first condition finds all reps that have any kind of extrema before t = 50,
+# including some reps that have say a maximum but no minimum. We filter these
+# out using na.omit to leave just the reps we actually want.
+flux_w_max_min_ratio <- flux_local_extrema[
+  `t_{inf}` < 50 & extrema_id == 1,
+  .(rep, `-F_{phi_{C_b}}(x=0)`, extrema_type)
+] %>%
+  dcast(., ... ~ extrema_type, value.var = c("-F_{phi_{C_b}}(x=0)")) %>%
+  .[, ratio_max_min := maximum / minimum] %>%
+  na.omit
+
+ggplot(flux_w_max_min_ratio, aes(x = ratio_max_min)) +
+  #geom_density() +
+  geom_histogram(bins = 50) +
+  coord_cartesian(xlim = c(0, NA))
+
+reps_w_min_and_max_50 <- flux_w_max_min_ratio[, rep]
+
+# "join" the ratio_max_min column with the trace_data
+trace_data_with_max_min_ratio <-
+  trace_data[rep %in% reps_w_min_and_max_50][
+  flux_w_max_min_ratio[, .(rep, ratio_max_min)],
+  on = "rep"
+]
+
+# Plot the flux vs time, coloured by the ratio of max to min
+ggplot(
+  trace_data_with_max_min_ratio,
+  aes(
+    x = `t_{inf}`,
+    y = `-F_{phi_{C_b}}(x=0)`,
+    group = rep,
+    colour = ratio_max_min
+  )
+) +
+  geom_line(alpha = 0.5, size = 1) +
+  scale_colour_distiller(palette = "Spectral") + theme_cowplot() +
+  background_grid()
+
+# Plot the flux vs time for reps that have ratio below a threshold
+ggplot(
+  trace_data_with_max_min_ratio[ratio_max_min <= 1.1],
+  aes(
+    x = `t_{inf}`,
+    y = `-F_{phi_{C_b}}(x=0)`,
+    group = rep,
+    colour = ratio_max_min
+  )
+) +
+  geom_line(alpha = 0.5, size = 1) +
+  scale_colour_distiller(palette = "Spectral") + theme_cowplot() +
+  background_grid()
+
+# UPDATE: these aren't actually the relevant reps at all (I misunderstood...)
+# Combine the above subset of reps with those that have no minimum but still
+# have a max at 50. These should be the relevant ones???
+reps_relevant <- c(
+  flux_w_max_min_ratio[ratio_max_min <= 1.1, rep],
+  reps_w_no_min_but_max_50
+)
+
+ggplot(
+  trace_data[rep %in% reps_relevant],
+  aes(
+    x = `t_{inf}`,
+    y = `-F_{phi_{C_b}}(x=0)`,
+    group = rep,
+    #colour = ratio_max_min
+  )
+) +
+  geom_line(alpha = 0.5, size = 1) +
+  scale_colour_distiller(palette = "Spectral") + theme_cowplot() +
+  background_grid()
+
+parameter_pairs_plot(trace_data[rep %in% reps_relevant])
+
+###########
+
+# Find the actually relevant reps - those that have a first peak at around 6
+# hours (need to decide size of range around 6h to include), then have a second
+# peak with height not too much lower than the first.
+
+first_max_range_mean <- 6
+
+# The time either side of 6h we allow
+first_max_range_width <- 2.78
+ratio_21_threshold <- 0.75
+relevant_reps <- flux_local_al_2_maxima_wide[
+  first_max_range_mean - first_max_range_width <= `t_inf_h_1` &
+    `t_inf_h_1` <= first_max_range_mean + first_max_range_width &
+    ratio_21 >= ratio_21_threshold,
+  rep
+]
+flux_trace_plot_subset(relevant_reps) +
+  geom_rect(
+    data = ~ head(.x, 1),
+    xmin = first_max_range_mean - first_max_range_width,
+    xmax = first_max_range_mean + first_max_range_width,
+    ymin = -1,
+    ymax = 1,
+    colour = NA,
+    fill = "black",
+    alpha = 0.1
+  ) +
+  geom_point(
+    data = flux_local_al_2_maxima_wide[rep %in% relevant_reps],
+    aes(x = `t_inf_h_1`, y = `-F_{phi_{C_b}}(x=0)_1`),
+    colour = "red"
+  ) +
+  geom_point(
+    data = flux_local_al_2_maxima_wide[rep %in% relevant_reps],
+    aes(x = `t_inf_h_2`, y = `-F_{phi_{C_b}}(x=0)_2`),
+    colour = "blue"
+  ) +
+  geom_vline(xintercept = 50 * 0.6944444444, linetype = "dashed")
+
+#ggsave(
+  #plot = last_plot(),
+  #"simulation_subset.png",
+  #width = 9,
+  #height = 5
+#)
+
+parameter_pairs_plot(
+  flux_local_al_2_maxima_wide[rep %in% relevant_reps]
+)
+
+# TODO the next couple of bits were copied from earlier - refactor into
+# functions if we keep it
+trace_data_relevant_longer <- trace_data[
+  rep %in% relevant_reps,
+  .(
+    rep, `t_{inf}`, t_inf_h, `C_b^{tot}`, `phi_{C_b}^{tot}`,
+    `-F_{phi_{C_b}}(x=0)`, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma
+  )
+  ] %>%
+  melt(
+    .,
+    measure.vars = c(
+      "C_b^{tot}", "phi_{C_b}^{tot}", "-F_{phi_{C_b}}(x=0)"
+    )
+  ) %>%
+  melt(
+    .,
+    measure.vars = c(
+      "j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"
+    ),
+    variable.name = "param",
+    value.name = "param_value"
+  )
+
+p_relevant_trace_grid <- ggplot(
+  trace_data_relevant_longer,
+  aes(
+    x = t_inf_h,
+    y = value,
+  )
+)
+for (param_name in trace_data_relevant_longer$param %>% levels) {
+  p_relevant_trace_grid <- p_relevant_trace_grid +
+    geom_line(
+      aes(
+        group = rep,
+        colour = param_value
+      ),
+      alpha = 0.5,
+      data = trace_data_relevant_longer[param == param_name]
+    ) +
+    colour_scales[param_name] +
+    labs(colour = param_labels[param_name]) +
+    new_scale_colour()
+}
+p_relevant_trace_grid <- p_relevant_trace_grid +
+  labs(x = "Time since inflammation (h)", y = NULL) +
+  facet_grid(
+    rows = vars(variable),
+    cols = vars(param),
+    scales = "free",
+    switch = "y",
+    labeller = as_labeller(function(v) all_labels[v], label_parsed)
+  ) +
+  theme_cowplot() +
+  theme(
+    plot.background = element_rect("white"),
+    strip.text.x = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    legend.box.just = "bottom",
+    legend.position = "top",
+    legend.justification = "centre",
+    # no idea why 1/24 seems to be correct here given that "npc" units mean
+    # that surely it should be 0.25, but who cares
+    legend.key.width = unit(1.0 / 24.0, "npc"),
+    legend.key.height = unit(0.3, "cm")
+  )
+p_relevant_trace_grid
+
+# Comparing with all reps (with >= 2 max) with m_i_factor approx in the range
+# indicated by the above subset
+
+flux_trace_plot_subset(
+  flux_local_al_2_maxima_wide[m_i_factor %between% c(50, 200), rep]
+)
+
+setdiff(
+  relevant_reps,
+  flux_local_al_2_maxima_wide[m_i_factor %between% c(50, 200), rep]
+)
+
+# Plot ratio_21 against parameters
+
+flux_local_al_2_maxima_wide_long_params <- melt(
+  flux_local_al_2_maxima_wide,
+  measure.vars = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma"),
+  variable.name = "param",
+  value.name = "param_value"
+)
+
+quantity_vs_param_plot <- function(quantity, colour_by = NULL) {
+  p <- ggplot(
+    # this join copies the un-melted parameter columns into the melted table so
+    # we can use their values for e.g. colouring
+    flux_local_al_2_maxima_wide_long_params[
+      flux_local_al_2_maxima_wide[,
+        .(rep, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)
+      ],
+      on = "rep"
+    #],
+    ][`t_{inf}_2` > 45], # & m_i_factor <= 200],
+    aes(x = param_value, y = {{ quantity }}, colour = {{ colour_by }})
+  ) +
+    geom_point(size = 4, alpha = 0.6) +
+    #geom_hline(yintercept = 1) +
+    facet_wrap(vars(param), scales = "free") +
+    scale_colour_distiller(palette = "Spectral") +
+    scale_x_continuous(trans = "log10",
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    scale_y_continuous(trans = "log10",
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    theme_cowplot() +
+    background_grid()
+
+  p
+}
+
+quantity_vs_param_plot(t_inf_h_1, j_phi_i_i_factor)
+quantity_vs_param_plot(t_inf_h_1, m_i_factor)
+quantity_vs_param_plot(t_inf_h_1, t_j_phi_i_lag)
+quantity_vs_param_plot(t_inf_h_1, gamma)
+# => Time of first peak almost entirely controlled by m_i_factor. gamma appears
+# to have a much smaller influence, with some low gamma reps having slightly higher t_inf_h_1
+
+quantity_vs_param_plot(t_inf_h_2, j_phi_i_i_factor)
+quantity_vs_param_plot(t_inf_h_2, m_i_factor)
+quantity_vs_param_plot(t_inf_h_2, t_j_phi_i_lag)
+quantity_vs_param_plot(t_inf_h_2, gamma)
+
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_1`, j_phi_i_i_factor)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_1`, m_i_factor)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_1`, t_j_phi_i_lag)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_1`, gamma)
+
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_2`, j_phi_i_i_factor)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_2`, m_i_factor)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_2`, t_j_phi_i_lag)
+quantity_vs_param_plot(`-F_{phi_{C_b}}(x=0)_2`, gamma)
+
+interp_irregular_data <- function(x, y, z) {
+  grid <- interp::interp(x, y, z, duplicate = "drop")
+  subset(
+    data.table::data.table(
+      x = rep(grid$x, nrow(grid$z)),
+      y = rep(grid$y, each = ncol(grid$z)),
+      z = as.numeric(grid$z)),
+    !is.na(z)
+  )
+}
+
+plot_irregular_data <- function(x, y, z) {
+  ggplot(
+    data.table::data.table(x = x, y = y, z = z) %>% unique,
+    aes(x = x, y = y, colour = z)
+  ) +
+    geom_point()
+}
+
+with(
+  flux_local_al_2_maxima_wide,
+  #interp_irregular_data(j_phi_i_i_factor, `t_{inf}_1`, gamma)
+  plot_irregular_data(j_phi_i_i_factor, `t_{inf}_1`, gamma)
+)
+
+grid <- with(origdata, interp::interp(x, y, z))
+
+griddf <- subset(
+  data.frame(
+    x = rep(grid$x, nrow(grid$z)),
+    y = rep(grid$y, each = ncol(grid$z)),
+    z = as.numeric(grid$z)
+  ),
+  !is.na(z)
+)
+
+ggplot(griddf, aes(x, y, z = z)) +
+  geom_contour_filled()

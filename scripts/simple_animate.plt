@@ -13,8 +13,8 @@ set clip two
 
 set key top right
 
-fn(i) = sprintf("< sed '/^$/d' output_%05i.csv", i)
-#fn(i) = sprintf("output_%05i.csv", i)
+#fn(i) = sprintf("< sed '/^$/d' output_%05i.csv", i)
+fn(i) = sprintf("output_%05i.csv", i)
 fn_exact(i) = sprintf("output_exact_%05i.csv", i)
 
 n_var = words(vars)
