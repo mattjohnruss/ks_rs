@@ -1361,7 +1361,7 @@ quantity_vs_param_plot <- function(quantity, colour_by = NULL) {
 
   ggsave_with_defaults(
     plot = p,
-    paste(plot_dir, plot_name, sep = "/")
+    paste(plot_dir, "quantity_vs_param", plot_name, sep = "/")
   )
 
   p
