@@ -1355,6 +1355,15 @@ quantity_vs_param_plot <- function(quantity, colour_by = NULL) {
     theme_cowplot() +
     background_grid()
 
+  q_str <- gsub("[{}]", "", deparse(substitute(quantity)))
+  c_str <- gsub("[{}]", "", deparse(substitute(colour_by)))
+  plot_name <- paste0(q_str, "_by_", c_str, ".pdf")
+
+  ggsave_with_defaults(
+    plot = p,
+    paste(plot_dir, plot_name, sep = "/")
+  )
+
   p
 }
 
