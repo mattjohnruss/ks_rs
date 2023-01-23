@@ -5,7 +5,7 @@ library(ggh4x)
 
 source("scripts/sensitivity/functions.R")
 
-theme_set(theme_cowplot() + background_grid())
+theme_set(theme_cowplot(font_size = 17) + background_grid())
 
 res_dir_base <- "res_special"
 plot_dir_base <- paste(res_dir_base, "plots", sep = "/")
@@ -54,16 +54,20 @@ spatial_plot_subset_combined <- function(plot_times, pes, lag) {
   data_subset_long[, j_phi_i_i_factor := factor(
     j_phi_i_i_factor,
     labels = c(
-      expression(paste(J[phi[i]]^I, " factor = 2")),
-      expression(paste(J[phi[i]]^I, " factor = 1000"))
+      "Ingress~ratio == 2",
+      "Ingress~ratio == 1000"
+      #expression(paste(J[phi[i]]^I, " factor = 2")),
+      #expression(paste(J[phi[i]]^I, " factor = 1000"))
     )
   )]
 
   data_subset_long[, m_i_factor := factor(
     m_i_factor,
     labels = c(
-      expression(paste(M^I, " factor = 2")),
-      expression(paste(M^I, " factor = 1000"))
+      "Maturation~ratio == 2",
+      "Maturation~ratio == 1000"
+      #expression(paste(M^I, " factor = 2")),
+      #expression(paste(M^I, " factor = 1000"))
     )
   )]
 
@@ -121,16 +125,20 @@ spatial_plot_subset <- function(plot_time, pes, lag) {
   data_subset_long[, j_phi_i_i_factor := factor(
     j_phi_i_i_factor,
     labels = c(
-      expression(paste(J[phi[i]]^I, " factor = 2")),
-      expression(paste(J[phi[i]]^I, " factor = 1000"))
+      "Ingress~ratio == 2",
+      "Ingress~ratio == 1000"
+      #expression(paste(J[phi[i]]^I, " factor = 2")),
+      #expression(paste(J[phi[i]]^I, " factor = 1000"))
     )
   )]
 
   data_subset_long[, m_i_factor := factor(
     m_i_factor,
     labels = c(
-      expression(paste(M^I, " factor = 2")),
-      expression(paste(M^I, " factor = 1000"))
+      "Maturation~ratio == 2",
+      "Maturation~ratio == 1000"
+      #expression(paste(M^I, " factor = 2")),
+      #expression(paste(M^I, " factor = 1000"))
     )
   )]
 
@@ -260,11 +268,14 @@ ggsave_with_defaults(
 p_spatial_hom <- spatial_plot_homeostasis(pes)
 
 p_spatial_hom +
-  #guides(colour = guide_legend(nrow = 1)) +
+  guides(
+    colour = guide_legend(nrow = 2),
+    linetype = guide_legend(nrow = 2)
+  ) +
   theme(
     legend.position = "bottom",
     legend.justification = "centre",
-    legend.box.just = "top",
+    legend.box.just = "centre",
     legend.box = "horizontal"
   )
 
@@ -283,23 +294,23 @@ p_spatial_t_50_lag_0 <- spatial_plot_subset(500, pes, 0)
 # Force the sizes of the panels to a fixed value, extract the shared legend to
 # a separate grob thing, and store each plot without the legends (but with a
 # title)
-forced_sizes <- force_panelsizes(rows = unit("0.25", "npc"), cols = unit("0.2", "npc"))
+forced_sizes <- force_panelsizes(rows = unit("0.25", "npc"), cols = unit("0.19", "npc"))
 leg <- get_legend(p_spatial_hom)
 p1 <- p_spatial_hom +
   forced_sizes +
   theme(legend.position = "none") +
-  labs(title = expression(t[inf] == 0), tag = "A")
+  labs(title = "Steady state", tag = "A")
 p2 <- p_spatial_t_50_lag_0 +
   forced_sizes +
   theme(legend.position = "none") +
-  labs(title = expression(t[inf] == 50), tag = "B")
+  labs(title = "End of inflammation", tag = "B")
 
 # Save the two plots without legends to pdf
-ggsave_with_defaults("p1.pdf", plot = p1, width = 12)
-ggsave_with_defaults("p2.pdf", plot = p2, width = 12)
+ggsave_with_defaults("p1.pdf", plot = p1, width = 12, device = cairo_pdf)
+ggsave_with_defaults("p2.pdf", plot = p2, width = 12, device = cairo_pdf)
 
 # Save the shared legend to pdf
-ggsave_with_defaults("legend.pdf", plot = leg, width = 12)
+ggsave_with_defaults("legend.pdf", plot = leg, width = 12, device = cairo_pdf)
 
 # Puts the plots one above the other, retaining the fixed sizes, but leaves too
 # much of a gap. Presumably it's assigning 1/2 of the height to each plot, but

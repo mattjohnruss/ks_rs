@@ -6,6 +6,16 @@ library(GGally)
 
 source("scripts/sensitivity/functions.R")
 
+theme_set(theme_cowplot(font_size = 17))
+
+param_labels_words <- c(
+  "j_phi_i_i_factor" = "Ingress ratio",
+  "m_i_factor" = "Maturation ratio",
+  "t_j_phi_i_lag" = "Lag",
+  "gamma" = "Cleavage rate",
+  "pe" = expression(Pe)
+)
+
 sobol_neg_and_pos <- function() {
 
   # Functions
@@ -114,7 +124,7 @@ sobol_neg_and_pos <- function() {
       ) +
       geom_point(size = 2.5, position = position_dodge(width = 0.6)) +
       geom_errorbar(width = 0.5, position = position_dodge(width = 0.6)) +
-      scale_x_discrete(labels = param_labels) +
+      scale_x_discrete(labels = param_labels_words) +
       scale_shape_discrete(
         labels = c("main" = "First-order", "total" = "Total-order")
       ) +
@@ -129,7 +139,6 @@ sobol_neg_and_pos <- function() {
         colour = "Flow",
         title = title
       ) +
-      theme_cowplot() +
       theme(
         plot.title = element_text(hjust = 0.5),
         legend.text.align = 0,
@@ -195,7 +204,7 @@ sobol_neg_and_pos <- function() {
       ) +
       geom_point(size = 2.5, position = position_dodge(width = 0.6)) +
       geom_errorbar(width = 0.5, position = position_dodge(width = 0.6)) +
-      scale_x_discrete(labels = param_labels) +
+      scale_x_discrete(labels = param_labels_words) +
       scale_shape_discrete(
         labels = c("main" = "First-order", "total" = "Total-order")
       ) +
@@ -209,7 +218,6 @@ sobol_neg_and_pos <- function() {
         shape = "Sobol index",
         colour = "Flow"
       ) +
-      theme_cowplot() +
       theme(
         plot.title = element_text(hjust = 0.5),
         legend.text.align = 0,
@@ -263,7 +271,7 @@ sobol_neg_and_pos <- function() {
       ), size = 1.25) +
       geom_hline(yintercept = 0, linetype = "dashed") +
       labs(
-        x = param_labels[param_str],
+        x = param_labels_words[param_str],
         y = variable_labels[variable_str],
         colour = NULL,
         shape = NULL
@@ -280,7 +288,6 @@ sobol_neg_and_pos <- function() {
           "-5" = expression(Pe == -5)
         )
       ) +
-      theme_cowplot() +
       theme(
         strip.background = element_blank(),
         strip.placement = "outside",
@@ -412,6 +419,7 @@ p_sobol_neg_and_pos
 ggsave_with_defaults(
   plot = p_sobol_neg_and_pos,
   paste(plot_dir, "sobol_indices_cells.pdf", sep = "/"),
+  device = cairo_pdf
 )
 
 p_cells_in_panels <- plots[[2]]
@@ -424,7 +432,7 @@ p_sobol_indices_net_change_2 <- plots[[7]]
 # Hacks to get things to line up better
 nudge_tag <- theme(plot.tag.position = c(-0.04, 1))
 nudge_x_axis_label <- theme(
-  axis.title.x = element_text(margin = margin(-40, 0, 0, 0))
+  axis.title.x = element_text(margin = margin(-105, 0, 0, 0))
 )
 
 p_sobol_and_cells_in <-
@@ -446,7 +454,8 @@ p_sobol_and_cells_in <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_in,
-  paste(plot_dir, "sobol_and_cells_in.pdf", sep = "/")
+  paste(plot_dir, "sobol_and_cells_in.pdf", sep = "/"),
+  device = cairo_pdf
 )
 
 p_sobol_and_cells_out <-
@@ -468,7 +477,8 @@ p_sobol_and_cells_out <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_out,
-  paste(plot_dir, "sobol_and_cells_out.pdf", sep = "/")
+  paste(plot_dir, "sobol_and_cells_out.pdf", sep = "/"),
+  device = cairo_pdf
 )
 
 p_sobol_and_cells_net_change <-
@@ -490,5 +500,6 @@ p_sobol_and_cells_net_change <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_net_change,
-  paste(plot_dir, "sobol_and_cells_net_change.pdf", sep = "/")
+  paste(plot_dir, "sobol_and_cells_net_change.pdf", sep = "/"),
+  device = cairo_pdf
 )

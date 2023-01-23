@@ -1336,8 +1336,8 @@ quantity_vs_param_plot <- function(quantity, colour_by = NULL) {
         .(rep, j_phi_i_i_factor, m_i_factor, t_j_phi_i_lag, gamma)
       ],
       on = "rep"
-    #],
-    ][`t_{inf}_2` > 45], # & m_i_factor <= 200],
+    ],
+    #][`t_{inf}_2` > 45], # & m_i_factor <= 200],
     aes(x = param_value, y = {{ quantity }}, colour = {{ colour_by }})
   ) +
     geom_point(size = 4, alpha = 0.6) +
@@ -1358,6 +1358,12 @@ quantity_vs_param_plot <- function(quantity, colour_by = NULL) {
   q_str <- gsub("[{}]", "", deparse(substitute(quantity)))
   c_str <- gsub("[{}]", "", deparse(substitute(colour_by)))
   plot_name <- paste0(q_str, "_by_", c_str, ".pdf")
+
+  q_vs_p_plot_dir <- paste(plot_dir, "quantity_vs_param", sep = "/")
+
+  if (!dir.exists(q_vs_p_plot_dir)) {
+    dir.create(q_vs_p_plot_dir, recursive = TRUE)
+  }
 
   ggsave_with_defaults(
     plot = p,
