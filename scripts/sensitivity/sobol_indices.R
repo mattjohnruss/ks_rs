@@ -1433,3 +1433,72 @@ griddf <- subset(
 
 ggplot(griddf, aes(x, y, z = z)) +
   geom_contour_filled()
+
+#####################
+
+# Basic flux plot
+p_basic_flux <- ggplot(
+  trace_data_with_max_21_ratio,
+  aes(
+    x = `t_{inf}`,
+    y = `-F_{phi_{C_b}}(x=0)`,
+    group = rep,
+    colour = j_phi_i_i_factor
+  )
+) +
+  geom_line(alpha = 0.4, size = 0.6) +
+  theme_cowplot(font_size = 26) +
+  theme(
+    legend.position = c(0.80, 0.6),
+    legend.title = element_text(size = 22)
+  ) +
+  labs(
+    x = "Time since inflammation",
+    y = "DC flux into l.v.",
+    colour = "DC ingress\nratio",
+    tag = "B"
+  )
+p_basic_flux
+
+ggsave(
+  paste(plot_dir, "basic_flux.pdf", sep = "/"),
+  plot = p_basic_flux,
+  width = 9,
+  height = 5,
+  device = cairo_pdf
+)
+
+ggsave(
+  paste(plot_dir, "basic_flux.png", sep = "/"),
+  plot = p_basic_flux,
+  width = 9,
+  height = 5,
+  dpi = 150
+)
+
+
+################
+
+# Basic flux at 2nd peak vs j_phi_i_i_factor coloured by gamma plot
+p_basic_peak_vs_ingress_vs_gamma <- ggplot(
+  flux_local_al_2_maxima[extrema_id == 2],
+  aes(x = j_phi_i_i_factor, y = `-F_{phi_{C_b}}(x=0)`, colour = gamma)
+) +
+  geom_point(size = 4, alpha = 0.6) +
+  scale_colour_distiller(palette = "Spectral", guide = guide_colorbar(title.position = "left", title.hjust = 1.0, barheight = 7)) +
+  labs(
+    x = "Ingress ratio",
+    y = "DC flux at 2nd peak",
+    colour = "Cleavage\nrate",
+    tag = "C"
+  ) +
+  theme_cowplot(font_size = 26) +
+  theme(legend.title = element_text(size = 22), legend.text = element_text(size = 22), legend.position = c(0.65, 0.23))
+p_basic_peak_vs_ingress_vs_gamma
+ggsave(
+  paste(plot_dir, "basic_peak_vs_ingress_vs_gamma.pdf", sep = "/"),
+  plot = p_basic_peak_vs_ingress_vs_gamma,
+  width = 9,
+  height = 5,
+  device = cairo_pdf
+)
