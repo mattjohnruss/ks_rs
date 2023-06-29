@@ -232,8 +232,8 @@ spatial_plot_homeostasis <- function(pes) {
       x = "Spatial distance",
       #x = expression(x),
       y = NULL,
-      colour = param_labels["pe"],
-      linetype = param_labels["gamma"]
+      colour = param_labels_words["pe"],
+      linetype = param_labels_words["gamma"]
     )
 }
 

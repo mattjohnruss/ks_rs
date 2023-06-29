@@ -319,7 +319,7 @@ for (param_name in trace_data_longer$param %>% levels) {
       data = trace_data_longer[param == param_name]
     ) +
     colour_scales[param_name] +
-    labs(colour = param_labels[param_name]) +
+    labs(colour = param_labels_words[param_name]) +
     new_scale_colour()
 }
 p_trace_grid <- p_trace_grid +
@@ -423,10 +423,11 @@ p_sobol_vs_time <- function(sobol_data, title, ylim) {
       colour = "Parameter",
       fill = "Parameter"
     ) +
-    scale_colour_discrete(labels = param_labels) +
-    scale_fill_discrete(labels = param_labels) +
+    scale_colour_discrete(labels = param_labels_words) +
+    scale_fill_discrete(labels = param_labels_words) +
     coord_cartesian(ylim = ylim) +
-    theme_cowplot()
+    theme_cowplot() +
+    theme(legend.text.align = 0)
 }
 
 # Sobol indices of cell outflux as a function of time
@@ -1456,7 +1457,7 @@ p_basic_flux <- ggplot(
     x = "Time since inflammation",
     y = "DC flux into l.v.",
     colour = "DC ingress\nratio",
-    tag = "B"
+    #tag = "B"
   )
 p_basic_flux
 
@@ -1473,7 +1474,8 @@ ggsave(
   plot = p_basic_flux,
   width = 9,
   height = 5,
-  dpi = 150
+  dpi = 150,
+  bg = "white"
 )
 
 
@@ -1490,7 +1492,7 @@ p_basic_peak_vs_ingress_vs_gamma <- ggplot(
     x = "Ingress ratio",
     y = "DC flux at 2nd peak",
     colour = "Cleavage\nrate",
-    tag = "C"
+    #tag = "C"
   ) +
   theme_cowplot(font_size = 26) +
   theme(legend.title = element_text(size = 22), legend.text = element_text(size = 22), legend.position = c(0.65, 0.23))
