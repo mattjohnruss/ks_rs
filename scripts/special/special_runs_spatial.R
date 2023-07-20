@@ -306,11 +306,11 @@ p2 <- p_spatial_t_50_lag_0 +
   labs(title = "End of inflammation", tag = "B")
 
 # Save the two plots without legends to pdf
-ggsave_with_defaults("p1.pdf", plot = p1, width = 12, device = cairo_pdf)
-ggsave_with_defaults("p2.pdf", plot = p2, width = 12, device = cairo_pdf)
+ggsave_with_defaults("p1.pdf", plot = p1, width = 12)
+ggsave_with_defaults("p2.pdf", plot = p2, width = 12)
 
 # Save the shared legend to pdf
-ggsave_with_defaults("legend.pdf", plot = leg, width = 12, device = cairo_pdf)
+ggsave_with_defaults("legend.pdf", plot = leg, width = 12)
 
 # Puts the plots one above the other, retaining the fixed sizes, but leaves too
 # much of a gap. Presumably it's assigning 1/2 of the height to each plot, but

@@ -369,8 +369,8 @@ ggsave_with_defaults(
 # Sobol indices as a function of time - general methods
 
 t_inf_max <- trace_data %>%
-    .[, .(t_stop = max(`t_{inf}`)), by = rep] %>%
-    .[, min(t_stop)]
+  .[, .(t_stop = max(`t_{inf}`)), by = rep] %>%
+  .[, min(t_stop)]
 
 output_inf_max <- trace_data %>%
   .[, .(output_stop = max(output_inf)), by = rep] %>%

@@ -418,8 +418,7 @@ p_sobol_neg_and_pos
 
 ggsave_with_defaults(
   plot = p_sobol_neg_and_pos,
-  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/"),
-  device = cairo_pdf
+  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/")
 )
 
 p_cells_in_panels <- plots[[2]]
@@ -454,8 +453,7 @@ p_sobol_and_cells_in <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_in,
-  paste(plot_dir, "sobol_and_cells_in.pdf", sep = "/"),
-  device = cairo_pdf
+  paste(plot_dir, "sobol_and_cells_in.pdf", sep = "/")
 )
 
 p_sobol_and_cells_out <-
@@ -477,8 +475,7 @@ p_sobol_and_cells_out <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_out,
-  paste(plot_dir, "sobol_and_cells_out.pdf", sep = "/"),
-  device = cairo_pdf
+  paste(plot_dir, "sobol_and_cells_out.pdf", sep = "/")
 )
 
 p_sobol_and_cells_net_change <-
@@ -500,6 +497,5 @@ p_sobol_and_cells_net_change <-
 
 ggsave_with_defaults(
   plot = p_sobol_and_cells_net_change,
-  paste(plot_dir, "sobol_and_cells_net_change.pdf", sep = "/"),
-  device = cairo_pdf
+  paste(plot_dir, "sobol_and_cells_net_change.pdf", sep = "/")
 )
