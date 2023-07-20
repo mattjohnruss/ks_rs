@@ -247,6 +247,23 @@ ggsave_with_defaults <- function(
   filename,
   width = 10,
   height = 7,
+  device = NULL,
+  bg = NULL,
   ...) {
-  ggplot2::ggsave(filename, width = width, height = height, ...)
+  if (tools::file_ext(filename) == "pdf") {
+    device <- cairo_pdf
+  }
+
+  if (tools::file_ext(filename) == "png") {
+    bg <- "white"
+  }
+
+  ggplot2::ggsave(
+    filename,
+    width = width,
+    height = height,
+    device = device,
+    bg = bg,
+    ...
+  )
 }
