@@ -103,7 +103,7 @@ spatial_plot_subset_combined <- function(plot_times, pes, lag) {
       labeller = label_parsed,
       switch = "y"
     ) +
-    geom_line(size = 1) +
+    geom_line(linewidth = 1) +
     scale_linetype_discrete(limits = rev) +
     theme(
       strip.placement = "outside",
@@ -167,7 +167,7 @@ spatial_plot_subset <- function(plot_time, pes, lag) {
       group = rep
     )
   ) +
-    geom_line(size = 1) +
+    geom_line(linewidth = 1) +
     facet_nested(
       rows = vars(j_phi_i_i_factor),
       cols = , vars(m_i_factor, variable),
@@ -217,7 +217,7 @@ spatial_plot_homeostasis <- function(pes) {
       linetype = factor(gamma)
     )
   ) +
-    geom_line(size = 1) +
+    geom_line(linewidth = 1) +
     facet_wrap(
       vars(variable),
       scales = "free_y",
@@ -264,38 +264,21 @@ ggsave_with_defaults(
   height = 20
 )
 
-#########
+# Spatial plots for a just homeostatis and one other time point
 
 p_spatial_hom <- spatial_plot_homeostasis(pes)
-
-p_spatial_hom +
-  guides(
-    colour = guide_legend(nrow = 2),
-    linetype = guide_legend(nrow = 2)
-  ) +
-  theme(
-    legend.position = "bottom",
-    legend.justification = "centre",
-    legend.box.just = "centre",
-    legend.box = "horizontal"
-  )
-
 p_spatial_t_50_lag_0 <- spatial_plot_subset(500, pes, 0)
 
-# Aligns well, collects guides, but unequal panel sizes
-(p_spatial_hom / p_spatial_t_50_lag_0) +
-  plot_layout(guides = "collect")
-
-# Aligns well, collects guides, equal panel sizes, but completely broken axes
-# (because they are aligned before the panels are resized)
-(p_spatial_hom / p_spatial_t_50_lag_0) +
-  plot_layout(guides = "collect") &
-  force_panelsizes(rows = unit("0.50", "npc"), cols = unit("0.21", "npc"))
+# I can't find a programmatic way to arrange this plot as needed, so we save
+# the individual components and use Inkscape to manually arrange
 
 # Force the sizes of the panels to a fixed value, extract the shared legend to
 # a separate grob thing, and store each plot without the legends (but with a
 # title)
-forced_sizes <- force_panelsizes(rows = unit("0.25", "npc"), cols = unit("0.19", "npc"))
+forced_sizes <- force_panelsizes(
+  rows = unit("0.25", "npc"),
+  cols = unit("0.19", "npc")
+)
 leg <- get_legend(p_spatial_hom)
 p1 <- p_spatial_hom +
   forced_sizes +
@@ -312,86 +295,3 @@ ggsave_with_defaults("p2.pdf", plot = p2, width = 12)
 
 # Save the shared legend to pdf
 ggsave_with_defaults("legend.pdf", plot = leg, width = 12)
-
-# Puts the plots one above the other, retaining the fixed sizes, but leaves too
-# much of a gap. Presumably it's assigning 1/2 of the height to each plot, but
-# the top one is smaller so it pads it. If you specify say `rel_widths = c(1,
-# 2)`, it resizes the panels. Axis alignment stuff doesn't do much (anything?)
-# in this case
-plot_grid(p1, p2, ncol = 1, axis = "ltrb", align = "v")
-
-# Essentially the same result as `plot_grid`
-grid.arrange(p1, p2, ncol = 1)
-
-library(egg)
-
-# Very similar to basic patchwork, but (afaik) can't collect guides
-ggarrange(p_spatial_hom, p_spatial_t_50_lag_0)
-
-fixed_size_panels <- lapply(
-  list(
-    p_spatial_hom + theme(legend.position = "none"),
-    p_spatial_t_50_lag_0 + theme(legend.position = "none")
-  ),
-  set_panel_size,
-  width = unit(0.19, "npc"),
-  height = unit(0.38, "npc")
-)
-
-grid.arrange(grobs = fixed_size_panels)
-
-plot_grid(
-  fixed_size_panels[[1]],
-  fixed_size_panels[[2]],
-  ncol = 1
-)
-
-plot_grid(
-  plot_grid(
-    fixed_size_panels[[1]],
-    fixed_size_panels[[2]],
-    ncol = 1
-  ),
-  leg,
-  ncol = 2,
-  rel_widths = c(20, 1)
-)
-
-(
-  wrap_elements(fixed_size_panels[[1]]) +
-  wrap_elements(fixed_size_panels[[2]]) +
-  plot_layout(ncol = 1, byrow = FALSE)
-) + wrap_elements(leg) +
-plot_layout(ncol = 2, widths = c(20, 1))
-#+
-  #plot_layout(widths = , guides = "collect")
-
-ggsave_with_defaults(
-  plot = p_asdf,
-  "asdf.pdf"
-)
-
-################
-
-a <- plot_grid(
-  NULL,
-  p_spatial_hom + theme(legend.position = "none"),
-  NULL,
-  axis = "lr",
-  align = "v",
-  ncol = 3,
-  rel_widths = c(1, 2, 1)
-)
-plot_grid(a,
-  p_spatial_t_50_lag_0 + theme(legend.position = "none"),
-  axis = "lr",
-  align = "v",
-  ncol = 1,
-  rel_heights = c(1, 2)
-)
-
-(plot_spacer() + p_spatial_hom + plot_spacer()) / p_spatial_t_50_lag_0 + plot_layout(guides = "collect")
-
-(plot_spacer() + p_spatial_hom) /
-  p_spatial_t_50_lag_0 +
-  plot_layout(ncol = 1, nrow = 2, guides = "collect")
