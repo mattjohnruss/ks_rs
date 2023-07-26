@@ -5,7 +5,8 @@ library(ggh4x)
 
 source("scripts/sensitivity/functions.R")
 
-theme_set(theme_cowplot(font_size = 17) + background_grid())
+#theme_set(theme_cowplot(font_size = 17) + background_grid())
+theme_set(theme_cowplot() + background_grid())
 
 res_dir_base <- "res_special"
 plot_dir_base <- paste(res_dir_base, "plots", sep = "/")
@@ -112,8 +113,8 @@ spatial_plot_subset_combined <- function(plot_times, pes, lag) {
     labs(
       x = expression(x),
       y = NULL,
-      colour = param_labels["pe"],
-      linetype = param_labels["gamma"]
+      colour = param_labels_words["pe"],
+      linetype = param_labels_words["gamma"]
     )
 }
 
@@ -185,8 +186,8 @@ spatial_plot_subset <- function(plot_time, pes, lag) {
       x = "Spatial distance",
       #x = expression(x),
       y = NULL,
-      colour = param_labels["pe"],
-      linetype = param_labels["gamma"]
+      colour = param_labels_words["pe"],
+      linetype = param_labels_words["gamma"]
     )
 }
 

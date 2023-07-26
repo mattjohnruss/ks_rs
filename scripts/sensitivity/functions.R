@@ -87,6 +87,14 @@ param_labels_words <- c(
   "pe" = expression(Pe)
 )
 
+param_labels_words_no_breaks <- c(
+  "j_phi_i_i_factor" = "Ingress ratio",
+  "m_i_factor" = "Maturation ratio",
+  "t_j_phi_i_lag" = "Lag",
+  "gamma" = "Cleavage rate",
+  "pe" = expression(Pe)
+)
+
 # Add any other variables as needed
 variable_labels <- c(
   "C_u" = expression(C[u]),

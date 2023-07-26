@@ -319,7 +319,7 @@ for (param_name in trace_data_longer$param %>% levels) {
       data = trace_data_longer[param == param_name]
     ) +
     colour_scales[param_name] +
-    labs(colour = param_labels_words[param_name]) +
+    labs(colour = param_labels_words_no_breaks[param_name]) +
     new_scale_colour()
 }
 p_trace_grid <- p_trace_grid +
@@ -423,8 +423,8 @@ p_sobol_vs_time <- function(sobol_data, title, ylim) {
       colour = "Parameter",
       fill = "Parameter"
     ) +
-    scale_colour_discrete(labels = param_labels_words) +
-    scale_fill_discrete(labels = param_labels_words) +
+    scale_colour_discrete(labels = param_labels_words_no_breaks) +
+    scale_fill_discrete(labels = param_labels_words_no_breaks) +
     coord_cartesian(ylim = ylim) +
     theme_cowplot() +
     theme(legend.text.align = 0)
@@ -545,7 +545,7 @@ ggsave_with_defaults(
 
 p_location_panel <- function(data, colour_by, colour_style) {
   print(deparse(substitute(colour_by)))
-  print(param_labels[deparse(substitute(colour_by))])
+  print(param_labels_words_no_breaks[deparse(substitute(colour_by))])
 
   ggplot(
     data,
@@ -557,13 +557,13 @@ p_location_panel <- function(data, colour_by, colour_style) {
   labs(
     x = "Time since inflammation",
     y = expression(x),
-    colour = param_labels[deparse(substitute(colour_by))]
+    colour = param_labels_words_no_breaks[deparse(substitute(colour_by))]
   )
 }
 
 p_value_panel <- function(data, colour_by, colour_style, ylabel) {
   print(deparse(substitute(colour_by)))
-  print(param_labels[deparse(substitute(colour_by))])
+  print(param_labels_words_no_breaks[deparse(substitute(colour_by))])
 
   ggplot(
     data,
@@ -574,7 +574,7 @@ p_value_panel <- function(data, colour_by, colour_style, ylabel) {
   labs(
     x = "Time since inflammation",
     y = ylabel,
-    colour = param_labels[deparse(substitute(colour_by))]
+    colour = param_labels_words_no_breaks[deparse(substitute(colour_by))]
   )
 }
 
