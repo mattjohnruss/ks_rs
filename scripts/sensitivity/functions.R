@@ -233,8 +233,8 @@ calculate_integrated_fluxes <- function(trace_data) {
   return(integrated_fluxes)
 }
 
-# This works but I suspect it could be written in a nicer way
-gen_param_sample <- function(n_rep, names, mins, maxs) {
+# Uses independent uniform samples for each param
+gen_param_sample_unif <- function(n_rep, names, mins, maxs) {
   d <- list()
   for (i in seq_len(length(names))) {
     d[[i]] <- data.table(

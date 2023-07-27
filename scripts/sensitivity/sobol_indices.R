@@ -25,8 +25,8 @@ if (!dir.exists(plot_dir)) {
   dir.create(plot_dir, recursive = TRUE)
 }
 
-x_1 <- gen_param_sample(100, names, mins, maxs)
-x_2 <- gen_param_sample(100, names, mins, maxs)
+x_1 <- gen_param_sample_unif(100, names, mins, maxs)
+x_2 <- gen_param_sample_unif(100, names, mins, maxs)
 
 #x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
