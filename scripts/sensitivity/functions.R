@@ -251,6 +251,21 @@ gen_param_sample_unif <- function(n_rep, names, mins, maxs) {
   return(d)
 }
 
+# Uses Sobol sequence for all params together
+gen_param_sample_sobol <- function(n_rep, min_max, init = TRUE) {
+  d <- randtoolbox::sobol(n_rep, nrow(min_max), init) %>%
+    as.data.table
+  names(d) <- min_max$param
+  d <- melt(d, measure.vars = min_max$param, variable.name = "param") %>%
+    .[min_max, on = "param"] %>%
+    .[, value := min + value * (max - min)] %>%
+    .[, min := NULL] %>%
+    .[, max := NULL] %>%
+    .[, id := seq_len(.N), by = param] %>%
+    dcast(., id ~ param, value.var = "value") %>%
+    .[, id := NULL]
+}
+
 ggsave_with_defaults <- function(
   filename,
   width = 10,
