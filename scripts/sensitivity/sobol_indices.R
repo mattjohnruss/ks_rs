@@ -9,13 +9,6 @@ library(ggbreak)
 
 source("scripts/sensitivity/functions.R")
 
-# Set the random seed to make the parameter sample reproducible. This will be
-# useful for setting off some runs before we've fully decided what quantities
-# to extract from the simulations. Once we've decided, we can then re-run this
-# script, skipping running the simulations and just calculate the Sobol indices
-# etc.
-set.seed(12345L)
-
 res_dir_base <- "res_sensitivity_3_neg_pe"
 
 # Set and create the plot directory if it doesn't exist
@@ -25,30 +18,9 @@ if (!dir.exists(plot_dir)) {
   dir.create(plot_dir, recursive = TRUE)
 }
 
-x_1 <- gen_param_sample_unif(100, names, mins, maxs)
-x_2 <- gen_param_sample_unif(100, names, mins, maxs)
-
-#param_min_max <- data.table(param = names, min = mins, max = maxs)
-#x_1 <- gen_param_sample_sobol(100, param_min_max)
-#x_2 <- gen_param_sample_sobol(100, param_min_max, init = FALSE)
-
-#x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
-x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
-
-add_constants_and_gammas_to_param_table(x$X, const_params)
-
-#write_json_params_files(x$X, res_dir_base)
-#fwrite(x$X, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")
-
-#simulate_all(x$X, res_dir_base)
-
-# TODO: handle the fact that we will sometimes only want to run the simulations
-# and not do the sensitivity analysis in the same run, and vice-versa. In the
-# latter we'll need to skip writing the parameters to file, skip running the
-# sims and just read the combined outputs from the file. Currently
-# `run_all.bash` is responsible for running sims and combining outputs, so
-# maybe we should split this into two scripts to make it easier to call them as
-# needed from R.
+# Read the sensitivity object from disk. This contains the initial parameter
+# samples and the resulting "design matrix" (`x$X`)
+x <- readRDS(paste(res_dir_base, "x.rds", sep = "/"))
 
 trace_data_full <- read_trace_data(x$X, res_dir_base)
 trace_data <- trace_data_full[`t_{inf}` >= 0]
