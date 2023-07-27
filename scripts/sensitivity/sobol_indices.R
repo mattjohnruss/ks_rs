@@ -28,6 +28,10 @@ if (!dir.exists(plot_dir)) {
 x_1 <- gen_param_sample_unif(100, names, mins, maxs)
 x_2 <- gen_param_sample_unif(100, names, mins, maxs)
 
+#param_min_max <- data.table(param = names, min = mins, max = maxs)
+#x_1 <- gen_param_sample_sobol(100, param_min_max)
+#x_2 <- gen_param_sample_sobol(100, param_min_max, init = FALSE)
+
 #x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
