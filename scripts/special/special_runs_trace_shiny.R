@@ -19,11 +19,9 @@ params <- expand.grid(
   as.data.table %>%
   setnames(c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma", "pe"))
 
-# we can luckily use this function without it overwriting our specified pe
-# values, as within the function it does params[, pe := pe], which just sets
-# them to themselves, if they have already been assigned (if they haven't, the
-# pe on the RHS references the global variable)
-add_constants_and_gammas_to_param_table(params)
+# We have to remove the constant pe from the const_params list before adding to
+# the params table otherwise our values above will be overwritten
+add_constants_and_gammas_to_param_table(params, within(const_params, rm(pe)))
 
 #write_json_params_files(params)
 #fwrite(params, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")

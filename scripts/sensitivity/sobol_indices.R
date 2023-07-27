@@ -35,7 +35,7 @@ x_2 <- gen_param_sample_unif(100, names, mins, maxs)
 #x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
-add_constants_and_gammas_to_param_table(x$X)
+add_constants_and_gammas_to_param_table(x$X, const_params)
 
 #write_json_params_files(x$X, res_dir_base)
 #fwrite(x$X, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")
@@ -76,7 +76,8 @@ integrated_fluxes[, net_change := cells_in - cells_out]
 
 cells_vs_params <- x$X[
   ,
-  .(j_phi_i_i_factor,
+  .(
+    j_phi_i_i_factor,
     m_i_factor,
     t_j_phi_i_lag,
     gamma,

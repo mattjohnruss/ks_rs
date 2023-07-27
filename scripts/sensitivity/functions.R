@@ -3,67 +3,39 @@ library(magrittr)
 library(jsonlite)
 library(stringr)
 
-# TODO: having these as globals is awful
 # Constant parameter values
-phi_bar_over_c_bar <- 1.40179e-6
-phi_bar_over_phi_max <- 0.1
-c_bar_over_e <- 0.1
-pe <- -5.0
-alpha_plus <- 23.25
-alpha_minus <- 0.3
-beta_plus <- 0.0000385493
-beta_minus <- 12.5
-n_ccr7 <- 30000.0
-q_u <- 0.0
-q_b <- 0.0
-q_s <- 0.0
-d_c_s <- 0.01
-d_phi_i <- 0.01
-d_phi_m <- 0.01
-d_phi_c_u <- 0.01
-d_phi_c_b <- 0.01
-chi_u <- 0.0
-chi_b <- 0.004
-chi_s <- 0.0
-r <- 0.0
-m_h <- 0.00113865
-t_inflammation <- 50.0
-j_phi_i_h <- 0.000455461
-phi_i_init <- 0.9
-phi_m_init <- 0.0
+const_params <- list(
+  phi_bar_over_c_bar = 1.40179e-6,
+  phi_bar_over_phi_max = 0.1,
+  c_bar_over_e = 0.1,
+  # IDEA: get rid of pe from here and do e.g. `x$X[, pe := -5]` in the script,
+  pe = -5.0,
+  alpha_plus = 23.25,
+  alpha_minus = 0.3,
+  beta_plus = 0.0000385493,
+  beta_minus = 12.5,
+  n_ccr7 = 30000.0,
+  q_u = 0.0,
+  q_b = 0.0,
+  q_s = 0.0,
+  d_c_s = 0.01,
+  d_phi_i = 0.01,
+  d_phi_m = 0.01,
+  d_phi_c_u = 0.01,
+  d_phi_c_b = 0.01,
+  chi_u = 0.0,
+  chi_b = 0.004,
+  chi_s = 0.0,
+  r = 0.0,
+  m_h = 0.00113865,
+  t_inflammation = 50.0,
+  j_phi_i_h = 0.000455461,
+  phi_i_init = 0.9,
+  phi_m_init = 0.0
+)
 
-# TODO: this function should really only set the parameters that haven't
-# already been set. Currently the behaviour of each line depends on whether
-# the corresponding column is already set: if it's not set, it is created with
-# the value of the global variable; if it is set, it is set to itself (i.e. no
-# change)! This kind-of does what we want but isn't good.
-add_constants_and_gammas_to_param_table <- function(params) {
-  params[, phi_bar_over_c_bar := phi_bar_over_c_bar]
-  params[, phi_bar_over_phi_max := phi_bar_over_phi_max]
-  params[, c_bar_over_e := c_bar_over_e]
-  params[, pe := pe]
-  params[, alpha_plus := alpha_plus]
-  params[, alpha_minus := alpha_minus]
-  params[, beta_plus := beta_plus]
-  params[, beta_minus := beta_minus]
-  params[, n_ccr7 := n_ccr7]
-  params[, q_u := q_u]
-  params[, q_b := q_b]
-  params[, q_s := q_s]
-  params[, d_c_s := d_c_s]
-  params[, d_phi_i := d_phi_i]
-  params[, d_phi_m := d_phi_m]
-  params[, d_phi_c_u := d_phi_c_u]
-  params[, d_phi_c_b := d_phi_c_b]
-  params[, chi_u := chi_u]
-  params[, chi_b := chi_b]
-  params[, chi_s := chi_s]
-  params[, r := r]
-  params[, m_h := m_h]
-  params[, t_inflammation := t_inflammation]
-  params[, j_phi_i_h := j_phi_i_h]
-  params[, phi_i_init := phi_i_init]
-  params[, phi_m_init := phi_m_init]
+add_constants_and_gammas_to_param_table <- function(params, const_params) {
+  params[, names(const_params) := const_params]
   params[, gamma_ui := gamma]
   params[, gamma_um := gamma]
   params[, gamma_bi := gamma]

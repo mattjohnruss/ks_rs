@@ -55,7 +55,7 @@ sobol_neg_and_pos <- function() {
 
     x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
 
-    add_constants_and_gammas_to_param_table(x$X)
+    add_constants_and_gammas_to_param_table(x$X, const_params)
 
     trace_data_full <- read_trace_data(x$X, res_dir_base)
     trace_data <- trace_data_full[`t_{inf}` >= 0]
