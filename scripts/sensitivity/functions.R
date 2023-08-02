@@ -93,9 +93,24 @@ t_j_phi_i_lag_max <- 25.0
 gamma_min <- 0.0
 gamma_max <- 10.0
 
-names <- c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma")
-mins <- c(j_phi_i_i_factor_min, m_i_factor_min, t_j_phi_i_lag_min, gamma_min)
-maxs <- c(j_phi_i_i_factor_max, m_i_factor_max, t_j_phi_i_lag_max, gamma_max)
+param_names <- c(
+  "j_phi_i_i_factor",
+  "m_i_factor",
+  "t_j_phi_i_lag",
+  "gamma"
+)
+param_mins <- c(
+  g_phi_i_i_factor_min,
+  m_i_factor_min,
+  t_j_phi_i_lag_min,
+  gamma_min
+)
+param_maxs <- c(
+  j_phi_i_i_factor_max,
+  m_i_factor_max,
+  t_j_phi_i_lag_max,
+  gamma_max
+)
 
 # Write a config file for each set of parameter values to the directory
 # corresponding to the index of this run, e.g. `res/32/config.json`. Skips the

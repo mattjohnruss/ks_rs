@@ -1,4 +1,4 @@
-library(sensitivity)
+library(sensobol)
 library(ggplot2)
 library(cowplot)
 library(patchwork)
@@ -20,9 +20,12 @@ if (!dir.exists(plot_dir)) {
 
 # Read the sensitivity object from disk. This contains the initial parameter
 # samples and the resulting "design matrix" (`x$X`)
-x <- readRDS(paste(res_dir_base, "x.rds", sep = "/"))
+x <- readRDS(paste(res_dir_base, "param_sample.rds", sep = "/"))
+n_param_sample <- x$n_param_sample
+param_sample <- x$param_sample
+param_sample_dt <- x$param_sample_dt
 
-trace_data_full <- read_trace_data(x$X, res_dir_base)
+trace_data_full <- read_trace_data(param_sample_dt, res_dir_base)
 trace_data <- trace_data_full[`t_{inf}` >= 0]
 
 # add dimensional time so we can plot against it
@@ -46,7 +49,21 @@ trace_data_long <- melt(
 integrated_fluxes <- calculate_integrated_fluxes(trace_data)
 integrated_fluxes[, net_change := cells_in - cells_out]
 
-cells_vs_params <- x$X[
+# TODO replace all the `sensitivity` stuff with the equivalent of this:
+ind <- sobol_indices(
+  Y = integrated_fluxes[, cells_in],
+  N = n_param_sample,
+  params = param_names,
+  #first = "saltelli",
+  #total = "jansen",
+  #boot = TRUE,
+  #R = 100,
+  #parallel = "multicore",
+  #ncpus = 8
+)
+plot(ind)
+
+cells_vs_params <- param_sample_dt[
   ,
   .(
     j_phi_i_i_factor,

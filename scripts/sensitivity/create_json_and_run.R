@@ -1,4 +1,4 @@
-library(sensitivity)
+library(sensobol)
 
 source("scripts/sensitivity/functions.R")
 
@@ -7,22 +7,37 @@ set.seed(12345L)
 
 res_dir_base <- "res_sensitivity_3_neg_pe"
 
-#x_1 <- gen_param_sample_unif(100, names, mins, maxs)
-#x_2 <- gen_param_sample_unif(100, names, mins, maxs)
+n_param_sample <- 100
 
-param_min_max <- data.table(param = names, min = mins, max = maxs)
-x_1 <- gen_param_sample_sobol(100, param_min_max)
-x_2 <- gen_param_sample_sobol(100, param_min_max, init = FALSE)
+# Create the parameter sample and Sobol matrices
+param_sample <- sobol_matrices(
+  N = n_param_sample,
+  params = param_names
+)
 
-#x <- soboljansen(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
-x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
+# Rescale the values from U(0, 1) -> U(min, max)
+for (i in seq_along(param_names)) {
+  min <- param_min[i]
+  max <- param_max[i]
+  name <- param_names[i]
+  param_sample[, name] <- qunif(name, min, max)
+}
 
-add_constants_and_gammas_to_param_table(x$X, const_params)
+param_sample_dt <- data.table(param_sample)
 
-write_json_params_files(x$X, res_dir_base)
+add_constants_and_gammas_to_param_table(param_sample_dt, const_params)
 
-# Save the parameter sample and sensitivity object
-fwrite(x$X, paste(res_dir_base, "d_m.csv", sep = "/"), sep = " ")
-saveRDS(x, paste(res_dir_base, "x.rds", sep = "/"))
+write_json_params_files(param_sample_dt, res_dir_base)
 
-simulate_all(x$X, res_dir_base)
+# Save the parameter sample (matrix with just the varied params, and full
+# data.table)
+saveRDS(
+  list(
+    n_param_sample = n_param_sample,
+    param_sample = param_sample,
+    param_sample_dt = param_sample_dt
+  ),
+  paste(res_dir_base, "param_sample.rds", sep = "/")
+)
+
+simulate_all(param_sample_dt, res_dir_base)
