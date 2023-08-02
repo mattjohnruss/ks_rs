@@ -7,6 +7,10 @@ set.seed(12345L)
 
 res_dir_base <- "res_sensitivity_1000_pe_5"
 
+if (!dir.exists(res_dir_base)) {
+  dir.create(res_dir_base, recursive = TRUE)
+}
+
 n_param_sample <- 1000
 
 # Create the parameter sample and Sobol matrices
