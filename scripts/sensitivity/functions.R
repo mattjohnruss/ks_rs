@@ -100,7 +100,7 @@ param_names <- c(
   "gamma"
 )
 param_mins <- c(
-  g_phi_i_i_factor_min,
+  j_phi_i_i_factor_min,
   m_i_factor_min,
   t_j_phi_i_lag_min,
   gamma_min
