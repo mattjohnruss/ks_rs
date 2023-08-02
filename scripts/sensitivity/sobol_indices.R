@@ -140,25 +140,31 @@ print(x)
 
 p_sobol_indices_cells_out <- sobol_indices_cells_plot(x, "Cells out")
 
-# Combined plot for cells in and out
-#-----------------------------------
-
-p_sobol_indices_cells <- p_sobol_indices_cells_in +
-  p_sobol_indices_cells_out +
-  plot_layout(guides = "collect")
-
-ggsave_with_defaults(
-  plot = p_sobol_indices_cells,
-  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/")
-)
-
 # Sobol indices for net change in number of cells
 # -----------------------------------------------
 y <- integrated_fluxes$net_change
 
 tell(x, y)
 print(x)
-p_sobol_indices_cells_net_change <- sobol_indices_cells_plot(x, "Net change in cells")
+
+p_sobol_indices_cells_net_change <- sobol_indices_cells_plot(
+  x,
+  "Net change in cells"
+)
+
+# Combined plot for cells in, out and change
+#-------------------------------------------
+
+p_sobol_indices_cells <- p_sobol_indices_cells_in +
+  p_sobol_indices_cells_out +
+  p_sobol_indices_cells_net_change +
+  plot_layout(guides = "collect") &
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+ggsave_with_defaults(
+  plot = p_sobol_indices_cells,
+  paste(plot_dir, "sobol_indices_cells.pdf", sep = "/")
+)
 
 # Other plots
 # -----------
@@ -170,7 +176,7 @@ p_cells_vs_params <- ggplot(cells_vs_params_long) +
     y = cells,
     colour = variable,
     group = variable,
-  ), size = 1.5) +
+  ), size = 0.1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   facet_wrap(
     vars(param),
@@ -278,8 +284,10 @@ trace_data_longer <- trace_data[
     value.name = "param_value"
   )
 
+rep_sample <- sample(0:nrow(x$X), 1000)
+
 p_trace_grid <- ggplot(
-  trace_data_longer,
+  trace_data_longer[rep %in% rep_sample],
   aes(
     x = `t_{inf}`,
     y = value,
@@ -293,7 +301,7 @@ for (param_name in trace_data_longer$param %>% levels) {
         colour = param_value
       ),
       alpha = 0.2,
-      data = trace_data_longer[param == param_name]
+      data = trace_data_longer[rep %in% rep_sample & param == param_name]
     ) +
     colour_scales[param_name] +
     labs(colour = param_labels_words_no_breaks[param_name]) +
