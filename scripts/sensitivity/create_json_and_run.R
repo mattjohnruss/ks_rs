@@ -17,10 +17,10 @@ param_sample <- sobol_matrices(
 
 # Rescale the values from U(0, 1) -> U(min, max)
 for (i in seq_along(param_names)) {
-  min <- param_min[i]
-  max <- param_max[i]
+  min <- param_mins[i]
+  max <- param_maxs[i]
   name <- param_names[i]
-  param_sample[, name] <- qunif(name, min, max)
+  param_sample[, name] <- qunif(param_sample[, name], min, max)
 }
 
 param_sample_dt <- data.table(param_sample)
