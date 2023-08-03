@@ -18,8 +18,9 @@ if (!dir.exists(plot_dir)) {
   dir.create(plot_dir, recursive = TRUE)
 }
 
-# Read the sensitivity object from disk. This contains the initial parameter
-# samples and the resulting "design matrix" (`x$X`)
+# Read the param_sample object from disk. This contains the initial (Sobol
+# sequence or uniformly random) parameter samples and the resulting "design
+# matrix" (`x$X`)
 x <- readRDS(paste(res_dir_base, "param_sample.rds", sep = "/"))
 n_param_sample <- x$n_param_sample
 param_sample <- x$param_sample
@@ -48,20 +49,6 @@ trace_data_long <- melt(
 
 integrated_fluxes <- calculate_integrated_fluxes(trace_data)
 integrated_fluxes[, net_change := cells_in - cells_out]
-
-# TODO replace all the `sensitivity` stuff with the equivalent of this:
-ind <- sobol_indices(
-  Y = integrated_fluxes[, cells_in],
-  N = n_param_sample,
-  params = param_names,
-  #first = "saltelli",
-  #total = "jansen",
-  #boot = TRUE,
-  #R = 100,
-  #parallel = "multicore",
-  #ncpus = 8
-)
-plot(ind)
 
 cells_vs_params <- param_sample_dt[
   ,
@@ -95,38 +82,23 @@ cells_vs_params_long <- cells_vs_params %>%
     value.name = "cells"
   )
 
-sobol_indices_cells_plot <- function(x, title) {
-  rn <- rownames(x$T)
-
-  data <- rbind(
-    cbind(
-      parameter = factor(rn, levels = rn),
-      effect = "main",
-      x$S %>% as.data.table()
-    ),
-    cbind(
-      parameter = factor(rn, levels = rn),
-      effect = "total",
-      x$T %>% as.data.table()
-    )
-  )
-
+sobol_indices_cells_plot <- function(ind, title) {
   ggplot(
-    data,
+    ind$results,
     aes(
-      parameter,
+      x = parameters,
       y = original,
-      ymin = `min. c.i.`,
-      ymax = `max. c.i.`,
-      group = effect,
-      shape = effect,
-      colour = effect)
+      ymin = low.ci,
+      ymax = high.ci,
+      group = sensitivity,
+      shape = sensitivity,
+      colour = sensitivity)
     ) +
     geom_point(size = 3, position = position_dodge(width = 0.3)) +
     geom_errorbar(width = 0.2, position = position_dodge(width = 0.3)) +
     scale_x_discrete(labels = param_labels) +
-    scale_shape_discrete(labels = c("main" = "First", "total" = "Total")) +
-    scale_colour_discrete(labels = c("main" = "First", "total" = "Total")) +
+    scale_shape_discrete(labels = c("Si" = "First", "Ti" = "Total")) +
+    scale_colour_discrete(labels = c("Si" = "First", "Ti" = "Total")) +
     coord_cartesian(ylim = c(0.0, 1.0)) +
     labs(
       x = NULL,
@@ -141,31 +113,46 @@ sobol_indices_cells_plot <- function(x, title) {
 
 # Sobol indices for cells in
 # --------------------------
-y <- integrated_fluxes$cells_in
+ind <- sobol_indices(
+  Y = integrated_fluxes$cells_in,
+  N = n_param_sample,
+  params = param_names,
+  boot = TRUE,
+  R = 100,
+  parallel = "multicore",
+  ncpus = 8
+)
 
-tell(x, y)
-print(x)
-
-p_sobol_indices_cells_in <- sobol_indices_cells_plot(x, "Cells in")
+p_sobol_indices_cells_in <- sobol_indices_cells_plot(ind, "Cells in")
 
 # Sobol indices for cells out
 # ---------------------------
-y <- integrated_fluxes$cells_out
+ind <- sobol_indices(
+  Y = integrated_fluxes$cells_out,
+  N = n_param_sample,
+  params = param_names,
+  boot = TRUE,
+  R = 100,
+  parallel = "multicore",
+  ncpus = 8
+)
 
-tell(x, y)
-print(x)
-
-p_sobol_indices_cells_out <- sobol_indices_cells_plot(x, "Cells out")
+p_sobol_indices_cells_out <- sobol_indices_cells_plot(ind, "Cells out")
 
 # Sobol indices for net change in number of cells
 # -----------------------------------------------
-y <- integrated_fluxes$net_change
-
-tell(x, y)
-print(x)
+ind <- sobol_indices(
+  Y = integrated_fluxes$net_change,
+  N = n_param_sample,
+  params = param_names,
+  boot = TRUE,
+  R = 100,
+  parallel = "multicore",
+  ncpus = 8
+)
 
 p_sobol_indices_cells_net_change <- sobol_indices_cells_plot(
-  x,
+  ind,
   "Net change in cells"
 )
 
@@ -301,7 +288,7 @@ trace_data_longer <- trace_data[
     value.name = "param_value"
   )
 
-rep_sample <- sample(0:nrow(x$X), 1000)
+rep_sample <- sample(0:nrow(param_sample_dt), 1000)
 
 p_trace_grid <- ggplot(
   trace_data_longer[rep %in% rep_sample],
@@ -398,22 +385,30 @@ check_t_infs <- function() {
 # check_t_infs()
 
 sobol_at_time <- function(data, output, variable) {
-  y <- data[output_inf == output, ..variable] %>% unlist
-  #y <- y - mean(y)
-  tell(x, y)
-  list(S = x$S, T = x$T)
+  y <- data[output_inf == output, eval(substitute(variable))]
+  ind <- sobol_indices(
+    Y = y,
+    N = n_param_sample,
+    params = param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
+
+  ind$results
 }
 
 p_sobol_vs_time <- function(sobol_data, title, ylim) {
   ggplot(
     sobol_data,
-    aes(x = `t_{inf}`, y = original, group = variable, colour = variable)
+    aes(x = `t_{inf}`, y = original, group = parameters, colour = parameters)
   ) +
     geom_ribbon(
       aes(
-        ymin = `min. c.i.`,
-        ymax = `max. c.i.`,
-        fill = variable,
+        ymin = low.ci,
+        ymax = high.ci,
+        fill = parameters,
         colour = NULL
       ),
       alpha = 0.2
@@ -434,34 +429,24 @@ p_sobol_vs_time <- function(sobol_data, title, ylim) {
 
 # Sobol indices of cell outflux as a function of time
 
-flux_first_order_sobol_indices <- list()
-flux_total_order_sobol_indices <- list()
+flux_sobol_indices <- list()
 
 for (i in 1:output_inf_max) {
   print(i)
-  st <- sobol_at_time(trace_data, i, "-F_{phi_{C_b}}(x=0)")
-  s <- st$S
-  t <- st$T
+  results <- sobol_at_time(trace_data, i, `-F_{phi_{C_b}}(x=0)`)
 
-  s <- cbind(rownames(s), s %>% as.data.table)
-  setnames(s, "V1", "variable")
-  t <- cbind(rownames(t), t %>% as.data.table)
-  setnames(t, "V1", "variable")
   t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
-  s[, `t_{inf}` := t_inf]
-  t[, `t_{inf}` := t_inf]
+  results[, `t_{inf}` := t_inf]
 
-  flux_first_order_sobol_indices[[i]] <- s
-  flux_total_order_sobol_indices[[i]] <- t
+  flux_sobol_indices[[i]] <- results
 }
 
-flux_first_order_sobol_indices <- rbindlist(flux_first_order_sobol_indices)
-flux_total_order_sobol_indices <- rbindlist(flux_total_order_sobol_indices)
+flux_sobol_indices <- rbindlist(flux_sobol_indices)
 
 # First order
 
 p_flux_first_order <- p_sobol_vs_time(
-  flux_first_order_sobol_indices,
+  flux_sobol_indices[sensitivity == "Si"],
   "First-order Sobol index",
   c(-0.1, 1.0)
 )
@@ -474,7 +459,7 @@ ggsave_with_defaults(
 # Total order
 
 p_flux_total_order <- p_sobol_vs_time(
-  flux_total_order_sobol_indices,
+  flux_sobol_indices[sensitivity == "Ti"],
   "Total-order Sobol index",
   c(0, 1.2)
 )
@@ -490,34 +475,24 @@ ggsave_with_defaults(
 
 source("scripts/extract_max_cell_density.R")
 
-gradient_first_order_sobol_indices <- list()
-gradient_total_order_sobol_indices <- list()
+gradient_sobol_indices <- list()
 
 for (i in 1:output_inf_max) {
   print(i)
-  st <- sobol_at_time(max_dc_b_dx_all_and_params, i, "dC_b_dx")
-  s <- st$S
-  t <- st$T
+  results <- sobol_at_time(max_dc_b_dx_all_and_params, i, `dC_b_dx`)
 
-  s <- cbind(rownames(s), s %>% as.data.table)
-  setnames(s, "V1", "variable")
-  t <- cbind(rownames(t), t %>% as.data.table)
-  setnames(t, "V1", "variable")
   t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
-  s[, `t_{inf}` := t_inf]
-  t[, `t_{inf}` := t_inf]
+  results[, `t_{inf}` := t_inf]
 
-  gradient_first_order_sobol_indices[[i]] <- s
-  gradient_total_order_sobol_indices[[i]] <- t
+  gradient_sobol_indices[[i]] <- results
 }
 
-gradient_first_order_sobol_indices <- rbindlist(gradient_first_order_sobol_indices)
-gradient_total_order_sobol_indices <- rbindlist(gradient_total_order_sobol_indices)
+gradient_sobol_indices <- rbindlist(gradient_sobol_indices)
 
 # First order
 
 p_gradient_first_order <- p_sobol_vs_time(
-  gradient_first_order_sobol_indices,
+  gradient_sobol_indices[sensitivity == "Si"],
   "First-order Sobol index",
   c(-0.1, 1.0)
 )
@@ -530,7 +505,7 @@ ggsave_with_defaults(
 # Total order
 
 p_gradient_total_order <- p_sobol_vs_time(
-  gradient_total_order_sobol_indices,
+  gradient_sobol_indices[sensitivity == "Ti"],
   "Total-order Sobol index",
   c(0.0, 1.2)
 )

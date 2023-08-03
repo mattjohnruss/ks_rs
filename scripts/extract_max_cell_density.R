@@ -2,9 +2,11 @@ library(data.table)
 library(magrittr)
 library(stringr)
 
-params <- fread(paste(res_dir_base, "d_m.csv", sep = "/"))
+params <- readRDS(
+  paste(res_dir_base, "param_sample.rds", sep = "/")
+)$param_sample_dt
 
-n_rep <- 600
+n_rep <- nrow(params)
 
 get_max_single <- function(rep_id) {
   rep <- rep_id - 1
