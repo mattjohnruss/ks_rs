@@ -1,4 +1,4 @@
-library(sensitivity)
+library(sensobol)
 library(ggplot2)
 library(cowplot)
 library(patchwork)
@@ -50,54 +50,36 @@ sobol_neg_and_pos <- function() {
       gamma_max
     )
 
-    x_1 <- gen_param_sample_unif(100, names, mins, maxs)
-    x_2 <- gen_param_sample_unif(100, names, mins, maxs)
+    x <- readRDS(paste(res_dir_base, "param_sample.rds", sep = "/"))
+    n_param_sample <- x$n_param_sample
+    param_sample <- x$param_sample
+    param_sample_dt <- x$param_sample_dt
 
-    x <- sobolmartinez(model = NULL, X1 = x_1, X2 = x_2, nboot = 100)
-
-    add_constants_and_gammas_to_param_table(x$X, const_params)
-
-    trace_data_full <- read_trace_data(x$X, res_dir_base)
+    trace_data_full <- read_trace_data(param_sample_dt, res_dir_base)
     trace_data <- trace_data_full[`t_{inf}` >= 0]
 
-    list(x, trace_data)
+    list(
+      n_param_sample = n_param_sample,
+      param_sample = param_sample,
+      param_sample_dt = param_sample_dt,
+      trace_data = trace_data,
+      param_names = names
+    )
   }
 
   sobol_indices_cells_panel <- function(
-    x_neg,
-    x_pos,
+    ind_neg,
+    ind_pos,
     title,
     first_plot = TRUE
   ) {
-    # rownames will be the same for both, so just use x_neg
-    rn <- rownames(x_neg$T)
-
-    data <- rbind(
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "main",
-        pe = "neg",
-        x_neg$S %>% as.data.table()
-        ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "total",
-        pe = "neg",
-        x_neg$T %>% as.data.table()
-      ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "main",
-        pe = "pos",
-        x_pos$S %>% as.data.table()
-        ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "total",
-        pe = "pos",
-        x_pos$T %>% as.data.table()
-      )
-    )
+    ind_neg$results[, pe := "neg"]
+    ind_pos$results[, pe := "pos"]
+    data <- rbind(ind_neg$results, ind_pos$results)
+    data[, factor(
+      parameters,
+      levels = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma")
+    )]
 
     y_label <- if (first_plot) {
       "Sobol index"
@@ -108,18 +90,19 @@ sobol_neg_and_pos <- function() {
     p <- ggplot(
       data,
       aes(
-        parameter,
+        x = parameters,
         y = original,
-        ymin = `min. c.i.`,
-        ymax = `max. c.i.`,
-        shape = effect,
-        colour = pe)
-      ) +
+        ymin = low.ci,
+        ymax = high.ci,
+        shape = sensitivity,
+        colour = pe
+      )
+    ) +
       geom_point(size = 2.5, position = position_dodge(width = 0.6)) +
       geom_errorbar(width = 0.5, position = position_dodge(width = 0.6)) +
       scale_x_discrete(labels = param_labels_words_no_breaks) +
       scale_shape_discrete(
-        labels = c("main" = "First-order", "total" = "Total-order")
+        labels = c("Si" = "First-order", "Ti" = "Total-order")
       ) +
       scale_colour_discrete(
         labels = c("pos" = expression(Pe == 5), "neg" = expression(Pe == -5))
@@ -150,56 +133,35 @@ sobol_neg_and_pos <- function() {
   }
 
   sobol_indices_cells_panel_2 <- function(
-    x_neg,
-    x_pos
+    ind_neg,
+    ind_pos
   ) {
-    # rownames will be the same for both, so just use x_neg
-    rn <- rownames(x_neg$T)
-
-    data <- rbind(
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "main",
-        pe = "neg",
-        x_neg$S %>% as.data.table()
-      ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "total",
-        pe = "neg",
-        x_neg$T %>% as.data.table()
-      ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "main",
-        pe = "pos",
-        x_pos$S %>% as.data.table()
-      ),
-      cbind(
-        parameter = factor(rn, levels = rn),
-        effect = "total",
-        pe = "pos",
-        x_pos$T %>% as.data.table()
-      )
-    )
+    ind_neg$results[, pe := "neg"]
+    ind_pos$results[, pe := "pos"]
+    data <- rbind(ind_neg$results, ind_pos$results)
+    data[, factor(
+      parameters,
+      levels = c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag", "gamma")
+    )]
 
     y_label <- "Sobol index"
 
     p <- ggplot(
       data,
       aes(
-        parameter,
+        x = parameters,
         y = original,
-        ymin = `min. c.i.`,
-        ymax = `max. c.i.`,
-        shape = effect,
-        colour = pe)
-      ) +
+        ymin = low.ci,
+        ymax = high.ci,
+        shape = sensitivity,
+        colour = pe
+      )
+    ) +
       geom_point(size = 2.5, position = position_dodge(width = 0.6)) +
       geom_errorbar(width = 0.5, position = position_dodge(width = 0.6)) +
       scale_x_discrete(labels = param_labels_words_no_breaks) +
       scale_shape_discrete(
-        labels = c("main" = "First-order", "total" = "Total-order")
+        labels = c("Si" = "First-order", "Ti" = "Total-order")
       ) +
       scale_colour_discrete(
         labels = c("pos" = expression(Pe == 5), "neg" = expression(Pe == -5))
@@ -220,8 +182,8 @@ sobol_neg_and_pos <- function() {
     p
   }
 
-  cells_vs_params_long <- function(x, integrated_fluxes) {
-    cells_vs_params <- x$X[
+  cells_vs_params_long <- function(param_sample_dt, integrated_fluxes) {
+    cells_vs_params <- param_sample_dt[
       ,
       .(j_phi_i_i_factor,
         m_i_factor,
@@ -296,52 +258,99 @@ sobol_neg_and_pos <- function() {
 
   # Load trace data for neg Pe
   data_neg <- load_trace_data(pos = FALSE)
-  x_neg <- data_neg[[1]]
-  trace_data_neg <- data_neg[[2]]
-  integrated_fluxes_neg <- calculate_integrated_fluxes(trace_data_neg)
+  integrated_fluxes_neg <- calculate_integrated_fluxes(data_neg$trace_data)
   integrated_fluxes_neg[, net_change := cells_in - cells_out]
 
   # Load trace data for pos Pe
   data_pos <- load_trace_data(pos = TRUE)
-  x_pos <- data_pos[[1]]
-  trace_data_pos <- data_pos[[2]]
-  integrated_fluxes_pos <- calculate_integrated_fluxes(trace_data_pos)
+  integrated_fluxes_pos <- calculate_integrated_fluxes(data_pos$trace_data)
   integrated_fluxes_pos[, net_change := cells_in - cells_out]
 
   # Cells in
-  tell(x_neg, integrated_fluxes_neg$cells_in)
-  tell(x_pos, integrated_fluxes_pos$cells_in)
+  ind_neg <- sobol_indices(
+    Y = integrated_fluxes_neg$cells_in,
+    N = data_neg$n_param_sample,
+    params = data_neg$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
+
+  ind_pos <- sobol_indices(
+    Y = integrated_fluxes_pos$cells_in,
+    N = data_pos$n_param_sample,
+    params = data_pos$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
 
   p_sobol_indices_cells_in <- sobol_indices_cells_panel(
-    x_neg, x_pos, "Cells in", first_plot = TRUE
+    ind_neg, ind_pos, "Cells in", first_plot = TRUE
   )
 
   p_sobol_indices_cells_in_2 <- sobol_indices_cells_panel_2(
-    x_neg, x_pos
+    ind_neg, ind_pos
   )
 
   # Cells out
-  tell(x_neg, integrated_fluxes_neg$cells_out)
-  tell(x_pos, integrated_fluxes_pos$cells_out)
+  ind_neg <- sobol_indices(
+    Y = integrated_fluxes_neg$cells_out,
+    N = data_neg$n_param_sample,
+    params = data_neg$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
+
+  ind_pos <- sobol_indices(
+    Y = integrated_fluxes_pos$cells_out,
+    N = data_pos$n_param_sample,
+    params = data_pos$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
 
   p_sobol_indices_cells_out <- sobol_indices_cells_panel(
-    x_neg, x_pos, "Cells out", first_plot = FALSE
+    ind_neg, ind_pos, "Cells out", first_plot = TRUE
   )
 
   p_sobol_indices_cells_out_2 <- sobol_indices_cells_panel_2(
-    x_neg, x_pos
+    ind_neg, ind_pos
   )
 
   # Net change
-  tell(x_neg, integrated_fluxes_neg$net_change)
-  tell(x_pos, integrated_fluxes_pos$net_change)
+  ind_neg <- sobol_indices(
+    Y = integrated_fluxes_neg$net_change,
+    N = data_neg$n_param_sample,
+    params = data_neg$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
+
+  ind_pos <- sobol_indices(
+    Y = integrated_fluxes_pos$net_change,
+    N = data_pos$n_param_sample,
+    params = data_pos$param_names,
+    boot = TRUE,
+    R = 100,
+    parallel = "multicore",
+    ncpus = 8
+  )
 
   p_sobol_indices_net_change <- sobol_indices_cells_panel(
-    x_neg, x_pos, "Net change", first_plot = FALSE
+    ind_neg, ind_pos, "Net change", first_plot = TRUE
   )
 
   p_sobol_indices_net_change_2 <- sobol_indices_cells_panel_2(
-    x_neg, x_pos
+    ind_neg, ind_pos
   )
 
   p_sobol_indices_cells <- p_sobol_indices_cells_in +
@@ -350,8 +359,14 @@ sobol_neg_and_pos <- function() {
     plot_layout(guides = "collect")
 
   # Cell vs params
-  cells_vs_params_long_neg <- cells_vs_params_long(x_neg, integrated_fluxes_neg)
-  cells_vs_params_long_pos <- cells_vs_params_long(x_pos, integrated_fluxes_pos)
+  cells_vs_params_long_neg <- cells_vs_params_long(
+    data_neg$param_sample_dt,
+    integrated_fluxes_neg
+  )
+  cells_vs_params_long_pos <- cells_vs_params_long(
+    data_pos$param_sample_dt,
+    integrated_fluxes_pos
+  )
 
   cells_vs_params_long_neg[, pe := -5]
   cells_vs_params_long_pos[, pe := 5]
