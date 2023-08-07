@@ -166,7 +166,7 @@ sobol_neg_and_pos <- function() {
       scale_colour_discrete(
         labels = c("pos" = expression(Pe == 5), "neg" = expression(Pe == -5))
       ) +
-      coord_cartesian(ylim = c(0.0, 1.0)) +
+      coord_cartesian(ylim = c(0.0, 1.2)) +
       labs(
         x = NULL,
         y = y_label,
@@ -216,15 +216,14 @@ sobol_neg_and_pos <- function() {
   }
 
   cells_vs_params_panel <- function(cells_vs_params, variable_str, param_str) {
-    ggplot(cells_vs_params[variable == variable_str & param == param_str]) +
+    p <- ggplot(cells_vs_params[variable == variable_str & param == param_str]) +
       geom_point(aes(
         x = param_value,
         y = cells,
         colour = factor(pe),
         group = factor(pe),
         shape = factor(pe)
-      ), size = 1.25) +
-      geom_hline(yintercept = 0, linetype = "dashed") +
+      ), size = 0.2, alpha = 0.5) +
       labs(
         x = param_labels_words_no_breaks[param_str],
         y = variable_labels[variable_str],
@@ -251,6 +250,12 @@ sobol_neg_and_pos <- function() {
         # on the RHS at the moment and squeezes the plots a lot
         legend.position = "none"
       )
+
+      if (variable_str == "net_change") {
+        p <- p + geom_hline(yintercept = 0, linetype = "dashed")
+      }
+
+      p
   }
 
   # Plots
