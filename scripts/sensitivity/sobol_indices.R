@@ -9,7 +9,7 @@ library(ggbreak)
 
 source("scripts/sensitivity/functions.R")
 
-res_dir_base <- "res_sensitivity_3_neg_pe"
+res_dir_base <- "res_sensitivity_1000_pe_5_traces_only"
 
 # Set and create the plot directory if it doesn't exist
 plot_dir <- paste(res_dir_base, "plots", sep = "/")

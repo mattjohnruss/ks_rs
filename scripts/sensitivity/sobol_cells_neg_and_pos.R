@@ -21,10 +21,10 @@ sobol_neg_and_pos <- function() {
     # appropriate value
     if (pos) {
       pe <<- 5.0
-      res_dir_base <- "res_sensitivity_3_pos_pe"
+      res_dir_base <- "res_sensitivity_1000_pe_5_traces_only"
     } else {
       pe <<- -5.0
-      res_dir_base <- "res_sensitivity_3_neg_pe"
+      res_dir_base <- "res_sensitivity_1000_pe_-5_traces_only"
     }
 
     # Min/max for the parameters we're varying

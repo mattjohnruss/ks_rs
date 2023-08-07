@@ -9,7 +9,7 @@ const_params <- list(
   phi_bar_over_phi_max = 0.1,
   c_bar_over_e = 0.1,
   # IDEA: get rid of pe from here and do e.g. `x$X[, pe := -5]` in the script,
-  pe = -5.0,
+  pe = 5.0,
   alpha_plus = 23.25,
   alpha_minus = 0.3,
   beta_plus = 0.0000385493,

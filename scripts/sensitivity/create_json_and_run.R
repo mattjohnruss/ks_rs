@@ -5,9 +5,9 @@ source("scripts/sensitivity/functions.R")
 # Set the random seed to make the parameter sample reproducible
 set.seed(12345L)
 
-res_dir_base <- "res_sensitivity_3_neg_pe"
+res_dir_base <- "res_sensitivity_1000_pe_5"
 
-n_param_sample <- 100
+n_param_sample <- 1000
 
 # Create the parameter sample and Sobol matrices
 param_sample <- sobol_matrices(
