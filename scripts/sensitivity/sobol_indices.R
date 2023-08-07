@@ -445,7 +445,7 @@ if (!file.exists(paste(res_dir_base, "flux_sobol_indices.rds", sep = "/"))) {
 p_flux_first_order <- p_sobol_vs_time(
   flux_sobol_indices[sensitivity == "Si"],
   "First-order Sobol index",
-  c(-0.1, 1.0)
+  c(-0.1, 1.2)
 )
 
 ggsave_with_defaults(
@@ -458,7 +458,7 @@ ggsave_with_defaults(
 p_flux_total_order <- p_sobol_vs_time(
   flux_sobol_indices[sensitivity == "Ti"],
   "Total-order Sobol index",
-  c(0, 1.2)
+  c(0, 1.05)
 )
 
 ggsave_with_defaults(
