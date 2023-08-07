@@ -22,6 +22,7 @@ if (!dir.exists(plot_dir)) {
 # sequence or uniformly random) parameter samples and the resulting "design
 # matrix" (`x$X`)
 x <- readRDS(paste(res_dir_base, "param_sample.rds", sep = "/"))
+# The size of the original parameter samples, not the total number of runs
 n_param_sample <- x$n_param_sample
 param_sample <- x$param_sample
 param_sample_dt <- x$param_sample_dt
@@ -340,21 +341,6 @@ ggsave_with_defaults(
   plot = p_trace_grid
 )
 
-############################
-
-## Plot some specific repeats from interesting parts of paramteter space
-
-#interesting_runs <- c(138, 347, 68, 419)
-
-#ggplot(trace_data_long[rep %in% interesting_runs]) +
-  #geom_line(aes(x = `t_{inf}`, y = value, colour = factor(rep)), size = 2) +
-  #facet_wrap(vars(variable), scales = "free") +
-  #theme_cowplot()
-
-#grid_panel(`phi_i^{tot}` + `phi_m^{tot}` + `phi_{C_u}^{tot}` + `phi_{C_b}^{tot}`, j_phi_i_i_factor, blue)
-
-############################
-
 # Sobol indices as a function of time - general methods
 
 t_inf_max <- trace_data %>%
@@ -431,17 +417,28 @@ p_sobol_vs_time <- function(sobol_data, title, ylim) {
 
 flux_sobol_indices <- list()
 
-for (i in 1:output_inf_max) {
-  print(i)
-  results <- sobol_at_time(trace_data, i, `-F_{phi_{C_b}}(x=0)`)
+if (!file.exists(paste(res_dir_base, "flux_sobol_indices.rds", sep = "/"))) {
+  for (i in 1:output_inf_max) {
+    print(i)
+    results <- sobol_at_time(trace_data, i, `-F_{phi_{C_b}}(x=0)`)
 
-  t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
-  results[, `t_{inf}` := t_inf]
+    t_inf <- trace_data[output_inf == i & rep == 1, `t_{inf}`]
+    results[, `t_{inf}` := t_inf]
 
-  flux_sobol_indices[[i]] <- results
+    flux_sobol_indices[[i]] <- results
+  }
+
+  flux_sobol_indices <- rbindlist(flux_sobol_indices)
+
+  saveRDS(
+    flux_sobol_indices,
+    paste(res_dir_base, "flux_sobol_indices.rds", sep = "/")
+  )
+} else {
+  flux_sobol_indices <- readRDS(
+    paste(res_dir_base, "flux_sobol_indices.rds", sep = "/")
+  )
 }
-
-flux_sobol_indices <- rbindlist(flux_sobol_indices)
 
 # First order
 
@@ -468,6 +465,18 @@ ggsave_with_defaults(
   plot = p_flux_total_order,
   paste(plot_dir, "flux_total_order_sobol_indices.pdf", sep = "/")
 )
+
+# Calculate and plot the sums of the indices for each time
+flux_sobol_sums <- flux_sobol_indices[
+  ,
+  .(sum = sum(original)),
+  by = c("sensitivity", "t_{inf}")
+]
+
+ggplot(flux_sobol_sums, aes(x = `t_{inf}`, y = sum, colour = sensitivity)) +
+  geom_point() +
+  theme_cowplot() +
+  background_grid()
 
 ################
 
