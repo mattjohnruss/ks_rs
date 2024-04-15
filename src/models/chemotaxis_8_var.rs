@@ -42,6 +42,8 @@ pub struct ChemotaxisParameters {
     pub q_u: f64,
     pub q_b: f64,
     pub q_s: f64,
+    pub d_f: f64,
+    pub d_t: f64,
     pub d_c_s: f64,
     pub d_phi_i: f64,
     pub d_phi_m: f64,
@@ -51,6 +53,7 @@ pub struct ChemotaxisParameters {
     pub chi_u: f64,
     pub chi_b: f64,
     pub chi_s: f64,
+    pub mu_m: f64,
     pub m_h: f64,
     pub m_i_factor: f64,
     #[serde(skip)]
@@ -163,6 +166,7 @@ impl ProblemFunctions for Chemotaxis {
                     - inhib * self.p.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
                     - inhib * self.p.gamma_um * problem.var(PHI_M, cell) * problem.var(C_U, cell)
                     - self.p.q_u * problem.var(PHI_I, cell) * problem.var(C_U, cell)
+                    - self.p.d_f * problem.var(C_U, cell)
             }
             C_B => {
                 self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(C_U, cell)
@@ -178,6 +182,7 @@ impl ProblemFunctions for Chemotaxis {
                     - inhib * self.p.gamma_bi * problem.var(PHI_I, cell) * problem.var(C_B, cell)
                     - inhib * self.p.gamma_bm * problem.var(PHI_M, cell) * problem.var(C_B, cell)
                     - self.p.q_b * problem.var(PHI_I, cell) * problem.var(C_B, cell)
+                    - self.p.d_f * problem.var(C_B, cell)
             }
             C_S => {
                 inhib * self.p.gamma_ui * problem.var(PHI_I, cell) * problem.var(C_U, cell)
@@ -185,12 +190,14 @@ impl ProblemFunctions for Chemotaxis {
                     + inhib * self.p.gamma_bi * problem.var(PHI_I, cell) * problem.var(C_B, cell)
                     + inhib * self.p.gamma_bm * problem.var(PHI_M, cell) * problem.var(C_B, cell)
                     - self.p.q_s * problem.var(PHI_I, cell) * problem.var(C_S, cell)
+                    - self.p.d_t * problem.var(C_S, cell)
             }
             PHI_I => {
                 - self.p.m * problem.var(PHI_I, cell)
             }
             PHI_M => {
                 self.p.m * problem.var(PHI_I, cell)
+                    + self.p.mu_m * problem.var(PHI_M, cell)
                     - c_bar_over_phi_bar
                         * self.p.beta_plus
                         * problem.var(C_U, cell)
