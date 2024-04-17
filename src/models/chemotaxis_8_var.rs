@@ -32,8 +32,6 @@ pub struct ChemotaxisParameters {
     pub beta_minus: f64,
     pub n_ccr7: f64,
     pub n: f64,
-    pub k_j: f64,
-    pub n_j: f64,
     pub a_bar: f64,
     pub gamma_ui: f64,
     pub gamma_um: f64,
@@ -145,7 +143,6 @@ impl ProblemFunctions for Chemotaxis {
         let c_bar_over_phi_bar = 1.0 / self.p.phi_bar_over_c_bar;
 
         let inhib = 1.0 / (1.0 + problem.var(J, cell).powf(self.p.n));
-        let self_inhib = self.p.k_j.powf(self.p.n_j) / (self.p.k_j.powf(self.p.n_j) + problem.var(J, cell).powf(self.p.n_j));
 
         let ecm_occupancy = self.p.c_bar_over_e
             * (problem.var(C_B, cell)
@@ -227,7 +224,7 @@ impl ProblemFunctions for Chemotaxis {
                         * problem.var(PHI_M, cell)
                     - self.p.beta_minus * problem.var(PHI_C_B, cell)
             }
-            J => self.p.a_bar * self_inhib * problem.var(PHI_M, cell),
+            J => self.p.a_bar * problem.var(PHI_M, cell),
         }
     }
 
