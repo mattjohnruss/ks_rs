@@ -34,12 +34,8 @@ const_params <- list(
   phi_m_init = 0.0
 )
 
-add_constants_and_gammas_to_param_table <- function(params, const_params) {
+add_constants_to_param_table <- function(params, const_params) {
   params[, names(const_params) := const_params]
-  params[, gamma_ui := gamma]
-  params[, gamma_um := gamma]
-  params[, gamma_bi := gamma]
-  params[, gamma_bm := gamma]
 }
 
 # Parameter and variable labels as `expression`s for nicer formatting in plots
@@ -90,36 +86,29 @@ m_i_factor_min <- 1.0
 m_i_factor_max <- 1000.0
 t_j_phi_i_lag_min <- 0.0
 t_j_phi_i_lag_max <- 25.0
-gamma_min <- 0.0
-gamma_max <- 10.0
 
 param_names <- c(
   "j_phi_i_i_factor",
   "m_i_factor",
-  "t_j_phi_i_lag",
-  "gamma"
+  "t_j_phi_i_lag"
 )
 param_mins <- c(
   j_phi_i_i_factor_min,
   m_i_factor_min,
-  t_j_phi_i_lag_min,
-  gamma_min
+  t_j_phi_i_lag_min
 )
 param_maxs <- c(
   j_phi_i_i_factor_max,
   m_i_factor_max,
-  t_j_phi_i_lag_max,
-  gamma_max
+  t_j_phi_i_lag_max
 )
 
 # Write a config file for each set of parameter values to the directory
-# corresponding to the index of this run, e.g. `res/32/config.json`. Skips the
-# `gamma` column as this has already been duplicated into the various `gamma_*`
-# columns that are actually used in the sims.
+# corresponding to the index of this run, e.g. `res/32/config.json`.
 write_json_params_files <- function(all_params, res_dir_base) {
   n_runs <- nrow(all_params)
   for (i in 1:n_runs) {
-    j <- jsonlite::toJSON(jsonlite::unbox(all_params[i, !"gamma"]), digits = 16)
+    j <- jsonlite::toJSON(jsonlite::unbox(all_params[i]), digits = 16)
     res_dir <- paste(res_dir_base, i - 1, sep = "/")
 
     if (!dir.exists(res_dir)) {

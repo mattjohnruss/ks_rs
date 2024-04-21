@@ -29,7 +29,7 @@ for (i in seq_along(param_names)) {
 
 param_sample_dt <- data.table(param_sample)
 
-add_constants_and_gammas_to_param_table(param_sample_dt, const_params)
+add_constants_to_param_table(param_sample_dt, const_params)
 
 write_json_params_files(param_sample_dt, res_dir_base)
 
