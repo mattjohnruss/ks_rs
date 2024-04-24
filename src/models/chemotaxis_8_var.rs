@@ -238,7 +238,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Dirichlet(0.0),
-            J => BoundaryCondition::Flux(0.0),
+            J => BoundaryCondition::Dirichlet(0.0),
         }
     }
 
@@ -262,7 +262,7 @@ impl ProblemFunctions for Chemotaxis {
             PHI_M => BoundaryCondition::Flux(0.0),
             PHI_C_U => BoundaryCondition::Flux(0.0),
             PHI_C_B => BoundaryCondition::Flux(0.0),
-            J => BoundaryCondition::Flux(0.0),
+            J => BoundaryCondition::Dirichlet(0.0),
         }
     }
 }
