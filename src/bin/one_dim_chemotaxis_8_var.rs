@@ -56,7 +56,7 @@ fn set_initial_conditions(problem: &mut Problem1D<Chemotaxis>) {
 fn trace_header(mut trace_writer: impl Write) -> Result<()> {
     writeln!(
         &mut trace_writer,
-        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0) m j_{{phi_i}} state t_{{inf}}"
+        "t C_u^{{tot}} C_b^{{tot}} C_s^{{tot}} phi_i^{{tot}} phi_m^{{tot}} phi_{{C_u}}^{{tot}} phi_{{C_b}}^{{tot}} J^{{tot}} -F_{{phi_i}}(x=1) -F_{{phi_{{C_b}}}}(x=0) m j_{{phi_i}} state t_{{inf}}"
     )?;
     Ok(())
 }
@@ -77,10 +77,11 @@ fn trace(problem: &Problem1D<Chemotaxis>, mut trace_writer: impl Write) -> Resul
     let phi_m_total = problem.integrate_solution(PHI_M);
     let phi_c_u_total = problem.integrate_solution(PHI_C_U);
     let phi_c_b_total = problem.integrate_solution(PHI_C_B);
+    let j_total = problem.integrate_solution(J);
 
     writeln!(
         &mut trace_writer,
-        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {} {:.6e}",
+        "{:.6e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {:.8e} {} {:.6e}",
         problem.time,
         c_u_total,
         c_b_total,
@@ -89,6 +90,7 @@ fn trace(problem: &Problem1D<Chemotaxis>, mut trace_writer: impl Write) -> Resul
         phi_m_total,
         phi_c_u_total,
         phi_c_b_total,
+        j_total,
         -problem.boundary_flux_right(PHI_I.into()),
         -problem.boundary_flux_left(PHI_C_B.into()),
         problem.functions.p.m,
