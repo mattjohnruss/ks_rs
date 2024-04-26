@@ -7,7 +7,7 @@ res_dir_base="$2"
 dir="./"
 ssd_threshold="1e-4"
 
-driver="one_dim_chemotaxis_8_var"
+driver="one_dim_chemotaxis_9_var"
 
 driver_prog="../../target/release/$driver"
 
