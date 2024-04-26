@@ -28,6 +28,7 @@ const_params <- list(
   d_phi_m = 0.01,
   d_phi_c_u = 0.01,
   d_phi_c_b = 0.01,
+  d_phi_c_s = 0.01,
   d_j = 1.0,
   chi_b = 0.004,
   chi_s = 0.004,
