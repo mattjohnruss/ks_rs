@@ -79,7 +79,7 @@ pub enum ChemotaxisVariable {
 }
 
 impl ChemotaxisVariable {
-    pub const N_VARIABLE: usize = 8;
+    pub const N_VARIABLE: usize = 9;
 }
 
 pub use ChemotaxisVariable::*;
