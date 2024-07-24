@@ -147,7 +147,7 @@ impl ProblemFunctions for Chemotaxis {
 
         match var.into() {
             C_U => {
-                -self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(C_U, cell)
+                - self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(C_U, cell)
                     + self.p.alpha_minus * problem.var(C_B, cell)
                     - self.p.n_ccr7
                         * self.p.beta_plus
@@ -188,11 +188,11 @@ impl ProblemFunctions for Chemotaxis {
                     * self.p.beta_minus
                     * problem.var(PHI_C_S, cell)
                 + inhib * self.p.gamma * problem.var(PHI_I, cell) * problem.var(C_U, cell)
-                    + inhib * self.p.gamma * problem.var(PHI_M, cell) * problem.var(C_U, cell)
-                    + inhib * self.p.gamma * problem.var(PHI_I, cell) * problem.var(C_B, cell)
-                    + inhib * self.p.gamma * problem.var(PHI_M, cell) * problem.var(C_B, cell)
-                    - self.p.q_s * problem.var(PHI_I, cell) * problem.var(C_S, cell)
-                    - self.p.d_t * problem.var(C_S, cell)
+                + inhib * self.p.gamma * problem.var(PHI_M, cell) * problem.var(C_U, cell)
+                + inhib * self.p.gamma * problem.var(PHI_I, cell) * problem.var(C_B, cell)
+                + inhib * self.p.gamma * problem.var(PHI_M, cell) * problem.var(C_B, cell)
+                - self.p.q_s * problem.var(PHI_I, cell) * problem.var(C_S, cell)
+                - self.p.d_t * problem.var(C_S, cell)
             }
             PHI_I => {
                 - self.p.m * problem.var(PHI_I, cell)
@@ -210,9 +210,14 @@ impl ProblemFunctions for Chemotaxis {
                         * problem.var(C_B, cell)
                         * problem.var(PHI_M, cell)
                     + self.p.beta_minus * problem.var(PHI_C_B, cell)
+                    - c_bar_over_phi_bar
+                        * self.p.beta_plus
+                        * problem.var(C_S, cell)
+                        * problem.var(PHI_M, cell)
+                    + self.p.beta_minus * problem.var(PHI_C_S, cell)
             }
             PHI_C_U => {
-                -self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(PHI_C_U, cell)
+                - self.p.alpha_plus * (1.0 - ecm_occupancy) * problem.var(PHI_C_U, cell)
                     + self.p.alpha_minus * problem.var(PHI_C_B, cell)
                     + c_bar_over_phi_bar
                         * self.p.beta_plus
@@ -269,7 +274,8 @@ impl ProblemFunctions for Chemotaxis {
                 let phi_total = problem.var_point_value_at_face_for_dirichlet_bcs(PHI_I.into(), cell, Face::East) +
                     problem.var_point_value_at_face_for_dirichlet_bcs(PHI_M.into(), cell, Face::East) +
                     problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_U.into(), cell, Face::East) +
-                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), cell, Face::East);
+                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_B.into(), cell, Face::East) +
+                    problem.var_point_value_at_face_for_dirichlet_bcs(PHI_C_S.into(), cell, Face::East);
 
                 // factor representing the occupancy at the boundary
                 let f = 1.0 - self.p.phi_bar_over_phi_max * phi_total;
