@@ -3,6 +3,9 @@ library(magrittr)
 library(jsonlite)
 library(stringr)
 
+# the ratio of the timescales used in the 1D and cleaving models - used to convert parameters inferred from cleaving data into the appropriate scale for the 1D model
+t_1d_over_t_cleaving <- 2500.0 / 3600.0
+
 # Constant parameter values
 const_params <- list(
   phi_bar_over_c_bar = 1.40179e-6,
@@ -16,13 +19,13 @@ const_params <- list(
   beta_minus = 12.5,
   n_ccr7 = 30000.0,
   n = 2.0,
-  a_bar = 3.8900625,
-  gamma = 2.91132291666667,
+  a_bar = 5.566645e+00 * t_1d_over_t_cleaving,
+  gamma = 4.140805e+00 * t_1d_over_t_cleaving,
   q_u = 0.0,
   q_b = 0.0,
   q_s = 0.0,
-  d_f = 0.0193910416666667,
-  d_t = 0.00643617361111111,
+  d_f = 2.793900e-02 * t_1d_over_t_cleaving,
+  d_t = 9.196955e-03 * t_1d_over_t_cleaving,
   d_c_s = 10.0,
   d_phi_i = 0.01,
   d_phi_m = 0.01,
@@ -30,9 +33,10 @@ const_params <- list(
   d_phi_c_b = 0.01,
   d_phi_c_s = 0.01,
   d_j = 1.0,
+  chi_u = 0.004,
   chi_b = 0.004,
   chi_s = 0.004,
-  mu_m = -4.48436805555556e-05,
+  mu_m = 2.532745e-05 * t_1d_over_t_cleaving,
   m_h = 0.00113865,
   t_inflammation = 50.0,
   j_phi_i_h = 0.000455461,
@@ -73,14 +77,20 @@ param_labels_words_no_breaks <- c(
 variable_labels <- c(
   "C_u" = expression(C[u]),
   "C_b" = expression(C[b]),
-  "C_b^{tot}" = expression(paste("Total ", C[b])),
   "C_s" = expression(C[s]),
   "phi_i" = expression(phi[i]),
   "phi_m" = expression(phi[m]),
   "phi_C_u" = expression(phi[C[u]]),
   "phi_C_b" = expression(phi[C[b]]),
+  "phi_C_s" = expression(phi[C[s]]),
+  "C_u^{tot}" = expression(paste("Total ", C[u])),
+  "C_b^{tot}" = expression(paste("Total ", C[b])),
+  "C_s^{tot}" = expression(paste("Total ", C[s])),
+  "phi_{C_u}^{tot}" = expression(paste("Total ", phi[C[u]])),
   "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
-  "-F_{phi_{C_b}}(x=0)" = expression(paste("Cell flux at l.v."))
+  "phi_{C_s}^{tot}" = expression(paste("Total ", phi[C[s]])),
+  "J^{tot}" = expression(paste("Total ", J)),
+  "cell_outflux" = expression(paste("Cell LV flux"))
 )
 
 all_labels <- c(param_labels, variable_labels)
@@ -200,7 +210,7 @@ calculate_integrated_fluxes <- function(trace_data) {
   integrated_fluxes <- trace_data[`t_{inf}` <= t_max,
     .(
       influx_sum = frollsum(`-F_{phi_i}(x=1)`, 2),
-      outflux_sum = frollsum(`-F_{phi_{C_b}}(x=0)`, 2),
+      outflux_sum = frollsum(`cell_outflux`, 2),
       dt = frollapply(`t_{inf}`, 2, function(x) x[2] - x[1])
     ), by = rep] %>%
     .[, .(
