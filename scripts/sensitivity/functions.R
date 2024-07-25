@@ -90,7 +90,10 @@ variable_labels <- c(
   "phi_{C_b}^{tot}" = expression(paste("Total ", phi[C[b]])),
   "phi_{C_s}^{tot}" = expression(paste("Total ", phi[C[s]])),
   "J^{tot}" = expression(paste("Total ", J)),
-  "cell_outflux" = expression(paste("Cell LV flux"))
+  "cell_outflux" = expression(paste("Cell LV flux")),
+  "-F_{phi_{C_u}}(x=0)" = expression(paste(phi[C[u]], " outflux")),
+  "-F_{phi_{C_b}}(x=0)" = expression(paste(phi[C[b]], " outflux")),
+  "-F_{phi_{C_s}}(x=0)" = expression(paste(phi[C[s]], " outflux"))
 )
 
 all_labels <- c(param_labels, variable_labels)
