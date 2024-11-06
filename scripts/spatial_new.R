@@ -61,7 +61,7 @@ for (time in c(seq(0, 1000, 10))) {
       spatial_data_long,
       aes(x = x, y = value, colour = .data[[param]], group = rep)
     ) +
-      geom_line(alpha = 0.2) +
+      geom_line(linewidth = 0.2, alpha = 0.2) +
       facet_wrap(
         vars(variable),
         scales = "free",
@@ -75,17 +75,30 @@ for (time in c(seq(0, 1000, 10))) {
       ) +
       colour_scales[param] +
       theme(legend.position = "top", legend.justification = "centre") +
-      ggh4x::facetted_pos_scales(y = list(
-        variable == "C_u" ~ scale_y_continuous(limits = c(0, 1)),
-        variable == "C_b" ~ scale_y_continuous(limits = c(0, 9)),
-        variable == "C_s" ~ scale_y_continuous(limits = c(0, 0.03)),
-        variable == "phi_i" ~ scale_y_continuous(limits = c(0, 8)),
-        variable == "phi_m" ~ scale_y_continuous(limits = c(0, 7)),
-        variable == "phi_C_u" ~ scale_y_continuous(limits = c(0, 0.055)),
-        variable == "phi_C_b" ~ scale_y_continuous(limits = c(0, 1.3)),
-        variable == "phi_C_s" ~ scale_y_continuous(limits = c(0, 0.07)),
-        variable == "J" ~ scale_y_continuous(limits = c(0, 0.9))
-      ))
+      # for pe = -5
+      #ggh4x::facetted_pos_scales(y = list(
+        #variable == "C_u" ~ scale_y_continuous(limits = c(0, 1)),
+        #variable == "C_b" ~ scale_y_continuous(limits = c(0, 9)),
+        #variable == "C_s" ~ scale_y_continuous(limits = c(0, 0.03)),
+        #variable == "phi_i" ~ scale_y_continuous(limits = c(0, 8)),
+        #variable == "phi_m" ~ scale_y_continuous(limits = c(0, 7)),
+        #variable == "phi_C_u" ~ scale_y_continuous(limits = c(0, 0.055)),
+        #variable == "phi_C_b" ~ scale_y_continuous(limits = c(0, 1.3)),
+        #variable == "phi_C_s" ~ scale_y_continuous(limits = c(0, 0.07)),
+        #variable == "J" ~ scale_y_continuous(limits = c(0, 0.9))
+      #))
+      # for pe = 5
+      #ggh4x::facetted_pos_scales(y = list(
+        #variable == "C_u" ~ scale_y_continuous(limits = c(0, 1)),
+        #variable == "C_b" ~ scale_y_continuous(limits = c(0, 9)),
+        #variable == "C_s" ~ scale_y_continuous(limits = c(0, 0.1)),
+        #variable == "phi_i" ~ scale_y_continuous(limits = c(0, 8.5)),
+        #variable == "phi_m" ~ scale_y_continuous(limits = c(0, 4.1)),
+        #variable == "phi_C_u" ~ scale_y_continuous(limits = c(0, 0.29)),
+        #variable == "phi_C_b" ~ scale_y_continuous(limits = c(0, 3.9)),
+        #variable == "phi_C_s" ~ scale_y_continuous(limits = c(0, 0.25)),
+        #variable == "J" ~ scale_y_continuous(limits = c(0, 0.35))
+      #))
     p_spatial
 
     name <- sprintf("spatial_t=%05d_colour=%s.png", time, param)
