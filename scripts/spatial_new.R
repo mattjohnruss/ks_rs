@@ -1,11 +1,5 @@
-library(sensobol)
 library(ggplot2)
-library(cowplot)
-library(patchwork)
-library(GGally)
-library(ggnewscale)
 library(ggh4x)
-library(ggbreak)
 
 source("scripts/sensitivity/functions.R")
 
