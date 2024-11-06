@@ -83,6 +83,7 @@ variable_labels <- c(
   "phi_C_u" = expression(phi[C[u]]),
   "phi_C_b" = expression(phi[C[b]]),
   "phi_C_s" = expression(phi[C[s]]),
+  "J" = expression(J),
   "C_u^{tot}" = expression(paste("Total ", C[u])),
   "C_b^{tot}" = expression(paste("Total ", C[b])),
   "C_s^{tot}" = expression(paste("Total ", C[s])),
