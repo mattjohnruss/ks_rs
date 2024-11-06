@@ -224,28 +224,6 @@ ggsave_with_defaults(
   #xlab("Parameter value") +
   #ylab("Cells (dimensionless)")
 
-colour_bar_gradient_ordered <- function(high, order) {
-  scale_colour_gradient(
-    low = "black",
-    high = high,
-    guide = guide_colorbar(
-      title.position = "top",
-      title.hjust = 0.5,
-      order = order
-    )
-  )
-}
-blue <- colour_bar_gradient_ordered("blue", 1)
-red <- colour_bar_gradient_ordered("red", 2)
-green <- colour_bar_gradient_ordered("green", 3)
-orange <- colour_bar_gradient_ordered("orange", 4)
-colour_scales <- c(
-  "j_phi_i_i_factor" = blue,
-  "m_i_factor" = red,
-  "t_j_phi_i_lag" = green,
-  "gamma" = orange
-)
-
 #grid_panel <- function(y_var, colour_by, colour_style, axis_style = NULL) {
   #p <- ggplot(
       #trace_data[rep %in% 0:9],

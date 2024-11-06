@@ -98,6 +98,30 @@ variable_labels <- c(
 
 all_labels <- c(param_labels, variable_labels)
 
+colour_bar_gradient_ordered <- function(high, order) {
+  scale_colour_gradient(
+    low = "black",
+    high = high,
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      order = order
+    )
+  )
+}
+blue <- colour_bar_gradient_ordered("blue", 1)
+red <- colour_bar_gradient_ordered("red", 2)
+green <- colour_bar_gradient_ordered("green", 3)
+purple <- colour_bar_gradient_ordered("purple", 4)
+orange <- colour_bar_gradient_ordered("orange", 5)
+colour_scales <- c(
+  "j_phi_i_i_factor" = blue,
+  "m_i_factor" = red,
+  "t_j_phi_i_lag" = green,
+  "gamma" = orange,
+  "pe" = purple
+)
+
 # Min/max for the parameters we're varying
 j_phi_i_i_factor_min <- 1.0
 j_phi_i_i_factor_max <- 1000.0
