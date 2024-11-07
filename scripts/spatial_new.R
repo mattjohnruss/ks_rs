@@ -21,8 +21,6 @@ n_param_sample <- x$n_param_sample
 param_sample <- x$param_sample
 param_sample_dt <- x$param_sample_dt
 
-#time <- 100
-
 #variable_names <- c("C_u", "C_b", "C_s", "phi_i", "phi_m", "phi_C_u", "phi_C_b", "phi_C_s", "J")
 
 # find the max of each variable across all repeats
@@ -38,6 +36,11 @@ param_sample_dt <- x$param_sample_dt
 #maxes <- rbindlist(maxes)
 #maxes <- maxes[, lapply(.SD, max), .SDcols = variable_names]
 
+n_rep_sample <- 1000
+rep_sample <- sample(0:nrow(param_sample_dt), min(nrow(param_sample_dt), n_rep_sample)) |> sort()
+
+#time <- 100
+
 # plot spatial profiles for a range of times and colour by the 3 params we are varying
 for (time in c(seq(0, 1000, 10))) {
   print(time)
@@ -52,7 +55,7 @@ for (time in c(seq(0, 1000, 10))) {
   for (param in c("j_phi_i_i_factor", "m_i_factor", "t_j_phi_i_lag")) {
     print(param)
     p_spatial <- ggplot(
-      spatial_data_long,
+      spatial_data_long[rep %in% rep_sample],
       aes(x = x, y = value, colour = .data[[param]], group = rep)
     ) +
       geom_line(linewidth = 0.2, alpha = 0.2) +
@@ -68,7 +71,7 @@ for (time in c(seq(0, 1000, 10))) {
         colour = param_labels_words[param]
       ) +
       colour_scales[param] +
-      theme(legend.position = "top", legend.justification = "centre") +
+      theme(legend.position = "top", legend.justification = "centre") # +
       # for pe = -5
       #ggh4x::facetted_pos_scales(y = list(
         #variable == "C_u" ~ scale_y_continuous(limits = c(0, 1)),
